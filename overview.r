@@ -12,6 +12,14 @@ loess_sd = function(x, y) {
          geom_line(data=df, aes(x=x, y=y-sd), color="red", linetype="dotted", size=1))
 }
 
+loess_z = function(x, y) {
+    mod = msir::loess.sd(x, y)
+    df = data.frame(x = mod$x, y=mod$y, sd=mod$sd)
+    df = df[rank(x),]
+    stopifnot(x == df$x)
+    (y - df$y) / df$sd
+}
+
 stat_loess_sd = function(mapping = NULL, data = NULL, geom = "line",
                         position = "identity", na.rm = FALSE, show.legend = NA, 
                         inherit.aes = TRUE, ...) {
@@ -52,6 +60,9 @@ expr = io$read_table("./data/ORF_DMSO_2019-02.txt", header=TRUE) %>%
            cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
            condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%
     tidyr::spread(condition, value) %>%
+    group_by(cells) %>%
+    mutate(z_LFC = loess_z(DMSO, `LFC DMSO/ETP`)) %>%
+    ungroup() %>%
     left_join(tissues %>% select(-comment))
 
 percell = expr %>%

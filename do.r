@@ -22,7 +22,8 @@ expr = io$read_table("./data/ORF_DMSO_2019-02.txt", header=TRUE) %>%
            cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
            cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
            condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%
-    tidyr::spread(condition, value)
+    tidyr::spread(condition, value) %>%
+    left_join(tissues %>% select(-comment))
 
 percell = expr %>%
     group_by(cells) %>%

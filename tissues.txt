@@ -7,14 +7,12 @@ H2077	LUAD	NA
 Kura	OV	NA	
 LAN-1	NB	NA	metastatic site: bone marrow
 LnCaP	PRAD	wt	
-LnCAP	PRAD	wt	
 Meljuso	SKCM	NA	
 NB69	NB	NA	
 OVCAR4	OV	mut	
 OVSAHO	OV	mut	metastatic site: abdomen
 SK-NEP-1	EWS	mut	pleural effusion; often misidentified as Wilms tumor
 SKBr3	BRCA	mut	metastatic site: pleural effusion
-SKNEP1	EWS	mut	pleural effusion; often misidentified as Wilms tumor
 T47D	BRCA	mut	metastatic site: pleural effusion
 TC32	PrimNeur	NA	
 WM266-4	SKCM	NA	metastatic site: thigh skin

@@ -8,6 +8,7 @@ plot_overview = function(data, title, label_top=20) {
         mutate(label = ifelse(rank(`LFC DMSO/ETP`) <= label_top, `GENE SYMBOL`, NA)) %>%
         ggplot(aes(x=DMSO, y=`LFC DMSO/ETP`)) +
             geom_point(alpha=0.5) +
+            geom_smooth(color="red", se=FALSE) +
             ggrepel::geom_label_repel(aes(label=label)) +
             labs(title = title,
                  x = "DMSO",

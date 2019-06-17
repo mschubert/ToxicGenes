@@ -34,3 +34,5 @@ pdf("overview.pdf")
 for (p in percell$plot)
     print(p)
 dev.off()
+
+saveRDS(expr, file="overview.rds")

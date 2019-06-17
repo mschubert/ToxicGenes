@@ -1,7 +1,6 @@
 library(cowplot)
 io = import('io')
-
-tissues = io$read_table("tissues.txt", header=TRUE)
+sys = import('sys')
 
 loess_sd = function(x, y) {
     mod = msir::loess.sd(x, y)
@@ -51,28 +50,32 @@ plot_overview = function(data, title, label_top=20) {
              y = "LFC DMSO/ETP")
 }
 
-expr = io$read_table("./data/ORF_DMSO_2019-02.txt", header=TRUE) %>%
-    tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
-    mutate(condition = sub("( ORF)?[_-]DMSO", " DMSO", condition),
-           condition = sub("LFC$", "LFC DMSO/ETP", condition),
-           cells = sub(" .*$", "", condition),
-           cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
-           cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
-           condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%
-    tidyr::spread(condition, value) %>%
-    group_by(cells) %>%
-    mutate(z_LFC = loess_z(DMSO, `LFC DMSO/ETP`)) %>%
-    ungroup() %>%
-    left_join(tissues %>% select(-comment))
+if (is.null(module_name())) {
+    tissues = io$read_table("tissues.txt", header=TRUE)
 
-percell = expr %>%
-    group_by(cells) %>%
-    tidyr::nest() %>%
-    mutate(plot = purrr::map2(data, cells, plot_overview))
+    expr = io$read_table("./data/ORF_DMSO_2019-02.txt", header=TRUE) %>%
+        tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
+        mutate(condition = sub("( ORF)?[_-]DMSO", " DMSO", condition),
+               condition = sub("LFC$", "LFC DMSO/ETP", condition),
+               cells = sub(" .*$", "", condition),
+               cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
+               cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
+               condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%
+        tidyr::spread(condition, value) %>%
+        group_by(cells) %>%
+        mutate(z_LFC = loess_z(DMSO, `LFC DMSO/ETP`)) %>%
+        ungroup() %>%
+        left_join(tissues %>% select(-comment))
 
-pdf("overview.pdf")
-for (p in percell$plot)
-    print(p)
-dev.off()
+    percell = expr %>%
+        group_by(cells) %>%
+        tidyr::nest() %>%
+        mutate(plot = purrr::map2(data, cells, plot_overview))
 
-saveRDS(expr, file="overview.rds")
+    pdf("overview.pdf")
+    for (p in percell$plot)
+        print(p)
+    dev.off()
+
+    saveRDS(expr, file="overview.rds")
+}

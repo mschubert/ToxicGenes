@@ -55,7 +55,7 @@ if (is.null(module_name())) {
         opt('t', 'tissues', 'txt', 'tissues.txt'),
         opt('l', 'orflib', 'txt', 'data/ORF_DMSO_2019-02.txt'),
         opt('o', 'outfile', 'rds', 'overview.rds'),
-        opt('p', 'plotfile', 'pdf', 'overview.pdf'))
+        opt('p', 'plotfile', 'pdf', 'overview_naive.pdf'))
 
     tissues = io$read_table(args$tissues, header=TRUE)
 

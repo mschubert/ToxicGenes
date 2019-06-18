@@ -51,9 +51,20 @@ tissue = expr %>%
 
 result = list(pan=pan, pancov=pancov, tissue=tissue)
 
+plots = lapply(result, function(res) {
+    if ("tissue" %in% names(res))
+        res = mutate(res, label = sprintf("%s - %s", `GENE SYMBOL`, tissue))
+    else
+        res = mutate(res, label = `GENE SYMBOL`)
+    res %>%
+        mutate(size=5) %>%
+        plt$color$p_effect(pvalue="adj.p", effect="estimate", thresh=0.1, dir=-1) %>%
+        plt$volcano(label_top=30, repel=TRUE)
+})
+
 pdf(args$plotfile)
-for (r in result)
-    plt$volcano(r)
+for (i in seq_along(plots))
+    print(plots[[i]] + ggtitle(names(plots)[i]))
 dev.off()
 
-writexl::write_xlsx(args$outfile)
+writexl::write_xlsx(result, args$outfile)

@@ -5,15 +5,19 @@ sys = import('sys')
 
 args = sys$cmd$parse(
     opt('i', 'infile', 'rds', 'overview.rds'),
+    opt('f', 'field', 'response variable', 'LFC DMSO/ETP'),
     opt('o', 'outfile', 'xls', 'fits_naive.xlsx'),
     opt('p', 'plotfile', 'pdf', 'fits_naive.pdf'))
 
-expr = readRDS(args$infile)
+expr = readRDS(args$infile) %>%
+    mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(expr)) * 0.01)
+
+y = rlang::sym(args$field)
 
 pan = expr %>%
     group_by(`GENE SYMBOL`, `Construct IDs`) %>%
     tidyr::nest() %>%
-    mutate(result = purrr::map(data, function(d) broom::tidy(lm(`LFC DMSO/ETP` ~ 1, data=d)))) %>%
+    mutate(result = purrr::map(data, function(d) broom::tidy(lm(!! y ~ 1, data=d)))) %>%
     select(-data) %>%
     tidyr::unnest() %>%
     filter(term == "(Intercept)") %>%
@@ -24,7 +28,7 @@ pan = expr %>%
 pancov = expr %>%
     group_by(`GENE SYMBOL`, `Construct IDs`) %>%
     tidyr::nest() %>%
-    mutate(result = purrr::map(data, function(d) broom::tidy(lm(`LFC DMSO/ETP` ~ tissue, data=d)))) %>%
+    mutate(result = purrr::map(data, function(d) broom::tidy(lm(!! y ~ tissue, data=d)))) %>%
     select(-data) %>%
     tidyr::unnest() %>%
     filter(term == "(Intercept)") %>%
@@ -33,10 +37,9 @@ pancov = expr %>%
     arrange(adj.p, p.value)
 
 tissue = expr %>%
-    mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(expr)) * 0.01) %>%
     group_by(`GENE SYMBOL`, `Construct IDs`, tissue) %>%
     tidyr::nest() %>%
-    mutate(result = purrr::map(data, function(d) broom::tidy(lm(`LFC DMSO/ETP` ~ 1, data=d)))) %>%
+    mutate(result = purrr::map(data, function(d) broom::tidy(lm(!! y ~ 1, data=d)))) %>%
     select(-data) %>%
     tidyr::unnest() %>%
     filter(term == "(Intercept)") %>%

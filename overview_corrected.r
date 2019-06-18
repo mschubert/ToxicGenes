@@ -1,7 +1,7 @@
 library(cowplot)
 io = import('io')
 sys = import('sys')
-ov = import('./overview')
+ov = import('./overview_naive')
 
 plot_overview = function(data, title, label_top=20) {
     data = data %>%
@@ -17,10 +17,10 @@ plot_overview = function(data, title, label_top=20) {
 }
 
 args = sys$cmd$parse(
-    opt('e', 'expr', 'rds', 'overview.rds'),
+    opt('i', 'infile', 'rds', 'overview.rds'),
     opt('p', 'plotfile', 'pdf', 'overview_corrected.pdf'))
 
-expr = readRDS(args$expr)
+expr = readRDS(args$infile)
 
 percell = expr %>%
     mutate(cells = sprintf("%s (%s)", cells, tissue)) %>%

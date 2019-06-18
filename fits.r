@@ -10,7 +10,7 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'fits_naive.pdf'))
 
 expr = readRDS(args$infile) %>%
-    mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(expr)) * 0.01)
+    mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(.)) * 0.01)
 
 y = rlang::sym(args$field)
 

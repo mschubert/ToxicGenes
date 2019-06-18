@@ -1,5 +1,6 @@
 library(cowplot)
 io = import('io')
+sys = import('sys')
 ov = import('./overview')
 
 plot_overview = function(data, title, label_top=20) {
@@ -15,7 +16,11 @@ plot_overview = function(data, title, label_top=20) {
              y = "LFC DMSO/ETP z-score")
 }
 
-expr = readRDS("overview.rds")
+args = sys$cmd$parse(
+    opt('e', 'expr', 'rds', 'overview.rds'),
+    opt('p', 'plotfile', 'pdf', 'overview_corrected.pdf'))
+
+expr = readRDS(args$expr)
 
 percell = expr %>%
     mutate(cells = sprintf("%s (%s)", cells, tissue)) %>%
@@ -23,7 +28,7 @@ percell = expr %>%
     tidyr::nest() %>%
     mutate(plot = purrr::map2(data, cells, plot_overview))
 
-pdf("overview_corrected.pdf")
+pdf(args$plotfile)
 for (p in percell$plot)
     print(p)
 dev.off()

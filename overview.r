@@ -51,9 +51,15 @@ plot_overview = function(data, title, label_top=20) {
 }
 
 if (is.null(module_name())) {
-    tissues = io$read_table("tissues.txt", header=TRUE)
+    args = sys$cmd$parse(
+        opt('t', 'tissues', 'txt', 'tissues.txt'),
+        opt('l', 'orflib', 'txt', 'data/ORF_DMSO_2019-02.txt'),
+        opt('o', 'outfile', 'rds', 'overview.rds'),
+        opt('p', 'plotfile', 'pdf', 'overview.pdf'))
 
-    expr = io$read_table("./data/ORF_DMSO_2019-02.txt", header=TRUE) %>%
+    tissues = io$read_table(args$tissues, header=TRUE)
+
+    expr = io$read_table(args$orflib, header=TRUE) %>%
         tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
         mutate(condition = sub("( ORF)?[_-]DMSO", " DMSO", condition),
                condition = sub("LFC$", "LFC DMSO/ETP", condition),
@@ -73,10 +79,10 @@ if (is.null(module_name())) {
         tidyr::nest() %>%
         mutate(plot = purrr::map2(data, cells, plot_overview))
 
-    pdf("overview.pdf")
+    pdf(args$plotfile)
     for (p in percell$plot)
         print(p)
     dev.off()
 
-    saveRDS(expr, file="overview.rds")
+    saveRDS(expr, file=args$outfile)
 }

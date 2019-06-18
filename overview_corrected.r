@@ -18,6 +18,7 @@ plot_overview = function(data, title, label_top=20) {
 expr = readRDS("overview.rds")
 
 percell = expr %>%
+    mutate(cells = sprintf("%s (%s)", cells, tissue)) %>%
     group_by(cells) %>%
     tidyr::nest() %>%
     mutate(plot = purrr::map2(data, cells, plot_overview))

@@ -64,7 +64,7 @@ plots = lapply(result, function(res) {
     res %>%
         mutate(size=5) %>%
         plt$color$p_effect(pvalue="adj.p", effect="estimate", thresh=0.1, dir=-1) %>%
-        plt$volcano(label_top=30, repel=TRUE)
+        plt$volcano(label_top=30, repel=TRUE, x_label_bias=4)
 })
 
 pdf(args$plotfile)

@@ -52,10 +52,15 @@ tissue = expr %>%
 result = list(pan=pan, pancov=pancov, tissue=tissue)
 
 plots = lapply(result, function(res) {
-    if ("tissue" %in% names(res))
+    if ("tissue" %in% names(res)) {
         res = mutate(res, label = sprintf("%s - %s", `GENE SYMBOL`, tissue))
-    else
+    } else {
         res = mutate(res, label = `GENE SYMBOL`)
+    }
+
+    if (all(res$estimate[rank(res$p.value) < 10] > 0))
+        res$label[res$estimate > 0] = NA
+
     res %>%
         mutate(size=5) %>%
         plt$color$p_effect(pvalue="adj.p", effect="estimate", thresh=0.1, dir=-1) %>%

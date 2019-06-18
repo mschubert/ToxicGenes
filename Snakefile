@@ -41,7 +41,7 @@ rule fits:
     params:
         field = lambda wc : fields[wc.type]
     output:
-        outfile = "fits_{type}.xls",
+        outfile = "fits_{type}.xlsx",
         plotfile = "fits_{type}.pdf"
     shell:
         "Rscript {input.rscript}"

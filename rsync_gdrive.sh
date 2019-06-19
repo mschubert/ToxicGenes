@@ -1,4 +1,8 @@
 #!/bin/sh
 
-rsync -auvr *.pdf ~/Documents/Work/ORFdosage/
-rsync -auvr *.xlsx ~/Documents/Work/ORFdosage/
+rsync -auvr \
+    --include "orf" \
+    --include "*.pdf" \
+    --include "*.xlsx" \
+    --exclude="*" \
+    $(dirname $0) ~/Documents/Work/ORFdosage

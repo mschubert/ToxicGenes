@@ -6,8 +6,8 @@ rule all:
 rule overview_naive:
     input:
         rscript = "overview_naive.r",
-        tissues = "tissues.txt",
-        orflib = "data/ORF_DMSO_2019-02.txt"
+        tissues = "../data/orf/tissues.txt",
+        orflib = "../data/orf/ORF_DMSO_2019-02.txt"
     output:
         outfile = "overview.rds",
         plotfile = "overview_naive.pdf"

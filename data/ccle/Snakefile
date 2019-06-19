@@ -1,0 +1,29 @@
+files = {
+    'annot' : 'Cell_lines_annotations_20181226.txt',
+    'rnaseq' : 'CCLE_RNAseq_genes_counts_20180929.gct.gz',
+    'copies' : 'CCLE_ABSOLUTE_combined_20181227.xlsx'
+}
+
+rule all:
+    input:
+        "dset.rds"
+
+rule ccle_download:
+    output:
+        outfile = "{file}"
+    shell:
+        "wget -N https://data.broadinstitute.org/ccle/{file}"
+
+rule dset:
+    input:
+        rscript = "dset.r",
+        annot = files['annot'],
+        rnaseq = files['rnaseq'],
+        copies = files['copies']
+    output:
+        outfile = "dset.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --annot {input.annot}"
+            " --rnaseq {input.rnaseq}"
+            " --copies {input.copies}"

@@ -1,7 +1,7 @@
 ccle = {
     'annot' : 'Cell_lines_annotations_20181226.txt',
     'rnaseq' : 'CCLE_RNAseq_genes_counts_20180929.gct.gz',
-    'copies' : 'CCLE_ABSOLUTE_combined_20181227.xlsx'
+    'copies' : 'CCLE_copynumber_byGene_2013-12-03.txt.gz'
 }
 
 arrayexpress = {

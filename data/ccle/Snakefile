@@ -1,7 +1,12 @@
-files = {
+ccle = {
     'annot' : 'Cell_lines_annotations_20181226.txt',
     'rnaseq' : 'CCLE_RNAseq_genes_counts_20180929.gct.gz',
     'copies' : 'CCLE_ABSOLUTE_combined_20181227.xlsx'
+}
+
+arrayexpress = {
+    'gdsc' : 'E-MTAB-3983/static/E-MTAB-3983-atlasExperimentSummary.Rdata',
+    'ccle' : 'E-MTAB-2770/static/E-MTAB-2770-atlasExperimentSummary.Rdata'
 }
 
 rule all:
@@ -17,9 +22,9 @@ rule ccle_download:
 rule dset:
     input:
         rscript = "dset.r",
-        annot = files['annot'],
-        rnaseq = files['rnaseq'],
-        copies = files['copies']
+        annot = ccle['annot'],
+        rnaseq = ccle['rnaseq'],
+        copies = ccle['copies']
     output:
         outfile = "dset.rds"
     shell:

@@ -1,5 +1,4 @@
 library(dplyr)
-io = import('io')
 sys = import('sys')
 plt = import('plot')
 
@@ -46,7 +45,7 @@ all_fits = function(emat, copies, tissues=NA) {
 
     do_ffun = function(ffun) {
         fit_gene = function(g) do_fit(g, emat, ffun(copies), tissues)
-        tibble(gene = rownames(nmat)) %>%
+        tibble(gene = rownames(emat)) %>%
             mutate(res = purrr::map(gene, fit_gene)) %>%
             tidyr::unnest() %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

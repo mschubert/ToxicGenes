@@ -2,7 +2,9 @@ subworkflow data_ccle:
     workdir: "../data/ccle"
     snakefile: "../data/ccle/Snakefile"
 
-tissues = ["pan", "BRCA", "LUAD", "SKCM", "COAD/READ"]
+tissues = ["pan", "BRCA", "LUAD", "SKCM", "COAD/READ", "ALL", "DLBC",
+           "BLCA", "KIRC", "HNSC", "LUSC", "LIHC", "OV", "PAAD",
+           "STAD", "UCEC", "GBM", "ESCA"]
 
 rule all:
     input:

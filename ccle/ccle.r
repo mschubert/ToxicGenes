@@ -47,7 +47,7 @@ all_fits = function(emat, copies, tissues=NA) {
         copies2 = ffun(copies)
         fit_gene = function(g) do_fit(g, emat, copies2, tissues)
         tibble(gene = rownames(emat)) %>%
-            mutate(res = parallel::mclapply(gene, fit_gene, mc.cores=10)) %>%
+            mutate(res = parallel::mclapply(gene, fit_gene)) %>%
             tidyr::unnest() %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)
@@ -66,7 +66,7 @@ do_plot = function(data) {
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
-        opt('c', 'cores', 'parallel cores', getOption("mc.cores")),
+        opt('c', 'cores', 'parallel cores', getOption("mc.cores", 1L)),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('o', 'outfile', 'xlsx', 'pan.xlsx'),
         opt('p', 'plotfile', 'pdf', 'pan.pdf'))

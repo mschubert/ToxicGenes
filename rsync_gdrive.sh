@@ -2,6 +2,7 @@
 
 rsync -auvr \
     --include "orf" \
+    --include "ccle" \
     --include "*.pdf" \
     --include "*.xlsx" \
     --exclude="*" \

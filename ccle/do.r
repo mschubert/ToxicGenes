@@ -11,7 +11,7 @@ emat = DESeq2::DESeqDataSetFromMatrix(dset$expr, dset$idx, ~1) %>%
 
 do_fit = function(gene) {
     on.exit(message("Error: ", gene))
-    df = data.frame(expr = nmat[gene,],
+    df = data.frame(expr = nmat[gene,] / mean(nmat[gene,], na.rm=TRUE) - 1,
                     erank = rank(nmat[gene,]),
                     copies = dset$copies[gene,],
                     tcga = dset$idx$tcga_code) %>%
@@ -33,10 +33,8 @@ do_fit = function(gene) {
     mod
 }
 
-nmat = emat / apply(emat, 1, mean) - 1 # median can be 0
+nmat = emat
 nmat[dset$copies < 1.8] = NA # amps only
-nmat = apply(nmat, 1, function(x) ifelse(x > quantile(x, 0.95, na.rm=TRUE), NA, x))
-nmat = t(nmat)
 
 pancov = tibble(gene = rownames(nmat)) %>%
     mutate(res = purrr::map(gene, do_fit)) %>%

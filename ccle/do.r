@@ -3,60 +3,88 @@ io = import('io')
 sys = import('sys')
 plt = import('plot')
 
-do_fit = function(gene) {
+do_fit = function(gene, emat, copies, covar=NA) {
     on.exit(message("Error: ", gene))
-    df = data.frame(expr = nmat[gene,] / mean(nmat[gene,], na.rm=TRUE) - 1,
-                    erank = rank(nmat[gene,]),
-                    copies = dset$copies[gene,],
-                    tcga = dset$idx$tcga_code) %>%
+    df = data.frame(expr = emat[gene,] / mean(emat[gene,], na.rm=TRUE) - 1,
+                    erank = rank(emat[gene,]),
+                    copies = copies[gene,],
+                    covar = covar) %>%
         na.omit()
 
-    prank = lm(erank ~ tcga + copies, data=df) %>%
+    has_covar = length(unique(na.omit(covar))) > 1
+    if (has_covar) {
+        f1 = erank ~ covar + copies
+        f2 = expr ~ covar + copies
+    } else {
+        f1 = erank ~ copies
+        f2 = expr ~ copies
+    }
+
+    prank = lm(f1, data=df) %>%
         broom::tidy() %>%
         filter(term == "copies") %>%
         pull(p.value)
 
-    mod = MASS::rlm(expr ~ tcga + copies, data=df, maxit=100) %>%
+    mod = MASS::rlm(f2, data=df, maxit=100) %>%
         broom::tidy() %>%
         filter(term == "copies") %>%
         select(-term) %>%
-        mutate(size = sum(df$copies > 2.2),
+        mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
                p.value = prank)
 
     on.exit()
     mod
 }
 
+all_fits = function(emat, copies, tissues=NA) {
+    ffuns = list(
+        amp = function(x) { x[x < 1.8] = NA; x },
+        del = function(x) { x[x > 2.2] = NA; x },
+        dev = function(x) abs(x-2),
+        all = identity
+    )
+
+    do_ffun = function(ffun) {
+        fit_gene = function(g) do_fit(g, emat, ffun(copies), tissues)
+        tibble(gene = rownames(nmat)) %>%
+            mutate(res = purrr::map(gene, fit_gene)) %>%
+            tidyr::unnest() %>%
+            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+            arrange(adj.p, p.value)
+    }
+    lapply(ffuns, do_ffun)
+}
+
+do_plot = function(data) {
+    data %>%
+        mutate(label=gene, size=n_aneup) %>%
+        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
+        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
+                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15)
+}
+
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
+        opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('o', 'outfile', 'xlsx', 'pan.xlsx'),
         opt('p', 'plotfile', 'pdf', 'pan.pdf'))
-
-    # amp/del/abs/all?
 
     dset = readRDS(args$infile)
     emat = DESeq2::DESeqDataSetFromMatrix(dset$expr, dset$idx, ~1) %>%
         DESeq2::estimateSizeFactors(normMatrix=dset$copies) %>%
         DESeq2::counts(normalized=TRUE)
-    nmat = emat
-    nmat[dset$copies < 1.8] = NA # amps only
 
-    pancov = tibble(gene = rownames(nmat)) %>%
-        mutate(res = purrr::map(gene, do_fit)) %>%
-        tidyr::unnest() %>%
-        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-        arrange(adj.p, p.value)
+    if (args$tissue != "pan")
+        dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
 
-    p = pancov %>%
-        mutate(label=gene) %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                    x_label_bias=5, pos_label_bias=0.15)
+    fits = all_fits(emat, dset$copies, dset$idx$tcga_code)
+    plots = lapply(fits, do_plot)
 
     pdf(args$plotfile)
-    print(p)
+    for (i in seq_along(plots))
+        print(plots[[i]] + ggtitle(names(plots)[i]))
     dev.off()
 
-    writexl::write_xlsx(pancov, args$outfile)
+    writexl::write_xlsx(fits, args$outfile)
 })

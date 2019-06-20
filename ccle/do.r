@@ -3,12 +3,6 @@ io = import('io')
 sys = import('sys')
 plt = import('plot')
 
-dset = readRDS("../data/ccle/dset.rds")
-
-emat = DESeq2::DESeqDataSetFromMatrix(dset$expr, dset$idx, ~1) %>%
-    DESeq2::estimateSizeFactors(normMatrix=dset$copies) %>%
-    DESeq2::counts(normalized=TRUE)
-
 do_fit = function(gene) {
     on.exit(message("Error: ", gene))
     df = data.frame(expr = nmat[gene,] / mean(nmat[gene,], na.rm=TRUE) - 1,
@@ -33,23 +27,36 @@ do_fit = function(gene) {
     mod
 }
 
-nmat = emat
-nmat[dset$copies < 1.8] = NA # amps only
+sys$run({
+    args = sys$cmd$parse(
+        opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
+        opt('o', 'outfile', 'xlsx', 'pan.xlsx'),
+        opt('p', 'plotfile', 'pdf', 'pan.pdf'))
 
-pancov = tibble(gene = rownames(nmat)) %>%
-    mutate(res = purrr::map(gene, do_fit)) %>%
-    tidyr::unnest() %>%
-    mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-    arrange(adj.p, p.value)
+    # amp/del/abs/all?
 
-x = pancov %>%
-    mutate(label=gene) %>%
-    plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-    plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                x_label_bias=5, pos_label_bias=0.15)
+    dset = readRDS(args$infile)
+    emat = DESeq2::DESeqDataSetFromMatrix(dset$expr, dset$idx, ~1) %>%
+        DESeq2::estimateSizeFactors(normMatrix=dset$copies) %>%
+        DESeq2::counts(normalized=TRUE)
+    nmat = emat
+    nmat[dset$copies < 1.8] = NA # amps only
 
-#pdf(args$outfile)
-print(x)
-dev.off()
+    pancov = tibble(gene = rownames(nmat)) %>%
+        mutate(res = purrr::map(gene, do_fit)) %>%
+        tidyr::unnest() %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
 
-# writexl::write_ ...
+    p = pancov %>%
+        mutate(label=gene) %>%
+        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
+        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
+                    x_label_bias=5, pos_label_bias=0.15)
+
+    pdf(args$plotfile)
+    print(p)
+    dev.off()
+
+    writexl::write_xlsx(pancov, args$outfile)
+})

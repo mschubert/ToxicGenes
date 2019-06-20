@@ -1,0 +1,23 @@
+subworkflow data_ccle:
+    workdir: "../data/ccle"
+    snakefile: "../data/ccle/Snakefile"
+
+tissues = ["pan", "BRCA", "LUAD", "SKCM", "COAD/READ"]
+
+rule all:
+    input:
+        expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
+
+rule do_fit:
+    input:
+        rscript = "ccle.r",
+        infile = data_ccle("dset.rds")
+    output:
+        outfile = "{tissue}.xlsx",
+        plotfile = "{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"

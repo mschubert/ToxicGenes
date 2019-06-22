@@ -1,0 +1,17 @@
+tissues = ["BRCA", "LUAD", "SCLC", "SKCM", "COAD", "READ", "OV"]
+
+rule all:
+    input:
+        expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
+
+rule do_fit:
+    input:
+        rscript = "tcga.r"
+    output:
+        outfile = "{tissue}.xlsx",
+        plotfile = "{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"

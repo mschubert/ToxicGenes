@@ -68,13 +68,13 @@ do_plot = function(data, title) {
         plt$color$p_effect(pvalue="adj.p", effect="estimate")
     p1 = df %>%
         filter(estimate < 0) %>%
-        plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
+        plt$volcano(base.size=0.1, label_top=30, repel=TRUE) +
         labs(title = sprintf("%s (%i aneup genes)", title, sum(!is.na(df$estimate))),
              subtitle = "compensated")
     p2 = df %>%
         filter(estimate > 0) %>%
-        plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
-        labs(subtitle="hyperactivated") +
+        plt$volcano(base.size=0.1, label_top=30, repel=TRUE) +
+        labs(subtitle="hyper-deregulated") +
         theme(axis.title.y = element_blank())
     p1 + p2 + plot_layout(nrow=1)
 }

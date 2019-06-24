@@ -1,11 +1,10 @@
 #!/bin/sh
 
 rsync -auvr \
-    --exclude "backup" \
-    --include "orf" \
-    --include "ccle" \
-    --include "tcga" \
+    --exclude ".snakemake" \
     --include "*.pdf" \
     --include "*.xlsx" \
+    --include "*/" \
+    --exclude "backup" \
     --exclude="*" \
-    rug:/data/p282396/ORFdosage ~/Documents/Work/ORFdosage
+    rug:/data/p282396/ORFdosage/* $(dirname $0)

@@ -1,15 +1,17 @@
 tissues = ["BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
+types = ['naive', 'pur', 'pur+adj']
+
 rule all:
     input:
-        expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
+        expand("{type}/{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'], type=types)
 
 rule do_fit:
     input:
-        rscript = "tcga.r"
+        rscript = "tcga_{type}.r"
     output:
-        outfile = "{tissue}.xlsx",
-        plotfile = "{tissue}.pdf"
+        outfile = "{type}/{tissue}.xlsx",
+        plotfile = "{type}/{tissue}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"

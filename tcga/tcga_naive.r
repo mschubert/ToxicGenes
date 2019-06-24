@@ -1,7 +1,5 @@
 library(dplyr)
-library(patchwork)
 sys = import('sys')
-plt = import('plot')
 tcga = import('data/tcga')
 idmap = import('process/idmap')
 
@@ -62,28 +60,10 @@ all_fits = function(emat, copies, purity, tissues=0) {
     lapply(ffuns, do_ffun)
 }
 
-do_plot = function(data, title) {
-    df = data %>%
-        mutate(label=gene, size=n_aneup) %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate")
-    p1 = df %>%
-        filter(estimate < 0) %>%
-        plt$volcano(base.size=0.1, label_top=30, repel=TRUE) +
-        labs(title = sprintf("%s (%i aneup genes)", title, sum(!is.na(df$estimate))),
-             subtitle = "compensated")
-    p2 = df %>%
-        filter(estimate > 0) %>%
-        plt$volcano(base.size=0.1, label_top=30, repel=TRUE) +
-        labs(subtitle="hyper-deregulated") +
-        theme(axis.title.y = element_blank())
-    p1 + p2 + plot_layout(nrow=1)
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
-        opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'),
-        opt('p', 'plotfile', 'pdf', 'LUAD.pdf'))
+        opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'))
 
     if (args$tissue == "pan")
         args$tissue = tcga$cohorts()
@@ -116,12 +96,5 @@ sys$run({
         DESeq2::counts(normalized=TRUE)
 
     fits = all_fits(emat, copies, purity)
-#    fits2 = unlist(lapply(fits, function(x) split(x, x$term)), recursive=FALSE)
-
-    pdf(args$plotfile, 10, 8)
-    for (i in seq_along(fits))
-        print(do_plot(fits[[i]], names(fits)[i]))
-    dev.off()
-
     writexl::write_xlsx(fits, args$outfile)
 })

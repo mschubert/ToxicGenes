@@ -1,6 +1,7 @@
-tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
+import glob
+types = [ f[5:-2] for f in glob.glob("tcga_*.r") ]
 
-types = ['naive', 'pur', 'pur+adj']
+tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 mem = {
     "pan" : 61440,
@@ -9,14 +10,13 @@ mem = {
 
 rule all:
     input:
-        expand("{type}/{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'], type=types)
+        expand("{type}/{tissue}.pdf", tissue=tissues, type=types)
 
 rule do_fit:
     input:
         rscript = "tcga_{type}.r"
     output:
-        outfile = "{type}/{tissue}.xlsx",
-        plotfile = "{type}/{tissue}.pdf"
+        outfile = "{type}/{tissue}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         walltime = 120
@@ -24,4 +24,14 @@ rule do_fit:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
+
+rule plot:
+    input:
+        rscript = "plot.r",
+        infile = "{type}/{tissue}.xlsx"
+    output:
+        plotfile = "{type}/{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"

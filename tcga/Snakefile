@@ -2,6 +2,11 @@ tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 types = ['naive', 'pur', 'pur+adj']
 
+mem = {
+    "pan" : 61440,
+    "*" : 4096
+}
+
 rule all:
     input:
         expand("{type}/{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'], type=types)
@@ -13,7 +18,8 @@ rule do_fit:
         outfile = "{type}/{tissue}.xlsx",
         plotfile = "{type}/{tissue}.pdf"
     resources:
-        mem = 102400
+        mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
+        walltime = 120
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"

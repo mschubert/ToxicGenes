@@ -4,48 +4,48 @@ plt = import('plot')
 tcga = import('data/tcga')
 idmap = import('process/idmap')
 
-do_fit = function(gene, emat, copies, purity, covar=NA) {
+do_fit = function(gene, emat, copies, purity, covar=0) {
     on.exit(message("Error: ", gene))
-    df = data.frame(expr = emat[gene,] / mean(emat[gene,], na.rm=TRUE) - 1,
-                    erank = rank(emat[gene,]),
-                    copies = copies[gene,],
+    df = data.frame(expr = emat[gene,] / mean(emat[gene,], na.rm=TRUE),
                     purity = purity,
-                    other = 1 - purity,
-                    delta = (copies[gene,] - 2) / purity * purity,
+                    cancer_copies = (copies[gene,] - 2) / purity + 2,
                     covar = covar) %>%
-    select(-covar) %>%
-        na.omit()
+        na.omit() %>%
+        mutate(expr = expr / cancer_copies,
+               stroma = 2 * (1 - purity) / cancer_copies,
+               cancer = (purity * cancer_copies) / cancer_copies) # simplifies to CCF
 
-    has_covar = length(unique(na.omit(covar))) > 1
-    if (has_covar) {
-        f1 = erank ~ 0 + covar + copies + other + delta
-        f2 = expr ~ 0 + covar + copies + other + delta
-    } else {
-        f1 = erank ~ 0 + copies + other + delta
-        f2 = expr ~ 0 + copies + other + delta
+    n_aneup = sum(abs(df$cancer_copies-2) > 0.2)
+    if (n_aneup < 5) {
+        on.exit(message("Not enough aneuploid samples: ", gene))
+        return(data.frame(estimate=NA))
     }
 
-    prank = lm(f1, data=df) %>%
-        broom::tidy() %>%
-        filter(term == "delta") %>%
-        pull(p.value)
+    if (length(unique(na.omit(covar))) > 1) {
+        fml = expr ~ covar + stroma + cancer + cancer_copies #+ delta_cancer + delta_stroma
+    } else {
+        fml = expr ~ stroma + cancer + cancer_copies #+ stroma:cancer_copies
+    }
+    mobj = MASS::rlm(fml, data=df, maxit=100)
+    mod = broom::tidy(mobj) %>%
+        mutate(p.value = NA)
+    mod$p.value[mod$term == "cancer_copies"] = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value
+#    mod$p.value[mod$term == "stroma"] = sfsmisc::f.robftest(mobj, var="stroma")$p.value
 
-    mod = MASS::rlm(f2, data=df, maxit=100) %>%
-        broom::tidy() %>%
-        filter(term == "delta") %>%
+    mod = mod %>%
+        filter(term == "cancer_copies") %>%
         select(-term) %>%
-        mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
-               p.value = prank)
+        mutate(n_aneup = n_aneup)
 
     on.exit()
     mod
 }
 
-all_fits = function(emat, copies, purity, tissues=NA) {
+all_fits = function(emat, copies, purity, tissues=0) {
     ffuns = list(
         amp = function(x) { x[x < 1.8] = NA; x },
         del = function(x) { x[x > 2.2] = NA; x },
-        dev = function(x) abs(x-2),
+#        dev = function(x) abs(x-2),
         all = identity
     )
 
@@ -61,12 +61,20 @@ all_fits = function(emat, copies, purity, tissues=NA) {
     lapply(ffuns, do_ffun)
 }
 
-do_plot = function(data) {
-    data %>%
+do_plot = function(data, title) {
+    df = data %>%
         mutate(label=gene, size=n_aneup) %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15)
+        plt$color$p_effect(pvalue="adj.p", effect="estimate")
+    p1 = df %>%
+        filter(estimate < 0) %>%
+        plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
+        labs(title=title, subtitle="compensated")
+    p2 = df %>%
+        filter(estimate > 0) %>%
+        plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
+        labs(subtitle="hyperactivated") +
+        theme(axis.title.y = element_blank())
+    p1 + p2 + plot_layout(nrow=1)
 }
 
 sys$run({
@@ -85,9 +93,6 @@ sys$run({
     rownames(reads) = idmap$gene(rownames(reads), to="hgnc_symbol")
     reads = reads[rowMeans(reads) >= 10,]
 
-#    if (args$tissue == "SKCM") #TODO:
-#        reads = reads[rownames(reads) != "TRGC1",]
-
     copies = tcga$cna_genes(args$tissue)
     rownames(copies) = idmap$gene(rownames(copies), to="hgnc_symbol")
     narray::intersect(purity$Sample, reads, copies, along=2)
@@ -100,18 +105,15 @@ sys$run({
     rownames(cdata) = colnames(reads)
 
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
-        DESeq2::estimateSizeFactors(normMatrix=copies) %>% # total ploidy to scale lib size
+        DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
 
-#    if (args$tissue != "pan")
-#        dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
-
     fits = all_fits(emat, copies, purity)
-    plots = lapply(fits, do_plot)
+#    fits2 = unlist(lapply(fits, function(x) split(x, x$term)), recursive=FALSE)
 
     pdf(args$plotfile)
     for (i in seq_along(plots))
-        print(plots[[i]] + ggtitle(names(plots)[i]))
+        print(do_plot(fits[[i]], names(fits)[i]))
     dev.off()
 
     writexl::write_xlsx(fits, args$outfile)

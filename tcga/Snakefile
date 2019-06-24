@@ -1,4 +1,4 @@
-tissues = ["BRCA", "LUAD", "SCLC", "SKCM", "COAD", "READ", "OV"]
+tissues = ["BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 rule all:
     input:

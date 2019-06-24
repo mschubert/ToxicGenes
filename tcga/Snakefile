@@ -13,7 +13,7 @@ rule do_fit:
         outfile = "{type}/{tissue}.xlsx",
         plotfile = "{type}/{tissue}.pdf"
     resources:
-        mem = 40960
+        mem = 102400
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"

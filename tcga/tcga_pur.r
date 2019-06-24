@@ -105,7 +105,7 @@ sys$run({
     narray::intersect(purity$Sample, reads, copies, along=2)
 #    copies[] = copies / narray::rrep(purity$estimate, nrow(copies)) #TODO: how to adjust this?
 #    copies[] = t(t(copies) / purity$estimate)
-    copies = na.omit(copies)
+    copies = na.omit(copies[!is.na(rownames(copies)),])
     narray::intersect(reads, copies, along=1)
 
     cdata = data.frame(tissue = tcga$barcode2study(colnames(reads)))

@@ -1,4 +1,5 @@
 library(dplyr)
+library(patchwork)
 sys = import('sys')
 plt = import('plot')
 tcga = import('data/tcga')
@@ -68,7 +69,8 @@ do_plot = function(data, title) {
     p1 = df %>%
         filter(estimate < 0) %>%
         plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
-        labs(title=title, subtitle="compensated")
+        labs(title = sprintf("%s (%i aneup genes)", title, sum(!is.na(df$estimate))),
+             subtitle = "compensated")
     p2 = df %>%
         filter(estimate > 0) %>%
         plt$volcano(base.size=0.2, label_top=30, repel=TRUE) +
@@ -111,8 +113,8 @@ sys$run({
     fits = all_fits(emat, copies, purity)
 #    fits2 = unlist(lapply(fits, function(x) split(x, x$term)), recursive=FALSE)
 
-    pdf(args$plotfile)
-    for (i in seq_along(plots))
+    pdf(args$plotfile, 10, 8)
+    for (i in seq_along(fits))
         print(do_plot(fits[[i]], names(fits)[i]))
     dev.off()
 

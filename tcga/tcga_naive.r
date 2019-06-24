@@ -99,7 +99,8 @@ sys$run({
     rownames(reads) = idmap$gene(rownames(reads), to="hgnc_symbol")
     reads = reads[rowMeans(reads) >= 10,]
 
-    copies = tcga$cna_genes(args$tissue)
+    copies = lapply(args$tissue, tcga$cna_genes) %>%
+        narray::stack(along=2)
     rownames(copies) = idmap$gene(rownames(copies), to="hgnc_symbol")
     narray::intersect(purity$Sample, reads, copies, along=2)
 #    copies[] = copies / narray::rrep(purity$estimate, nrow(copies)) #TODO: how to adjust this?

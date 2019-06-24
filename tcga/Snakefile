@@ -1,4 +1,4 @@
-tissues = ["BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
+tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 types = ['naive', 'pur', 'pur+adj']
 

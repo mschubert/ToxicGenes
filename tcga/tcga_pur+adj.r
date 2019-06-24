@@ -85,12 +85,16 @@ sys$run({
         opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'),
         opt('p', 'plotfile', 'pdf', 'LUAD.pdf'))
 
+    if (args$tissue == "pan")
+        args$tissue = tcga$cohorts()
+
     # excl x,y chroms
 
     purity = tcga$purity() %>%
         filter(!is.na(estimate))
 
-    reads = tcga$rna_seq(args$tissue) %>%
+    reads = lapply(args$tissue, tcga$rna_seq) %>%
+        narray::stack(along=2) %>%
         tcga$filter(cancer=TRUE, primary=TRUE)
     rownames(reads) = idmap$gene(rownames(reads), to="hgnc_symbol")
     reads = reads[rowMeans(reads) >= 10,]

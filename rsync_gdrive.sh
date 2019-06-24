@@ -1,6 +1,7 @@
 #!/bin/sh
 
 rsync -auvr \
+    --exclude "backup" \
     --include "orf" \
     --include "ccle" \
     --include "tcga" \

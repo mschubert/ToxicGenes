@@ -17,11 +17,14 @@ assocs = dset %>%
     select(-`Construct IDs`, -n_aneup) #%>%
 #    filter(statistic < 0)
 
+cap = 50
+
 amat = assocs %>%
     group_by(gene, assocs) %>%
     arrange(-statistic) %>%
     top_n(1, "statistic") %>%
     ungroup() %>%
+    mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
     dplyr::distinct(assocs, gene, .keep_all=TRUE) %>%
 #    mutate(statistic = abs(statistic)) %>%
     narray::construct(statistic ~ gene + assocs)
@@ -48,7 +51,7 @@ do_plot = function(a1, a2) {
         geom_point(aes(color=type)) +
         geom_smooth(method="lm", color="red", linetype="dotted", se=FALSE) +
         ggrepel::geom_label_repel(aes(label=label), size=2) +
-        labs(subtitle = sprintf("correlation (red line): p=%.2g", pcor))
+        labs(subtitle = sprintf("correlation (red line): p=%.2g (stat capped at %i)", pcor, cap))
 }
 
 plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%

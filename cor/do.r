@@ -17,7 +17,7 @@ assocs = dset %>%
     select(-`Construct IDs`, -n_aneup) #%>%
 #    filter(statistic < 0)
 
-cap = 50
+cap = 40
 
 amat = assocs %>%
     group_by(gene, assocs) %>%
@@ -55,7 +55,10 @@ do_plot = function(a1, a2) {
 }
 
 plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
-    filter(a1 < a2) %>%
+    filter(a1 < a2,
+           ! a2 %in% c("tcga_naive", "tcga_pur"),
+           a1 != "orf_pancov",
+           ! (a1 == "ccle" & a2 == "orf_pancov")) %>%
     tbl_df() %>%
     mutate(plots = purrr::map2(a1, a2, do_plot))
 

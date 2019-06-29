@@ -67,10 +67,10 @@ sys$run({
         opt('c', 'ccle', 'xlsx', '../ccle/pan.xlsx'),
         opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan.xlsx'),
         opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan.xlsx'),
-        opt('a', 'tcga_pur+adj', 'xlsx', '../tcga/pur+adj/pan.xlsx'),
+        opt('a', 'tcga_puradj', 'xlsx', '../tcga/pur+adj/pan.xlsx'),
         opt('t', 'tissue', 'pan|TCGA identifer', 'pan'),
         opt('s', 'subset', 'amp|del|all', 'amp'),
-        opt('p', 'plotfile', 'pdf', 'cor.pdf'))
+        opt('p', 'plotfile', 'pdf', 'pan+pan_amp.pdf'))
 
     dset = list(
         orf = readxl::read_xlsx(args$orf, args$tissue) %>%
@@ -78,7 +78,7 @@ sys$run({
         ccle = readxl::read_xlsx(args$ccle, args$subset),
         tcga_naive = readxl::read_xlsx(args$tcga_naive, args$subset),
         tcga_pur = readxl::read_xlsx(args$tcga_pur, args$subset),
-        tcga_puradj = readxl::read_xlsx(args$`tcga_pur+adj`, args$subset)
+        tcga_puradj = readxl::read_xlsx(args$tcga_puradj, args$subset)
     )
 
     assocs = dset %>%

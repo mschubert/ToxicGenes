@@ -1,0 +1,35 @@
+subworkflow orf:
+    workdir: "../orf"
+    snakefile: "../orf/Snakefile"
+
+subworkflow ccle:
+    workdir: "../ccle"
+    snakefile: "../ccle/Snakefile"
+
+subworkflow tcga:
+    workdir: "../tcga"
+    snakefile: "../tcga/Snakefile"
+
+rule all:
+    input:
+        "cor_pan+pan_amp.pdf"
+
+rule cor:
+    input:
+        rscript = "cor.r",
+        orf = orf("fits_corrected.xlsx"),
+        ccle = ccle("{tissue}.xlsx"),
+        tcga_naive = tcga("naive/{tissue}.xlsx"),
+        tcga_pur = tcga("pur/{tissue}.xlsx"),
+        tcga_puradj = tcga("pur+adj/{tissue}.xlsx")
+    output:
+        plotfile = "cor_{tissue}+{tissue}_{subset}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --orf {input.orf}"
+            " --ccle {input.ccle}"
+            " --tcga_naive {input.tcga_naive}"
+            " --tcga_pur {input.tcga_pur}"
+            " --tcga_puradj {input.tcga_puradj}"
+            " --subset {wildcards.subset}"
+            " --plotfile {output.plotfile}"

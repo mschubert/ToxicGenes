@@ -1,33 +1,7 @@
 library(dplyr)
 library(cowplot)
 b = import('base')
-
-dset = list(
-        orf_pan = readxl::read_xlsx("../orf/fits_corrected.xlsx", "pan") %>%
-            dplyr::rename(gene = `GENE SYMBOL`),
-        orf_pancov = readxl::read_xlsx("../orf/fits_corrected.xlsx", "pancov") %>%
-            dplyr::rename(gene = `GENE SYMBOL`),
-        ccle = readxl::read_xlsx("../ccle/pan.xlsx", "amp"),
-        tcga_naive = readxl::read_xlsx("../tcga/naive/pan.xlsx", "amp"),
-        tcga_pur = readxl::read_xlsx("../tcga/pur/pan.xlsx", "amp"),
-        tcga_puradj = readxl::read_xlsx("../tcga/pur+adj/pan.xlsx", "amp")
-    )
-
-assocs = dset %>%
-    dplyr::bind_rows(.id="assocs") %>%
-    select(-`Construct IDs`, -n_aneup) #%>%
-#    filter(statistic < 0)
-
-cap = 40
-
-smat = assocs %>%
-    group_by(gene, assocs) %>%
-    arrange(-statistic) %>%
-    top_n(1, "statistic") %>%
-    ungroup() %>%
-    mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
-    dplyr::distinct(assocs, gene, .keep_all=TRUE) %>%
-    narray::construct(statistic ~ gene + assocs)
+sys = import('sys')
 
 do_plot = function(a1, a2) {
     x1 = rlang::sym(a1)
@@ -87,15 +61,49 @@ do_plot = function(a1, a2) {
         labs(subtitle = subt)
 }
 
-plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
-    filter(a1 < a2,
-           ! a2 %in% c("tcga_naive", "tcga_pur"),
-           a1 != "orf_pancov",
-           ! (a1 == "ccle" & a2 == "orf_pancov")) %>%
-    tbl_df() %>%
-    mutate(plots = purrr::map2(a1, a2, do_plot))
+sys$run({
+    args = sys$cmd$parse(
+        opt('o', 'orf', 'xlsx', '../orf/fits_corrected.xlsx'),
+        opt('c', 'ccle', 'xlsx', '../ccle/pan.xlsx'),
+        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan.xlsx'),
+        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan.xlsx'),
+        opt('a', 'tcga_pur+adj', 'xlsx', '../tcga/pur+adj/pan.xlsx'),
+        opt('t', 'tissue', 'pan|TCGA identifer', 'pan'),
+        opt('s', 'subset', 'amp|del|all', 'amp'),
+        opt('p', 'plotfile', 'pdf', 'cor.pdf'))
 
-pdf("cor.pdf", 10, 10)
-for (i in seq_len(nrow(plots)))
-    print(plots$plots[[i]] + ggtitle(sprintf("%s vs %s", plots$a1[i], plots$a2[i])))
-dev.off()
+    dset = list(
+        orf = readxl::read_xlsx(args$orf, args$tissue) %>%
+            dplyr::rename(gene = `GENE SYMBOL`),
+        ccle = readxl::read_xlsx(args$ccle, args$subset),
+        tcga_naive = readxl::read_xlsx(args$tcga_naive, args$subset),
+        tcga_pur = readxl::read_xlsx(args$tcga_pur, args$subset),
+        tcga_puradj = readxl::read_xlsx(args$`tcga_pur+adj`, args$subset)
+    )
+
+    assocs = dset %>%
+        dplyr::bind_rows(.id="assocs") %>%
+        select(-`Construct IDs`, -n_aneup)
+
+    cap = 40
+
+    smat = assocs %>%
+        group_by(gene, assocs) %>%
+        arrange(-statistic) %>%
+        top_n(1, "statistic") %>%
+        ungroup() %>%
+        mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
+        dplyr::distinct(assocs, gene, .keep_all=TRUE) %>%
+        narray::construct(statistic ~ gene + assocs)
+
+    plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
+        filter(a1 < a2,
+               ! a2 %in% c("tcga_naive", "tcga_pur")) %>%
+        tbl_df() %>%
+        mutate(plots = purrr::map2(a1, a2, do_plot))
+
+    pdf(args$plotfile, 10, 10)
+    for (i in seq_len(nrow(plots)))
+        print(plots$plots[[i]] + ggtitle(sprintf("%s vs %s", plots$a1[i], plots$a2[i])))
+    dev.off()
+})

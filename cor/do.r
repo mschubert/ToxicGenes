@@ -1,5 +1,6 @@
 library(dplyr)
 library(cowplot)
+b = import('base')
 
 dset = list(
         orf_pan = readxl::read_xlsx("../orf/fits_corrected.xlsx", "pan") %>%
@@ -19,39 +20,62 @@ assocs = dset %>%
 
 cap = 40
 
-amat = assocs %>%
+smat = assocs %>%
     group_by(gene, assocs) %>%
     arrange(-statistic) %>%
     top_n(1, "statistic") %>%
     ungroup() %>%
     mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
     dplyr::distinct(assocs, gene, .keep_all=TRUE) %>%
-#    mutate(statistic = abs(statistic)) %>%
     narray::construct(statistic ~ gene + assocs)
 
 do_plot = function(a1, a2) {
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
-    data = as.data.frame(na.omit(amat[,c(a1, a2)])) %>%
-        tibble::rownames_to_column("gene") %>%
+    colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc"),
+                      c("compensated", "hyper-dereg", "inconsistent", "no change"))
+    wald = 1.5
+
+    data = as.data.frame(na.omit(smat[,c(a1, a2)])) %>%
+        tibble::rownames_to_column("gene")
+    plot_data = data %>%
         mutate(type = case_when(
+                abs(!! x1) < wald | abs(!! x2) < wald ~ "no change",
                 !! x1 < 0 & !! x2 < 0 ~ "compensated",
                 !! x1 > 0 & !! x2 > 0 ~ "hyper-dereg",
-                TRUE ~ "inconsistent")) %>%
+                TRUE ~ "inconsistent"),
+               type = factor(type, levels=names(colors))) %>%
         group_by(type) %>%
         mutate(annot_score = abs(!! x1 / max(abs(!! x1), na.rm=TRUE) *
                                  !! x2 / max(abs(!! x2), na.rm=TRUE)),
                label = ifelse(rank(-annot_score) <= 20, gene, NA)) %>%
         ungroup()
-    pcor = broom::tidy(lm(data[[a1]] ~ data[[a2]]))$p.value[2]
+    pcor = broom::tidy(lm(plot_data[[a1]] ~ plot_data[[a2]]))$p.value[2]
 
-    ggplot(data, aes_string(x=a1, y=a2)) +
-        geom_hline(yintercept = 0, size=1, linetype="dashed", color="grey") +
-        geom_vline(xintercept = 0, size=1, linetype="dashed", color="grey") +
+    nums = data %>%
+        group_by(a1=sign(!! x1), a2=sign(!! x2)) %>%
+        summarize(n = n()) %>%
+        mutate(hjust=-a1/1.8+0.5, vjust=-a2+0.5)
+    nums2 = data %>%
+        group_by(a1=sign(!! x1), a2=sign(!! x2)) %>%
+        filter(abs(!! x1) >= wald & abs(!! x2) >= wald) %>%
+        summarize(n = n()) %>%
+        mutate(x=sign(a1)*2, y=sign(a2)*2, hjust=-a1/2+0.5, vjust=-a2/2+0.5)
+    pfet = broom::tidy(fisher.test(matrix(pull(nums2, n), ncol=2))) %catch%
+        list(estimate=NA, p.value=NA)
+
+    ggplot(plot_data, aes_string(x=a1, y=a2)) +
         geom_point(aes(color=type)) +
-        geom_smooth(method="lm", color="red", linetype="dotted", se=FALSE) +
-        ggrepel::geom_label_repel(aes(label=label), size=2) +
-        labs(subtitle = sprintf("correlation (red line): p=%.2g (stat capped at %i)", pcor, cap))
+        geom_hline(yintercept = 0, size=1, linetype="dashed", color="#dedede") +
+        geom_vline(xintercept = 0, size=1, linetype="dashed", color="#dedede") +
+        scale_color_manual(values=colors) +
+        geom_smooth(method="lm", color="#a50f15", linetype="dotted", se=FALSE) +
+        geom_text(data=nums, aes(hjust=hjust, vjust=vjust, label=n), x=0, y=0, size=3) +
+        geom_text(data=nums2, aes(x=x, y=y, hjust=hjust, vjust=vjust, label=n), size=3) +
+        ggrepel::geom_label_repel(aes(label=label), size=2, na.rm=TRUE,
+                                  fill="#ffffff70", label.padding=unit(0.1,"lines")) +
+        labs(subtitle = sprintf("lm (red line): p=%.2g | comp. FET OR %.2f p=%.2g | stat cap %i | wald %g",
+                                pcor, pfet$estimate, pfet$p.value, cap, wald))
 }
 
 plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%

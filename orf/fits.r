@@ -45,14 +45,14 @@ sys$run({
         mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(.)) * 0.01)
 
     pan = list(
-        pan = do_fit(expr, `LFC DMSO/ETP` ~ gene),
-        pancov = do_fit(expr, `LFC DMSO/ETP` ~ tissue + gene)
+        pan = do_fit(expr, as.formula(paste(args$field, "~ gene"))),
+        pancov = do_fit(expr, as.formula(paste(args$field, "~ tissue + gene")))
     )
 
     tissue = sapply(c("NB", "OV", "BRCA", "SKCM", "MB"),
                     function(t) expr %>%
                         filter(tissue %in% t) %>%
-                        do_fit(`LFC DMSO/ETP` ~ gene),
+                        do_fit(as.formula(paste(args$field, "~ gene"))),
                     simplify=FALSE)
 
     result = c(pan, tissue)

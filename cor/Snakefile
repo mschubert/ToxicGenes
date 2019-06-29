@@ -12,7 +12,12 @@ subworkflow tcga:
 
 rule all:
     input:
-        "cor_pan+pan_amp.pdf"
+        expand("cor_{tissue}+{tissue}_{cna}.pdf",
+                tissue =['pan', 'BRCA', 'SKCM', 'OV'],
+                cna = ['amp'])#,
+#        expand("cor_pan+{tissue}_{cna}.pdf",
+#                tissue =['pan', 'BRCA', 'SKCM', 'OV'],
+#                cna = ['amp'])
 
 rule cor:
     input:
@@ -24,6 +29,7 @@ rule cor:
         tcga_puradj = tcga("pur+adj/{tissue}.xlsx")
     output:
         plotfile = "cor_{tissue}+{tissue}_{subset}.pdf"
+    threads: 10
     shell:
         "Rscript {input.rscript}"
             " --orf {input.orf}"

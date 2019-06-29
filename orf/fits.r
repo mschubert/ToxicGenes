@@ -14,7 +14,8 @@ do_fit = function(expr, fml) {
     res = expr %>%
         select(`GENE SYMBOL`, `Construct IDs`) %>%
         distinct() %>%
-        mutate(result = purrr::map(`Construct IDs`, ffun)) %>%
+        mutate(result = clustermq::Q(ffun, `Construct IDs`, n_jobs=10,
+            export=list(expr=expr, fml=fml), pkgs="dplyr")) %>%
         tidyr::unnest() %>%
         filter(term == "geneTRUE") %>%
         select(-term) %>%

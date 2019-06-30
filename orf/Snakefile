@@ -1,7 +1,14 @@
+configfile: "../config.yaml"
+
+subworkflow genesets:
+    workdir: "../data/genesets"
+    snakefile: "../data/genesets/Snakefile"
+
 rule all:
     input:
         expand("overview_{type}.pdf", type=['naive', 'corrected']),
-        expand("fits_{type}.pdf", type=['naive', 'corrected'])
+        expand("fits_{type}.pdf", type=['naive', 'corrected']),
+        expand("sets/{gset}.pdf", gset=config['genesets'])
 
 rule overview_naive:
     input:
@@ -47,5 +54,20 @@ rule fits:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --field '{params.field}'"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
+rule sets:
+    input:
+        rscript = "sets.r",
+        infile = "overview.rds",
+        setfile = genesets("{gset}.rds")
+    output:
+        outfile = "sets/{gset}.xlsx",
+        plotfile = "sets/{gset}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --setfile {input.setfile}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"

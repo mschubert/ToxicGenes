@@ -32,8 +32,8 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
                topORF = gene %in% rownames(smat)[rank(smat[,"orf"]) <= n_orf],
                fface = ifelse(topORF, "bold", "plain")) %>%
         group_by(sign(!! x1), sign(!! x2)) %>%
-        mutate(annot_score = abs(!! x1 / median(!! x1, na.rm=TRUE))^0.5 +
-                             abs(!! x2 / median(!! x2, na.rm=TRUE))^0.5,
+        mutate(annot_score = abs(!! x1 / quantile(!! x1, 0.9, na.rm=TRUE))^0.5 +
+                             abs(!! x2 / quantile(!! x2, 0.9, na.rm=TRUE))^0.5,
                label = case_when(
                     is.na(!! x1) & rank(-abs(!! x2)) <= 3 ~ gene,
                     is.na(!! x2) & rank(-abs(!! x1)) <= 3 ~ gene,
@@ -113,7 +113,7 @@ sys$run({
     )
     assocs = dset %>%
         dplyr::bind_rows(.id="assocs") %>%
-        select(-`Construct IDs`, -n_aneup)
+        select(-n_aneup)
 
     cap = as.numeric(args$stat_max)
     smat = assocs %>%

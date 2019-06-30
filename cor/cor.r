@@ -3,7 +3,7 @@ library(cowplot)
 b = import('base')
 sys = import('sys')
 
-do_plot = function(a1, a2) {
+do_plot = function(a1, a2, smat, cap=20) {
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
     colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc"),
@@ -14,15 +14,20 @@ do_plot = function(a1, a2) {
         tibble::rownames_to_column("gene")
     plot_data = data %>%
         mutate(type = case_when(
-                abs(!! x1) < wald | abs(!! x2) < wald ~ "no change",
-                !! x1 < 0 & !! x2 < 0 ~ "compensated",
-                !! x1 > 0 & !! x2 > 0 ~ "hyper-dereg",
-                TRUE ~ "inconsistent"),
+                    abs(!! x1) < wald | abs(!! x2) < wald ~ "no change",
+                    !! x1 < 0 & !! x2 < 0 ~ "compensated",
+                    !! x1 > 0 & !! x2 > 0 ~ "hyper-dereg",
+                    TRUE ~ "inconsistent"
+               ),
                type = factor(type, levels=names(colors))) %>%
-        group_by(type) %>%
-        mutate(annot_score = abs(!! x1 / max(abs(!! x1), na.rm=TRUE) *
-                                 !! x2 / max(abs(!! x2), na.rm=TRUE)),
-               label = ifelse(rank(-annot_score) <= 20, gene, NA)) %>%
+        group_by(sign(!! x1), sign(!! x2)) %>%
+        mutate(annot_score = abs(!! x1 / max(abs(!! x1), na.rm=TRUE)) +
+                             abs(!! x2 / max(abs(!! x2), na.rm=TRUE)),
+               label = case_when(
+                    sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= 20 ~ gene,
+                    sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= 10 ~ gene,
+                    TRUE ~ as.character(NA)
+               )) %>%
         ungroup()
     pcor = broom::tidy(lm(plot_data[[a1]] ~ plot_data[[a2]]))$p.value[2]
 
@@ -57,7 +62,7 @@ do_plot = function(a1, a2) {
         geom_text(data=nums, aes(hjust=hjust, vjust=vjust, label=n), x=0, y=0, size=3) +
         geom_text(data=nums2, aes(x=x, y=y, hjust=hjust, vjust=vjust, label=sprintf("%i*",n)), size=3) +
         ggrepel::geom_label_repel(aes(label=label), size=2, na.rm=TRUE,
-                                  fill="#ffffff70", label.padding=unit(0.1,"lines")) +
+                segment.alpha=0.5, fill="#ffffff70", label.padding=0.1) +
         labs(subtitle = subt)
 }
 
@@ -70,6 +75,7 @@ sys$run({
         opt('a', 'tcga_puradj', 'xlsx', '../tcga/pur+adj/pan.xlsx'),
         opt('t', 'tissue', 'pan|TCGA identifer', 'pan'),
         opt('s', 'subset', 'amp|del|all', 'amp'),
+        opt('m', 'stat_max', 'numeric', '20'),
         opt('p', 'plotfile', 'pdf', 'pan+pan_amp.pdf'))
 
     dset = list(
@@ -80,13 +86,11 @@ sys$run({
         tcga_pur = readxl::read_xlsx(args$tcga_pur, args$subset),
         tcga_puradj = readxl::read_xlsx(args$tcga_puradj, args$subset)
     )
-
     assocs = dset %>%
         dplyr::bind_rows(.id="assocs") %>%
         select(-`Construct IDs`, -n_aneup)
 
-    cap = 40
-
+    cap = as.numeric(args$stat_max)
     smat = assocs %>%
         group_by(gene, assocs) %>%
         arrange(-statistic) %>%
@@ -100,7 +104,7 @@ sys$run({
         filter(a1 < a2,
                ! a2 %in% c("tcga_naive", "tcga_pur")) %>%
         tbl_df() %>%
-        mutate(plots = purrr::map2(a1, a2, do_plot))
+        mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat))
 
     pdf(args$plotfile, 10, 10)
     for (i in seq_len(nrow(plots)))

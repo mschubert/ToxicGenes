@@ -1,0 +1,15 @@
+configfile: "../../config.yaml"
+
+rule all:
+    input:
+        expand("{geneset}.rds", geneset=config['genesets'])
+
+rule enrichr:
+    input:
+        rscript = "make_set.r"
+    output:
+        outfile = "{geneset}.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --geneset {wildcards.geneset}"
+            " --outfile {output.outfile}"

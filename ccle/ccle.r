@@ -72,16 +72,11 @@ sys$run({
         opt('p', 'plotfile', 'pdf', 'pan.pdf'))
 
     options(mc.cores = as.integer(args$cores))
-
     dset = readRDS(args$infile)
-    emat = DESeq2::DESeqDataSetFromMatrix(dset$expr, dset$idx, ~1) %>%
-        DESeq2::estimateSizeFactors(normMatrix=dset$copies) %>%
-        DESeq2::counts(normalized=TRUE)
-
     if (args$tissue != "pan")
         dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
 
-    fits = all_fits(emat, dset$copies, dset$idx$tcga_code)
+    fits = all_fits(dset$eset, dset$copies, dset$idx$tcga_code)
     plots = lapply(fits, do_plot)
 
     pdf(args$plotfile)

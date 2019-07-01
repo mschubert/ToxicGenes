@@ -11,7 +11,7 @@ rule all:
     input:
         expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
 
-rule do_fit:
+rule fit_gene:
     input:
         rscript = "ccle.r",
         infile = data_ccle("dset.rds")
@@ -24,3 +24,5 @@ rule do_fit:
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
+
+#rule fit_set:

@@ -9,7 +9,9 @@ args = sys$cmd$parse(
     opt('c', 'copies', 'txt', 'CCLE_copynumber_byGene_2013-12-03.txt.gz'),
     opt('o', 'outfile', 'rds', 'dset.rds'))
 
-idx = readr::read_tsv(args$annot)
+idx = readr::read_tsv(args$annot) %>%
+    mutate(tcga_code = sub("/", "", tcga_code),
+           tcga_code = ifelse(tcga_code == "UNABLE TO CLASSIFY", NA, tcga_code))
 
 expr = io$read_gct(args$rnaseq)@mat
 expr = expr[rowMeans(expr) >= 10,] # small bias for library size?
@@ -25,4 +27,8 @@ chrs = seq$coords$gene(chromosomes=1:22)
 narray::intersect(idx$CCLE_ID, expr, copies, along=2)
 narray::intersect(chrs$external_gene_name, expr, copies, along=1)
 
-saveRDS(list(idx=idx, expr=expr, copies=copies), file=args$outfile)
+eset = DESeq2::DESeqDataSetFromMatrix(expr, idx, ~1) %>%
+    DESeq2::estimateSizeFactors(normMatrix=copies) %>%
+    DESeq2::counts(normalized=TRUE)
+
+saveRDS(list(idx=idx, copies=copies, eset=eset), file=args$outfile)

@@ -2,8 +2,12 @@ subworkflow data_ccle:
     workdir: "../data/ccle"
     snakefile: "../data/ccle/Snakefile"
 
-tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COAD/READ", "OV"]
-#tissues = ["pan", "BRCA", "LUAD", "SKCM", "COAD/READ", "ALL", "DLBC",
+subworkflow genesets:
+    workdir: "../data/genesets"
+    snakefile: "../data/genesets/Snakefile"
+
+tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
+#tissues = ["pan", "BRCA", "LUAD", "SKCM", "COADREAD", "ALL", "DLBC",
 #           "BLCA", "KIRC", "HNSC", "LUSC", "LIHC", "OV", "PAAD",
 #           "STAD", "UCEC", "GBM", "ESCA"]
 
@@ -13,11 +17,11 @@ rule all:
 
 rule fit_gene:
     input:
-        rscript = "ccle.r",
+        rscript = "fit_gene.r",
         infile = data_ccle("dset.rds")
     output:
-        outfile = "{tissue}.xlsx",
-        plotfile = "{tissue}.pdf"
+        outfile = "{tissue}/genes.xlsx",
+        plotfile = "{tissue}/genes.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -25,4 +29,20 @@ rule fit_gene:
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
-#rule fit_set:
+rule fit_set:
+    input:
+        rscript = "fit_set.r",
+        infile = data_ccle("dset.rds"),
+        setfile = genesets("{set}.rds")
+    output:
+        outfile = "{tissue}/{set}.xlsx",
+        plotfile = "{tissue}/{set}.pdf"
+    wildcard_constraints:
+        set = "((?!genes).*)"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --setfile {input.setfile}"
+            " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"

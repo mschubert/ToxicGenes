@@ -1,3 +1,5 @@
+configfile: "../config.yaml"
+
 subworkflow data_ccle:
     workdir: "../data/ccle"
     snakefile: "../data/ccle/Snakefile"
@@ -11,9 +13,16 @@ tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
 #           "BLCA", "KIRC", "HNSC", "LUSC", "LIHC", "OV", "PAAD",
 #           "STAD", "UCEC", "GBM", "ESCA"]
 
+mem = {
+    'pan' : 4096,
+    '*' : 1024
+}
+
 rule all:
     input:
-        expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
+        expand("{tissue}/genes.{ext}", tissue=tissues, ext=['pdf','xlsx']),
+        expand("{tissue}/{sets}.{ext}", tissue=tissues,
+                sets=config['genesets'], ext=['pdf','xlsx'])
 
 rule fit_genes:
     input:
@@ -22,6 +31,9 @@ rule fit_genes:
     output:
         outfile = "{tissue}/genes.xlsx",
         plotfile = "{tissue}/genes.pdf"
+    resources:
+        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0]
+    threads: 1
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -39,6 +51,10 @@ rule fit_sets:
         plotfile = "{tissue}/{set}.pdf"
     wildcard_constraints:
         set = "((?!genes).*)"
+    resources:
+        mem = lambda wc, input, threads:
+            [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0] * 3
+    threads: 3
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

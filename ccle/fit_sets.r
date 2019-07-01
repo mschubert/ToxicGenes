@@ -3,19 +3,16 @@ sys = import('sys')
 plt = import('plot')
 gset = import('data/genesets')
 
-do_fit = function(set, sets, emat, copies, covar=1) {
+fit_set = function(set, sets, emat, copies, covar=1) {
     genes = intersect(sets[[set]], rownames(emat))
-    df = data.frame(expr = c(emat[genes,] / rowMeans(emat[genes,], na.rm=TRUE) - 1),
+    df = data.frame(expr = c(emat[genes,]),
                     copies = c(copies[genes,]),
                     covar = rep(covar, length(genes))) %>%
         na.omit()
-
-    has_covar = length(unique(na.omit(covar))) > 1
-    if (has_covar) {
+    if (length(unique(na.omit(covar))) > 1)
         fml = expr ~ covar + copies
-    } else {
+    else
         fml = expr ~ copies
-    }
 
     mobj = MASS::rlm(fml, data=df, maxit=100)
     mod = broom::tidy(mobj) %>%
@@ -23,26 +20,6 @@ do_fit = function(set, sets, emat, copies, covar=1) {
         select(-term) %>%
         mutate(size = length(genes),
                p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
-}
-
-all_fits = function(sets, emat, copies, tissues=NA) {
-    ffuns = list(
-        amp = function(x) { x[x < 1.8] = NA; x },
-        del = function(x) { x[x > 2.2] = NA; x },
-        dev = function(x) abs(x-2),
-        all = identity
-    )
-
-    do_ffun = function(ffun) {
-        tibble(set = names(sets)) %>%
-            mutate(res = clustermq::Q(do_fit, set=set, n_jobs=3,
-                const = list(sets=sets, emat=emat, copies=ffun(copies), covar=tissues),
-                pkgs = "dplyr")) %>%
-            tidyr::unnest() %>%
-            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-            arrange(adj.p, p.value)
-    }
-    lapply(ffuns, do_ffun)
 }
 
 do_plot = function(data) {
@@ -64,15 +41,31 @@ sys$run({
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
         dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
+    emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
+
     sets = readRDS(args$setfile) %>%
         gset$filter(min=4, valid=rownames(dset$eset))
 
-    fits = all_fits(sets, dset$eset, dset$copies, dset$idx$tcga_code)
-    plots = lapply(fits, do_plot)
+    ffuns = list(
+        amp = function(x) { x[x < 1.8] = NA; x },
+        del = function(x) { x[x > 2.2] = NA; x },
+        dev = function(x) abs(x-2),
+        all = identity
+    )
+    fits = lapply(ffuns, function(ff) {
+        tibble(set = names(sets)) %>%
+            mutate(res = clustermq::Q(fit_set, set=set, n_jobs=3,
+                const = list(sets=sets, emat=emat, copies=ff(dset$copies),
+                             covar=dset$idx$tcga_code),
+                pkgs = "dplyr")) %>%
+            tidyr::unnest() %>%
+            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+            arrange(adj.p, p.value)
+    })
 
     pdf(args$plotfile)
-    for (i in seq_along(plots))
-        print(plots[[i]] + ggtitle(names(plots)[i]))
+    for (i in seq_along(fits))
+        print(do_plot(fits[[i]]) + ggtitle(names(fits)[i]))
     dev.off()
 
     writexl::write_xlsx(fits, args$outfile)

@@ -15,9 +15,9 @@ rule all:
     input:
         expand("{tissue}.{ext}", tissue=tissues, ext=['pdf','xlsx'])
 
-rule fit_gene:
+rule fit_genes:
     input:
-        rscript = "fit_gene.r",
+        rscript = "fit_genes.r",
         infile = data_ccle("dset.rds")
     output:
         outfile = "{tissue}/genes.xlsx",
@@ -29,9 +29,9 @@ rule fit_gene:
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
-rule fit_set:
+rule fit_sets:
     input:
-        rscript = "fit_set.r",
+        rscript = "fit_sets.r",
         infile = data_ccle("dset.rds"),
         setfile = genesets("{set}.rds")
     output:

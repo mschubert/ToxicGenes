@@ -29,6 +29,7 @@ rule fit_rlm:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         walltime = 120,
         cores = 10
+    group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
@@ -44,6 +45,7 @@ rule plot:
         infile = "{type}/{tissue}/{sets}.xlsx"
     output:
         plotfile = "{type}/{tissue}/{sets}.pdf"
+    group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

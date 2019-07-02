@@ -23,6 +23,11 @@ rule all:
         expand("{tissue}/genes.pdf", tissue=tissues),
         expand("{tissue}/{sets}.pdf", tissue=tissues, sets=config['genesets'])
 
+rule data:
+    input:
+        expand("{tissue}/genes.xlsx", tissue=tissues),
+        expand("{tissue}/{sets}.xlsx", tissue=tissues, sets=config['genesets'])
+
 rule fit_genes:
     input:
         rscript = "fit_genes.r",

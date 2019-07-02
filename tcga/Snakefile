@@ -1,3 +1,5 @@
+configfile: "../config.yaml"
+
 subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
@@ -13,7 +15,9 @@ mem = {
 
 rule all:
     input:
-        expand("{type}/{tissue}.pdf", tissue=tissues, type=types)
+        expand("{type}/{tissue}/genes.pdf", tissue=tissues, type=types),
+        expand("{type}/{tissue}/{sets}.pdf", tissue=tissues, type=types,
+                sets=config['genesets'])
 
 rule fit_rlm:
     input:
@@ -37,9 +41,9 @@ rule fit_rlm:
 rule plot:
     input:
         rscript = "plot.r",
-        infile = "{type}/{tissue}.xlsx"
+        infile = "{type}/{tissue}/{sets}.xlsx"
     output:
-        plotfile = "{type}/{tissue}.pdf"
+        plotfile = "{type}/{tissue}/{sets}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

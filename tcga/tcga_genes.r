@@ -89,10 +89,11 @@ sys$run({
     fits = lapply(ffuns, function(ff) {
         cmat = ff(copies)
         fml = models(args$type, length(unique(cdata$tissue)) != 1)
-        do_fit = function(g) fit_gene(g, fml, emat, cmat, purity$estimate, cdata$tissue)
 
         res = tibble(gene = rownames(emat)) %>%
-            mutate(res = purrr::map(gene, do_fit)) %>%
+            mutate(res = clustermq::Q(fit_gene, gene=gene, n_jobs=0,
+                const=list(fml=fml, emat=emat, copies=cmat,
+                           purity=purity$estimate, covar=cdata$tissue))) %>%
             tidyr::unnest() %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)

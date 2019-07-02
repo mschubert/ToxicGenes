@@ -2,6 +2,7 @@ library(dplyr)
 sys = import('sys')
 tcga = import('data/tcga')
 idmap = import('process/idmap')
+gset = import('data/genesets')
 
 models = function(type, covar) {
     fmls = list(
@@ -21,10 +22,11 @@ models = function(type, covar) {
     fmls[[type]][[as.character(covar)]]
 }
 
-fit_gene = function(gene, fml, emat, copies, purity, covar=0) {
-    on.exit(message("Error: ", gene))
-    df = data.frame(expr = emat[gene,], purity = purity, covar = covar,
-                    cancer_copies = (copies[gene,] - 2) / purity + 2) %>%
+do_fit = function(genes, fml, emat, copies, purity, covar=0) {
+    df = data.frame(expr = c(emat[genes,]),
+                    cancer_copies = c((copies[genes,] - 2) / purity + 2),
+                    purity = rep(purity, length(genes)),
+                    covar = rep(covar, length(genes))) %>%
         na.omit() %>%
         mutate(expr = expr / cancer_copies,
                stroma = 2 * (1 - purity) / cancer_copies,
@@ -35,20 +37,18 @@ fit_gene = function(gene, fml, emat, copies, purity, covar=0) {
         filter(term == "cancer_copies") %>%
         select(-term) %>%
         mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
-               size = n_aneup,
+               n_genes = length(genes),
                p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
-
-    on.exit()
-    mod
 }
 
 sys$run({
     args = sys$cmd$parse(
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
+        opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('c', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '4096'),
-        opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'))
+        opt('o', 'outfile', 'xlsx', 'LUAD/genes.xlsx'))
 
     if (args$tissue == "pan")
         args$tissue = tcga$cohorts()
@@ -81,6 +81,12 @@ sys$run({
         DESeq2::counts(normalized=TRUE)
     emat = emat / rowMeans(emat, na.rm=TRUE) - 1
 
+    if (grepl("genes\\.xlsx", args$outfile))
+        sets = setNames(rownames(emat), rownames(emat))
+    else
+        sets = readRDS(args$setfile) %>%
+            gset$filter(min=4, valid=rownames(emat))
+
     w = clustermq::workers(n_jobs = as.integer(args$cores),
                            template = list(memory = as.integer(args$memory)))
 
@@ -91,15 +97,13 @@ sys$run({
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
-        cmat = ff(copies)
-        fml = models(args$type, length(unique(cdata$tissue)) != 1)
-
-        res = tibble(gene = rownames(emat)) %>%
-            mutate(res = clustermq::Q(fit_gene, gene=gene,
-                workers=w, pkgs="dplyr",
-                const = list(fml=fml, emat=emat, copies=cmat,
-                             purity=purity$estimate, covar=cdata$tissue))) %>%
-            tidyr::unnest() %>%
+        has_covar = length(unique(cdata$tissue)) != 1
+        res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
+                const = list(fml=models(args$type, has_covar),
+                             emat=emat, copies=ff(copies),
+                             purity=purity$estimate, covar=cdata$tissue)) %>%
+            setNames(names(sets)) %>%
+            bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)
     })

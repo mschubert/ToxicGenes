@@ -1,3 +1,7 @@
+subworkflow genesets:
+    workdir: "../data/genesets"
+    snakefile: "../data/genesets/Snakefile"
+
 types = [ "naive", "pur", "puradj" ]
 tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
@@ -11,11 +15,12 @@ rule all:
     input:
         expand("{type}/{tissue}.pdf", tissue=tissues, type=types)
 
-rule do_fit:
+rule fit_rlm:
     input:
-        rscript = "tcga_genes.r"
+        rscript = "fit_rlm.r",
+        sets = genesets("{sets}.rds")
     output:
-        outfile = "{type}/{tissue}.xlsx"
+        outfile = "{type}/{tissue}/{sets}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         walltime = 120,
@@ -24,6 +29,7 @@ rule do_fit:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --type {wildcards.type}"
+            " --setfile {input.sets}"
             " --cores {resources.cores}"
             " --memory {resources.mem}"
             " --outfile {output.outfile}"

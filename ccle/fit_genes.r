@@ -1,6 +1,5 @@
 library(dplyr)
 sys = import('sys')
-plt = import('plot')
 
 fit_gene = function(expr, copies, covar=1, ffun=identity) {
     df = na.omit(data.frame(expr=expr, copies=ffun(copies), covar=covar))
@@ -18,20 +17,11 @@ fit_gene = function(expr, copies, covar=1, ffun=identity) {
                p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
 }
 
-do_plot = function(data) {
-    data %>%
-        mutate(label=gene, size=n_aneup) %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15)
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('o', 'outfile', 'xlsx', 'pan.xlsx'),
-        opt('p', 'plotfile', 'pdf', 'pan.pdf'))
+        opt('o', 'outfile', 'xlsx', 'pan.xlsx'))
 
     clustermq::register_dopar_cmq(n_jobs=5)
 
@@ -57,11 +47,6 @@ sys$run({
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)
     })
-
-    pdf(args$plotfile)
-    for (i in seq_along(fits))
-        print(do_plot(fits[[i]]) + ggtitle(names(fits)[i]))
-    dev.off()
 
     writexl::write_xlsx(fits, args$outfile)
 })

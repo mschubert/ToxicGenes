@@ -1,6 +1,5 @@
 library(dplyr)
 sys = import('sys')
-plt = import('plot')
 gset = import('data/genesets')
 
 fit_set = function(set, sets, emat, copies, covar=1) {
@@ -22,21 +21,12 @@ fit_set = function(set, sets, emat, copies, covar=1) {
                p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
 }
 
-do_plot = function(data) {
-    data %>%
-        mutate(label=set) %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-        plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15)
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('o', 'outfile', 'xlsx', 'pan.xlsx'),
-        opt('p', 'plotfile', 'pdf', 'pan.pdf'))
+        opt('o', 'outfile', 'xlsx', 'pan.xlsx'))
 
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
@@ -54,7 +44,7 @@ sys$run({
     )
     fits = lapply(ffuns, function(ff) {
         tibble(set = names(sets)) %>%
-            mutate(res = clustermq::Q(fit_set, set=set, n_jobs=3,
+            mutate(res = clustermq::Q(fit_set, set=set, n_jobs=2,
                 const = list(sets=sets, emat=emat, copies=ff(dset$copies),
                              covar=dset$idx$tcga_code),
                 pkgs = "dplyr")) %>%
@@ -62,11 +52,6 @@ sys$run({
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)
     })
-
-    pdf(args$plotfile)
-    for (i in seq_along(fits))
-        print(do_plot(fits[[i]]) + ggtitle(names(fits)[i]))
-    dev.off()
 
     writexl::write_xlsx(fits, args$outfile)
 })

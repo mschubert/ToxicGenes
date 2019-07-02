@@ -20,9 +20,8 @@ mem = {
 
 rule all:
     input:
-        expand("{tissue}/genes.{ext}", tissue=tissues, ext=['pdf','xlsx']),
-        expand("{tissue}/{sets}.{ext}", tissue=tissues,
-                sets=config['genesets'], ext=['pdf','xlsx'])
+        expand("{tissue}/genes.pdf", tissue=tissues),
+        expand("{tissue}/{sets}.pdf", tissue=tissues, sets=config['genesets'])
 
 rule fit_genes:
     input:
@@ -30,7 +29,6 @@ rule fit_genes:
         infile = data_ccle("dset.rds")
     output:
         outfile = "{tissue}/genes.xlsx",
-        plotfile = "{tissue}/genes.pdf"
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0]
     threads: 1
@@ -39,7 +37,6 @@ rule fit_genes:
             " --infile {input.infile}"
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
-            " --plotfile {output.plotfile}"
 
 rule fit_sets:
     input:
@@ -48,7 +45,6 @@ rule fit_sets:
         setfile = genesets("{set}.rds")
     output:
         outfile = "{tissue}/{set}.xlsx",
-        plotfile = "{tissue}/{set}.pdf"
     wildcard_constraints:
         set = "((?!genes).*)"
     resources:
@@ -61,4 +57,14 @@ rule fit_sets:
             " --setfile {input.setfile}"
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
+
+rule plot:
+    input:
+        rscript = "plot.r",
+        infile = "{tissue}/{set}.xlsx"
+    output:
+        plotfile = "{tissue}/{set}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"

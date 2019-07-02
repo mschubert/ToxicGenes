@@ -3,6 +3,7 @@ tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 mem = {
     "pan" : 61440,
+    "BRCA" : 10240,
     "*" : 4096
 }
 
@@ -17,11 +18,14 @@ rule do_fit:
         outfile = "{type}/{tissue}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
-        walltime = 120
+        walltime = 120,
+        cores = 10
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --type {wildcards.type}"
+            " --cores {resources.cores}"
+            " --memory {resources.mem}"
             " --outfile {output.outfile}"
 
 rule plot:

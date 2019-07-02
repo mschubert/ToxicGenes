@@ -48,6 +48,8 @@ sys$run({
     args = sys$cmd$parse(
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
+        opt('c', 'cores', 'integer', '10'),
+        opt('m', 'memory', 'integer', '4096'),
         opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'))
 
     if (args$tissue == "pan")
@@ -91,9 +93,10 @@ sys$run({
         fml = models(args$type, length(unique(cdata$tissue)) != 1)
 
         res = tibble(gene = rownames(emat)) %>%
-            mutate(res = clustermq::Q(fit_gene, gene=gene, n_jobs=0,
-                const=list(fml=fml, emat=emat, copies=cmat,
-                           purity=purity$estimate, covar=cdata$tissue))) %>%
+            mutate(res = clustermq::Q(fit_gene, gene=gene, pkgs="dplyr",
+                n_jobs = as.integer(args$cores), memory=as.integer(args$memory),
+                const = list(fml=fml, emat=emat, copies=cmat,
+                             purity=purity$estimate, covar=cdata$tissue))) %>%
             tidyr::unnest() %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)

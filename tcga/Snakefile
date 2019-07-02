@@ -41,7 +41,7 @@ rule fit_rlm:
 
 rule plot:
     input:
-        rscript = "plot.r",
+        rscript = "../ccle/plot.r",
         infile = "{type}/{tissue}/{sets}.xlsx"
     output:
         plotfile = "{type}/{tissue}/{sets}.pdf"

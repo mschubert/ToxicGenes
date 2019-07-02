@@ -3,7 +3,25 @@ sys = import('sys')
 tcga = import('data/tcga')
 idmap = import('process/idmap')
 
-do_fit = function(gene, emat, copies, purity, covar=0) {
+models = function(type, covar) {
+    fmls = list(
+        naive = list(
+            "TRUE" = expr ~ covar + cancer_copies,
+            "FALSE" = expr ~ cancer_copies
+        ),
+        pur = list (
+            "TRUE" = expr ~ covar + cancer + cancer_copies,
+            "FALSE" = expr ~ cancer + cancer_copies
+        ),
+        puradj = list(
+            "TRUE" = expr ~ covar + stroma + cancer + cancer_copies,
+            "FALSE" = expr ~ stroma + cancer + cancer_copies
+        )
+    )
+    fmls[[type]][[as.character(covar)]]
+}
+
+fit_gene = function(gene, fml, emat, copies, purity, covar=0) {
     on.exit(message("Error: ", gene))
     df = data.frame(expr = emat[gene,] / mean(emat[gene,], na.rm=TRUE),
                     purity = purity,
@@ -14,55 +32,22 @@ do_fit = function(gene, emat, copies, purity, covar=0) {
                stroma = 2 * (1 - purity) / cancer_copies,
                cancer = (purity * cancer_copies) / cancer_copies) # simplifies to CCF
 
-    n_aneup = sum(abs(df$cancer_copies-2) > 0.2)
-    if (n_aneup < 5) {
-        on.exit(message("Not enough aneuploid samples: ", gene))
-        return(data.frame(estimate=NA))
-    }
-
-    if (length(unique(na.omit(covar))) > 1) {
-        fml = expr ~ covar + cancer + cancer_copies #+ delta_cancer + delta_stroma
-    } else {
-        fml = expr ~ cancer + cancer_copies #+ stroma:cancer_copies
-    }
     mobj = MASS::rlm(fml, data=df, maxit=100)
     mod = broom::tidy(mobj) %>%
-        mutate(p.value = NA)
-    mod$p.value[mod$term == "cancer_copies"] = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value
-#    mod$p.value[mod$term == "stroma"] = sfsmisc::f.robftest(mobj, var="stroma")$p.value
-
-    mod = mod %>%
         filter(term == "cancer_copies") %>%
         select(-term) %>%
-        mutate(n_aneup = n_aneup)
+        mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
+               size = n_aneup,
+               p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
 
     on.exit()
     mod
 }
 
-all_fits = function(emat, copies, purity, tissues=0) {
-    ffuns = list(
-        amp = function(x) { x[x < 1.8] = NA; x },
-        del = function(x) { x[x > 2.2] = NA; x },
-#        dev = function(x) abs(x-2),
-        all = identity
-    )
-
-    do_ffun = function(ffun) {
-        copies2 = ffun(copies)
-        fit_gene = function(g) do_fit(g, emat, copies2, purity$estimate, tissues)
-        tibble(gene = rownames(emat)) %>%
-            mutate(res = lapply(gene, fit_gene)) %>%
-            tidyr::unnest() %>%
-            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-            arrange(adj.p, p.value)
-    }
-    lapply(ffuns, do_ffun)
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
+        opt('y', 'type', 'naive|pur|puradj', 'naive'),
         opt('o', 'outfile', 'xlsx', 'LUAD.xlsx'))
 
     if (args$tissue == "pan")
@@ -95,6 +80,23 @@ sys$run({
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
 
-    fits = all_fits(emat, copies, purity)
+    ffuns = list(
+        amp = function(x) { x[x < 1.8] = NA; x },
+        del = function(x) { x[x > 2.2] = NA; x },
+#        dev = function(x) abs(x-2),
+        all = identity
+    )
+    fits = lapply(ffuns, function(ff) {
+        cmat = ff(copies)
+        fml = models(args$type, length(unique(cdata$tissue)) != 1)
+        do_fit = function(g) fit_gene(g, fml, emat, cmat, purity$estimate, cdata$tissue)
+
+        res = tibble(gene = rownames(emat)) %>%
+            mutate(res = purrr::map(gene, do_fit)) %>%
+            tidyr::unnest() %>%
+            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+            arrange(adj.p, p.value)
+    })
+
     writexl::write_xlsx(fits, args$outfile)
 })

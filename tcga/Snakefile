@@ -1,6 +1,4 @@
-import glob
-types = [ f[5:-2] for f in glob.glob("tcga_*.r") ]
-
+types = [ "naive", "pur", "puradj" ]
 tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 mem = {
@@ -14,7 +12,7 @@ rule all:
 
 rule do_fit:
     input:
-        rscript = "tcga_{type}.r"
+        rscript = "tcga_genes.r"
     output:
         outfile = "{type}/{tissue}.xlsx"
     resources:
@@ -23,6 +21,7 @@ rule do_fit:
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
+            " --type {wildcards.type}"
             " --outfile {output.outfile}"
 
 rule plot:

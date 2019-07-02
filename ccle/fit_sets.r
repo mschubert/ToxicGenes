@@ -26,6 +26,8 @@ sys$run({
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('c', 'cores', 'integer', '10'),
+        opt('m', 'memory', 'integer', '6144'),
         opt('o', 'outfile', 'xlsx', 'pan.xlsx'))
 
     dset = readRDS(args$infile)
@@ -44,10 +46,10 @@ sys$run({
     )
     fits = lapply(ffuns, function(ff) {
         tibble(set = names(sets)) %>%
-            mutate(res = clustermq::Q(fit_set, set=set, n_jobs=2,
+            mutate(res = clustermq::Q(fit_set, set=set, pkgs="dplyr",
                 const = list(sets=sets, emat=emat, copies=ff(dset$copies),
                              covar=dset$idx$tcga_code),
-                pkgs = "dplyr")) %>%
+                n_jobs=as.integer(args$cores), memory=as.integer(args$memory))) %>%
             tidyr::unnest() %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)

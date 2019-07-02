@@ -14,8 +14,8 @@ tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
 #           "STAD", "UCEC", "GBM", "ESCA"]
 
 mem = {
-    'pan' : 4096,
-    '*' : 1024
+    'pan' : 10240,
+    '*' : 3072
 }
 
 rule all:
@@ -30,12 +30,15 @@ rule fit_genes:
     output:
         outfile = "{tissue}/genes.xlsx",
     resources:
-        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0]
-    threads: 1
+        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
+        walltime = 240,
+        cores = 10
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --tissue {wildcards.tissue}"
+            " --cores {resources.cores}"
+            " --memory {resources.mem}"
             " --outfile {output.outfile}"
 
 rule fit_sets:
@@ -48,14 +51,16 @@ rule fit_sets:
     wildcard_constraints:
         set = "((?!genes).*)"
     resources:
-        mem = lambda wc, input, threads:
-            [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0] * 3
-    threads: 3
+        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
+        walltime = 240,
+        cores = 10
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
             " --tissue {wildcards.tissue}"
+            " --cores {resources.cores}"
+            " --memory {resources.mem}"
             " --outfile {output.outfile}"
 
 rule plot:

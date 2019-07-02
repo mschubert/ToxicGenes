@@ -27,6 +27,8 @@ rule dset:
         copies = ccle['copies']
     output:
         outfile = "dset.rds"
+    resources:
+        mem = 3072,
     shell:
         "Rscript {input.rscript}"
             " --annot {input.annot}"

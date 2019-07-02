@@ -21,9 +21,11 @@ sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('c', 'cores', 'integer', '10'), # defunct
+        opt('m', 'memory', 'integer', '6144'), # defunct
         opt('o', 'outfile', 'xlsx', 'pan.xlsx'))
 
-    clustermq::register_dopar_cmq(n_jobs=5)
+    #clustermq::register_dopar_cmq(n_jobs=as.integer(args$cores), memory=as.integer(args$memory))
 
     dset = readRDS(args$infile)
     if (args$tissue != "pan")

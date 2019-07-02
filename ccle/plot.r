@@ -14,7 +14,7 @@ do_plot = function(data, title) {
         p = data %>%
             filter(estimate < 0) %>%
             plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-            plt$volcano(base.size=0.2, text.size=2.5, label_top=30, repel=TRUE) +
+            plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
             labs(title = title,
                  subtitle = "compensated",
                  y = ylab)
@@ -26,7 +26,7 @@ do_plot = function(data, title) {
         p = data %>%
             filter(estimate > 0) %>%
             plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-            plt$volcano(base.size=0.2, text.size=2.5, label_top=30, repel=TRUE) +
+            plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
             labs(subtitle="hyper-deregulated") +
             theme(axis.title.y = element_blank())
         ggplot_build(p)
@@ -45,9 +45,9 @@ sys$run({
         sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
 
     if (grepl("genes\\.xlsx", args$infile))
-        fits = lapply(fits, function(f) mutate(f, label=gene, size=n_aneup))
+        fits = lapply(fits, function(f) mutate(f, label=name, size=n_aneup))
     else
-        fits = lapply(fits, function(f) mutate(f, label=set))
+        fits = lapply(fits, function(f) mutate(f, label=name, size=n_genes))
 
     pdf(args$plotfile, 12, 8)
     for (i in seq_along(fits)) {

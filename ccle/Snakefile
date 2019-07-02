@@ -28,37 +28,18 @@ rule data:
         expand("{tissue}/genes.xlsx", tissue=tissues),
         expand("{tissue}/{sets}.xlsx", tissue=tissues, sets=config['genesets'])
 
-rule fit_genes:
+rule fit_rlm:
     input:
-        rscript = "fit_genes.r",
-        infile = data_ccle("dset.rds")
-    output:
-        outfile = "{tissue}/genes.xlsx",
-    resources:
-        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
-        walltime = 240,
-        cores = 10
-    shell:
-        "Rscript {input.rscript}"
-            " --infile {input.infile}"
-            " --tissue {wildcards.tissue}"
-            " --cores {resources.cores}"
-            " --memory {resources.mem}"
-            " --outfile {output.outfile}"
-
-rule fit_sets:
-    input:
-        rscript = "fit_sets.r",
+        rscript = "fit_rlm.r",
         infile = data_ccle("dset.rds"),
         setfile = genesets("{set}.rds")
     output:
         outfile = "{tissue}/{set}.xlsx",
-    wildcard_constraints:
-        set = "((?!genes).*)"
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         walltime = 240,
         cores = 10
+    group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -74,6 +55,7 @@ rule plot:
         infile = "{tissue}/{set}.xlsx"
     output:
         plotfile = "{tissue}/{set}.pdf"
+    group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

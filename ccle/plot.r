@@ -3,10 +3,17 @@ plt = import('plot')
 sys = import('sys')
 
 do_plot = function(data) {
-    data %>%
+    ylab = "Adjusted p-value (FDR)"
+    if (sum(data$adj.p < 1e-300) > 5) {
+        data$adj.p = 10^-abs(data$statistic)
+        ylab = "Pseudo p-value (values too close to zero)"
+    }
+
+    p = data %>%
         plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
         plt$volcano(base.size=0.2, label_top=50, repel=TRUE,
-                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15)
+                    text.size=2.5, x_label_bias=5, pos_label_bias=0.15) +
+        ylab(ylab)
 }
 
 sys$run({

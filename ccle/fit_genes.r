@@ -33,6 +33,16 @@ sys$run({
     emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
     cmat = dset$copies
 
+    #TODO: check where these errors come from
+    if (args$tissue == "SKCM") {
+        emat = emat[rownames(emat) != "LINC00320",]
+        cmat = cmat[rownames(cmat) != "LINC00320",]
+    }
+    if (args$tissue == "BRCA") {
+        emat = emat[! rownames(emat) %in% c("DNAJA1P5","DEFA4"),]
+        cmat = cmat[! rownames(cmat) %in% c("DNAJA1P5","DEFA4"),]
+    }
+
     ffuns = list(
         amp = function(x) { x[x < 1.8] = NA; x },
         del = function(x) { x[x > 2.2] = NA; x },

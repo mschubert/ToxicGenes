@@ -23,10 +23,8 @@ models = function(type, covar) {
 
 fit_gene = function(gene, fml, emat, copies, purity, covar=0) {
     on.exit(message("Error: ", gene))
-    df = data.frame(expr = emat[gene,] / mean(emat[gene,], na.rm=TRUE),
-                    purity = purity,
-                    cancer_copies = (copies[gene,] - 2) / purity + 2,
-                    covar = covar) %>%
+    df = data.frame(expr = emat[gene,], purity = purity, covar = covar,
+                    cancer_copies = (copies[gene,] - 2) / purity + 2) %>%
         na.omit() %>%
         mutate(expr = expr / cancer_copies,
                stroma = 2 * (1 - purity) / cancer_copies,
@@ -81,6 +79,10 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
+    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
+
+    w = clustermq::workers(n_jobs = as.integer(args$cores),
+                           template = list(memory = as.integer(args$memory)))
 
     ffuns = list(
         amp = function(x) { x[x < 1.8] = NA; x },
@@ -93,8 +95,8 @@ sys$run({
         fml = models(args$type, length(unique(cdata$tissue)) != 1)
 
         res = tibble(gene = rownames(emat)) %>%
-            mutate(res = clustermq::Q(fit_gene, gene=gene, pkgs="dplyr",
-                n_jobs = as.integer(args$cores), memory=as.integer(args$memory),
+            mutate(res = clustermq::Q(fit_gene, gene=gene,
+                workers=w, pkgs="dplyr",
                 const = list(fml=fml, emat=emat, copies=cmat,
                              purity=purity$estimate, covar=cdata$tissue))) %>%
             tidyr::unnest() %>%

@@ -35,6 +35,16 @@ sys$run({
         dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
     emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
 
+    #TODO: check where these errors come from
+    if (args$tissue == "SKCM") {
+        emat = emat[rownames(emat) != "LINC00320",]
+        dset$copies = dset$copies[rownames(dset$copies) != "LINC00320",]
+    }
+    if (args$tissue == "BRCA") {
+        emat = emat[! rownames(emat) %in% c("DNAJA1P5","DEFA4"),]
+        dset$copies = dset$copies[! rownames(dset$copies) %in% c("DNAJA1P5","DEFA4"),]
+    }
+
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))
     else

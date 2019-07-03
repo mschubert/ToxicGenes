@@ -2,29 +2,20 @@ library(dplyr)
 library(cowplot)
 plt = import('plot')
 sys = import('sys')
+gset = import('data/genesets')
 
-do_fit = function(expr, sets) {
-    ffun = function(s) {
-        gset = sets[[s]]
-        expr %>%
-            mutate(set = `GENE SYMBOL` %in% gset) %>%
-            lm(z_LFC ~ set, data=.) %>%
-            broom::tidy() %>%
-            mutate(size = length(gset))
-    }
-
-    res = tibble(set = names(sets)) %>%
-        mutate(result = clustermq::Q(ffun, set, n_jobs=10,
-            export=list(expr=expr, sets=sets), pkgs="dplyr")) %>%
-        tidyr::unnest() %>%
+do_fit = function(sets, expr) {
+    expr %>%
+        mutate(set = `GENE SYMBOL` %in% sets) %>%
+        lm(z_LFC ~ set, data=.) %>%
+        broom::tidy() %>%
         filter(term == "setTRUE") %>%
         select(-term) %>%
-        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-        arrange(adj.p, p.value)
+        mutate(size = length(sets))
 }
 
 do_plot = function(res) {
-    res$label = res$set
+    res$label = res$name
     if (all(res$estimate[rank(res$p.value) < 10] > 0))
         res$label[res$estimate > 0] = NA
 
@@ -37,21 +28,32 @@ sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', 'overview.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
-        opt('o', 'outfile', 'xls', 'sets/CH.HALLMARK.xlsx'),
-        opt('p', 'plotfile', 'pdf', 'sets/CH.HALLMARK.pdf'))
+        opt('t', 'tissue', 'pan|TCGA', 'pan'),
+        opt('o', 'outfile', 'xls', 'pan/CH.HALLMARK.xlsx'),
+        opt('p', 'plotfile', 'pdf', 'pan/CH.HALLMARK.pdf'))
 
     expr = readRDS(args$infile)
-    sets = readRDS(args$setfile)
 
-    pan = do_fit(expr, sets)
-    tissue = sapply(c("NB", "OV", "BRCA", "SKCM", "MB"),
-                    function(t) do_fit(filter(expr, tissue %in% t), sets),
-                    simplify=FALSE)
-    result = c(list(pan=pan), tissue)
+    if (grepl("genes\\.xlsx", args$outfile)) {
+        genes = unique(expr$`GENE SYMBOL`)
+        sets = setNames(as.list(genes), genes)
+    } else
+        sets = readRDS(args$setfile) %>%
+            gset$filter(min=4, valid=expr$`GENE SYMBOL`)
 
+    if (args$tissue != "pan")
+        expr = filter(expr, tissue %in% args$tissue)
+
+    result = clustermq::Q(do_fit, sets=sets, n_jobs=5, pkgs="dplyr",
+            const=list(expr=expr)) %>%
+        setNames(names(sets)) %>%
+        bind_rows(.id="name") %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
+
+    title = paste(args$tissue, tools::file_path_sans_ext(basename(args$setfile)))
     pdf(args$plotfile)
-    for (i in seq_along(result))
-        print(do_plot(result[[i]]) + ggtitle(names(result)[i]))
+    print(do_plot(result) + ggtitle(title))
     dev.off()
 
     writexl::write_xlsx(result, args$outfile)

@@ -8,7 +8,8 @@ rule all:
     input:
         expand("overview_{type}.pdf", type=['naive', 'corrected']),
         expand("fits_{type}.pdf", type=['naive', 'corrected']),
-        expand("sets/{gset}.pdf", gset=config['genesets'])
+        expand("{tissue}/{gset}.pdf", tissue=['pan', "NB", "OV", "BRCA", "SKCM", "MB"],
+                gset=config['genesets'] + ['genes'])
 
 rule overview_naive:
     input:
@@ -63,11 +64,12 @@ rule sets:
         infile = "overview.rds",
         setfile = genesets("{gset}.rds")
     output:
-        outfile = "sets/{gset}.xlsx",
-        plotfile = "sets/{gset}.pdf"
+        outfile = "{tissue}/{gset}.xlsx",
+        plotfile = "{tissue}/{gset}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
+            " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"

@@ -93,23 +93,22 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
 
 sys$run({
     args = sys$cmd$parse(
-        opt('o', 'orf', 'xlsx', '../orf/fits_corrected.xlsx'),
-        opt('c', 'ccle', 'xlsx', '../ccle/pan.xlsx'),
-        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan.xlsx'),
-        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan.xlsx'),
-        opt('a', 'tcga_puradj', 'xlsx', '../tcga/pur+adj/pan.xlsx'),
-        opt('t', 'tissue', 'pan|TCGA identifer', 'pan'),
-        opt('s', 'subset', 'amp|del|all', 'amp'),
+        opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
+        opt('c', 'ccle', 'xlsx', '../ccle/pan/genes.xlsx'),
+        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan/genes.xlsx'),
+        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan/genes.xlsx'),
+        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan/genes.xlsx'),
+        opt('s', 'sets', 'genes|genesets', 'genes'),
+        opt('x', 'cna', 'amp|del|all', 'amp'),
         opt('m', 'stat_max', 'numeric', '20'),
         opt('p', 'plotfile', 'pdf', 'pan+pan_amp.pdf'))
 
     dset = list(
-        orf = readxl::read_xlsx(args$orf, args$tissue) %>%
-            dplyr::rename(gene = `GENE SYMBOL`),
+        orf = readxl::read_xlsx(args$orf),
         ccle = readxl::read_xlsx(args$ccle, args$subset),
-        tcga_naive = readxl::read_xlsx(args$tcga_naive, args$subset),
-        tcga_pur = readxl::read_xlsx(args$tcga_pur, args$subset),
-        tcga_puradj = readxl::read_xlsx(args$tcga_puradj, args$subset)
+        tcga_naive = readxl::read_xlsx(args$tcga_naive, args$cna),
+        tcga_pur = readxl::read_xlsx(args$tcga_pur, args$cna),
+        tcga_puradj = readxl::read_xlsx(args$tcga_puradj, args$cna)
     )
     assocs = dset %>%
         dplyr::bind_rows(.id="assocs") %>%

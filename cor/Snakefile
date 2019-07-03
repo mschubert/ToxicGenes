@@ -1,3 +1,5 @@
+configfile: "../config.yaml"
+
 subworkflow orf:
     workdir: "../orf"
     snakefile: "../orf/Snakefile"
@@ -12,23 +14,21 @@ subworkflow tcga:
 
 rule all:
     input:
-        expand("cor_{tissue}_{cna}.pdf",
-                tissue =['pan', 'BRCA', 'SKCM', 'OV'],
-                cna = ['amp'])#,
-#        expand("cor_pan+{tissue}_{cna}.pdf",
-#                tissue =['pan', 'BRCA', 'SKCM', 'OV'],
-#                cna = ['amp'])
+        expand("{tissue}_{cna}/{sets}.pdf",
+                sets = config['genesets'] + ['genes'],
+                tissue = ['pan', 'BRCA', 'SKCM', 'OV'],
+                cna = ['amp']) # del, all
 
 rule cor:
     input:
         rscript = "cor.r",
         orf = orf("fits_corrected.xlsx"),
-        ccle = ccle("{tissue}.xlsx"),
-        tcga_naive = tcga("naive/{tissue}.xlsx"),
-        tcga_pur = tcga("pur/{tissue}.xlsx"),
-        tcga_puradj = tcga("pur+adj/{tissue}.xlsx")
+        ccle = ccle("{tissue}/{sets}.xlsx"),
+        tcga_naive = tcga("naive/{tissue}/{sets}.xlsx"),
+        tcga_pur = tcga("pur/{tissue}/{sets}.xlsx"),
+        tcga_puradj = tcga("puradj/{tissue}/{sets}.xlsx")
     output:
-        plotfile = "cor_{tissue}_{subset}.pdf"
+        plotfile = "{tissue}_{cna}/{sets}.pdf"
     threads: 10
     shell:
         "Rscript {input.rscript}"
@@ -37,5 +37,6 @@ rule cor:
             " --tcga_naive {input.tcga_naive}"
             " --tcga_pur {input.tcga_pur}"
             " --tcga_puradj {input.tcga_puradj}"
-            " --subset {wildcards.subset}"
+            " --sets {wildcards.sets}"
+            " --cna {wildcards.cna}"
             " --plotfile {output.plotfile}"

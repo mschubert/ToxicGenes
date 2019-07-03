@@ -27,7 +27,7 @@ rule fit_rlm:
         outfile = "{type}/{tissue}/{sets}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
-        walltime = 120,
+        walltime = 480,
         cores = 10
     group: "fit_and_plot"
     shell:

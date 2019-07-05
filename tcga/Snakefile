@@ -28,7 +28,7 @@ rule fit_rlm:
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         walltime = 480,
-        cores = 10
+        cores = 50
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

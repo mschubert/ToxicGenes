@@ -87,7 +87,8 @@ sys$run({
         sets = readRDS(args$setfile) %>%
             gset$filter(min=4, valid=rownames(emat))
 
-    w = clustermq::workers(n_jobs = as.integer(args$cores),
+    w = clustermq::workers(n_jobs = min(as.integer(args$cores),
+                                        ceiling(length(sets)/20)),
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(

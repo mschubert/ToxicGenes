@@ -22,7 +22,7 @@ rule all:
 rule cor:
     input:
         rscript = "cor.r",
-        orf = orf("fits_corrected.xlsx"),
+        orf = orf("{tissue}/{sets}.xlsx"),
         ccle = ccle("{tissue}/{sets}.xlsx"),
         tcga_naive = tcga("naive/{tissue}/{sets}.xlsx"),
         tcga_pur = tcga("pur/{tissue}/{sets}.xlsx"),

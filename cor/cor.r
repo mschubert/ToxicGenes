@@ -12,13 +12,14 @@ sys = import('sys')
 #' @param wald   Wald statistic to consider minimum for change (otherwise grey)
 #' @param n_orf  Number of top ORF hits to label irrespective of where they are
 do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
+    message(a1, " & ", a2)
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
     colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
 
     data = as.data.frame(smat[,c(a1, a2)]) %>%
-        tibble::rownames_to_column("gene") %>%
+        tibble::rownames_to_column("name") %>%
         filter(! (is.na(!! x1) & is.na(!! x2)))
     plot_data = data %>%
         mutate(type = case_when(
@@ -29,17 +30,17 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
                     TRUE ~ "inconsistent"
                ),
                type = factor(type, levels=names(colors)),
-               topORF = gene %in% rownames(smat)[rank(smat[,"orf"]) <= n_orf],
+               topORF = name %in% rownames(smat)[rank(smat[,"orf"]) <= n_orf],
                fface = ifelse(topORF, "bold", "plain")) %>%
         group_by(sign(!! x1), sign(!! x2)) %>%
         mutate(annot_score = abs(!! x1 / quantile(!! x1, 0.9, na.rm=TRUE))^0.5 +
                              abs(!! x2 / quantile(!! x2, 0.9, na.rm=TRUE))^0.5,
                label = case_when(
-                    is.na(!! x1) & rank(-abs(!! x2)) <= 3 ~ gene,
-                    is.na(!! x2) & rank(-abs(!! x1)) <= 3 ~ gene,
-                    topORF ~ gene,
-                    sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= 20 ~ gene,
-                    sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= 10 ~ gene,
+                    is.na(!! x1) & rank(-abs(!! x2)) <= 3 ~ name,
+                    is.na(!! x2) & rank(-abs(!! x1)) <= 3 ~ name,
+                    topORF ~ name,
+                    sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= 20 ~ name,
+                    sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= 10 ~ name,
                     TRUE ~ as.character(NA)
                )) %>%
         ungroup()
@@ -101,7 +102,7 @@ sys$run({
         opt('s', 'sets', 'genes|genesets', 'genes'),
         opt('x', 'cna', 'amp|del|all', 'amp'),
         opt('m', 'stat_max', 'numeric', '20'),
-        opt('p', 'plotfile', 'pdf', 'pan+pan_amp.pdf'))
+        opt('p', 'plotfile', 'pdf', 'pan_amp/genes.pdf'))
 
     dset = list(
         orf = readxl::read_xlsx(args$orf),
@@ -116,13 +117,13 @@ sys$run({
 
     cap = as.numeric(args$stat_max)
     smat = assocs %>%
-        group_by(gene, assocs) %>%
+        group_by(name, assocs) %>%
         arrange(-statistic) %>%
         top_n(1, "statistic") %>%
         ungroup() %>%
         mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
-        dplyr::distinct(assocs, gene, .keep_all=TRUE) %>%
-        narray::construct(statistic ~ gene + assocs)
+        dplyr::distinct(assocs, name, .keep_all=TRUE) %>%
+        narray::construct(statistic ~ name + assocs)
 
     plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
         filter(a1 < a2,

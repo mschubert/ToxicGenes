@@ -29,7 +29,6 @@ rule cor:
         tcga_puradj = tcga("puradj/{tissue}/{sets}.xlsx")
     output:
         plotfile = "{tissue}_{cna}/{sets}.pdf"
-    threads: 10
     shell:
         "Rscript {input.rscript}"
             " --orf {input.orf}"

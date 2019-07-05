@@ -10,8 +10,8 @@ sys = import('sys')
 #' @param smat   Wald statistic matrix [genes x data sets]
 #' @param cap    If values fall outside cap, plot them at the border
 #' @param wald   Wald statistic to consider minimum for change (otherwise grey)
-#' @param n_orf  Number of top ORF hits to label irrespective of where they are
-do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
+#' @param label  Number of points to label (consistent, inconsistent, orf, 1 ds)
+do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     message(a1, " & ", a2)
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
@@ -30,17 +30,17 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
                     TRUE ~ "inconsistent"
                ),
                type = factor(type, levels=names(colors)),
-               topORF = name %in% rownames(smat)[rank(smat[,"orf"]) <= n_orf],
+               topORF = name %in% rownames(smat)[rank(smat[,"orf"]) <= label[3]],
                fface = ifelse(topORF, "bold", "plain")) %>%
         group_by(sign(!! x1), sign(!! x2)) %>%
         mutate(annot_score = abs(!! x1 / quantile(!! x1, 0.9, na.rm=TRUE))^0.5 +
                              abs(!! x2 / quantile(!! x2, 0.9, na.rm=TRUE))^0.5,
                label = case_when(
-                    is.na(!! x1) & rank(-abs(!! x2)) <= 3 ~ name,
-                    is.na(!! x2) & rank(-abs(!! x1)) <= 3 ~ name,
+                    is.na(!! x1) & rank(-abs(!! x2)) <= label[4] ~ name,
+                    is.na(!! x2) & rank(-abs(!! x1)) <= label[4] ~ name,
                     topORF ~ name,
-                    sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= 20 ~ name,
-                    sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= 10 ~ name,
+                    sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= label[1] ~ name,
+                    sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= label[2] ~ name,
                     TRUE ~ as.character(NA)
                )) %>%
         ungroup()
@@ -69,7 +69,7 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, n_orf=20) {
                          "wald %g",
                          "top %i orf bold"),
                    pcor, pfet2$estimate, pfet$estimate,
-                   pfet2$p.value, pfet$p.value, cap, wald, n_orf)
+                   pfet2$p.value, pfet$p.value, cap, wald, label[3])
 
     oneDS.x = min(plot_data[[a1]], na.rm=TRUE) - 1
     oneDS.y = min(plot_data[[a2]], na.rm=TRUE) - 1
@@ -125,11 +125,17 @@ sys$run({
         dplyr::distinct(assocs, name, .keep_all=TRUE) %>%
         narray::construct(statistic ~ name + assocs)
 
+    type = tools::file_path_sans_ext(basename(args$orf))
+    if (type %in% c("genes"))
+        label = c(20, 10, 20, 3)
+    else
+        label = c(5, 3, 3, 1)
+
     plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
         filter(a1 < a2,
                ! a2 %in% c("tcga_naive", "tcga_pur")) %>%
         tbl_df() %>%
-        mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat))
+        mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat, label=label))
 
     pdf(args$plotfile, 10, 10)
     for (i in seq_len(nrow(plots)))

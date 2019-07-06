@@ -14,31 +14,31 @@ tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
 #           "STAD", "UCEC", "GBM", "ESCA"]
 
 mem = {
-    'pan' : 10240,
-    '*' : 3072
+    'pan' : 4096,
+    '*' : 2048
 }
 
 rule all:
     input:
-        expand("{tissue}/genes.pdf", tissue=tissues),
-        expand("{tissue}/{sets}.pdf", tissue=tissues, sets=config['genesets'])
+        expand("{tissue}_{fit}/{sets}.pdf", tissue=tissues,
+                fit=['rlm', 'rank'], sets=config['genesets'] + ['genes'])
 
 rule data:
     input:
-        expand("{tissue}/genes.xlsx", tissue=tissues),
-        expand("{tissue}/{sets}.xlsx", tissue=tissues, sets=config['genesets'])
+        expand("{tissue}_{fit}/{sets}.xlsx", tissue=tissues,
+                fit=['rlm', 'rank'], sets=config['genesets'] + ['genes'])
 
-rule fit_rlm:
+rule fit:
     input:
-        rscript = "fit_rlm.r",
+        rscript = "fit_{fit}.r",
         infile = data_ccle("dset.rds"),
         setfile = genesets("{set}.rds")
     output:
-        outfile = "{tissue}/{set}.xlsx",
+        outfile = "{tissue}_{fit}/{set}.xlsx",
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         walltime = 240,
-        cores = 10
+        cores = 0
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
@@ -52,9 +52,9 @@ rule fit_rlm:
 rule plot:
     input:
         rscript = "plot.r",
-        infile = "{tissue}/{set}.xlsx"
+        infile = "{tissue}_{fit}/{set}.xlsx"
     output:
-        plotfile = "{tissue}/{set}.pdf"
+        plotfile = "{tissue}_{fit}/{set}.pdf"
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

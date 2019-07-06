@@ -8,27 +8,26 @@ types = [ "naive", "pur", "puradj" ]
 tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 mem = {
-    "pan" : 61440,
-    "BRCA" : 10240,
+    "pan" : 20480,
+    "BRCA" : 8192,
     "*" : 4096
 }
 
 rule all:
     input:
-        expand("{type}/{tissue}/genes.pdf", tissue=tissues, type=types),
-        expand("{type}/{tissue}/{sets}.pdf", tissue=tissues, type=types,
-                sets=config['genesets'])
+        expand("{type}/{tissue}_{fit}/{sets}.pdf", tissue=tissues, type=types,
+                fit=['rlm', 'rank'], sets=config['genesets'] + ['genes'])
 
-rule fit_rlm:
+rule fit:
     input:
-        rscript = "fit_rlm.r",
+        rscript = "fit_{fit}.r",
         sets = genesets("{sets}.rds")
     output:
-        outfile = "{type}/{tissue}/{sets}.xlsx"
+        outfile = "{type}/{tissue}_{fit}/{sets}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         walltime = 480,
-        cores = 50
+        cores = 5
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
@@ -42,9 +41,9 @@ rule fit_rlm:
 rule plot:
     input:
         rscript = "../ccle/plot.r",
-        infile = "{type}/{tissue}/{sets}.xlsx"
+        infile = "{type}/{tissue}_{fit}/{sets}.xlsx"
     output:
-        plotfile = "{type}/{tissue}/{sets}.pdf"
+        plotfile = "{type}/{tissue}_{fit}/{sets}.pdf"
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

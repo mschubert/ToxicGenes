@@ -7,16 +7,16 @@ gset = import('data/genesets')
 models = function(type, covar) {
     fmls = list(
         naive = list(
-            "TRUE" = expr ~ covar + cancer_copies,
-            "FALSE" = expr ~ cancer_copies
+            "TRUE" = erank ~ covar + crank,
+            "FALSE" = erank ~ crank
         ),
         pur = list (
-            "TRUE" = expr ~ covar + cancer + cancer_copies,
-            "FALSE" = expr ~ cancer + cancer_copies
+            "TRUE" = erank ~ covar + cancer + crank,
+            "FALSE" = erank ~ cancer + crank
         ),
         puradj = list(
-            "TRUE" = expr ~ covar + stroma + cancer + cancer_copies,
-            "FALSE" = expr ~ stroma + cancer + cancer_copies
+            "TRUE" = erank ~ covar + stroma + cancer + crank,
+            "FALSE" = erank ~ stroma + cancer + crank
         )
     )
     fmls[[type]][[as.character(covar)]]
@@ -31,15 +31,16 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
         sample_n(min(nrow(.), 1e5)) %>%
         mutate(expr = expr / cancer_copies,
                stroma = 2 * (1 - purity) / cancer_copies,
-               cancer = (purity * cancer_copies) / cancer_copies) # simplifies to CCF
+               cancer = (purity * cancer_copies) / cancer_copies, # simplifies to CCF
+               erank = rank(expr) / nrow(.),
+               crank = rank(cancer_copies) / nrow(.))
 
-    mobj = MASS::rlm(fml, data=df, maxit=100)
-    mod = broom::tidy(mobj) %>%
-        filter(term == "cancer_copies") %>%
+    mod = lm(fml, data=df) %>%
+        broom::tidy() %>%
+        filter(term == "crank") %>%
         select(-term) %>%
         mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
-               n_genes = length(genes),
-               p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+               n_genes = length(genes))
 }
 
 sys$run({
@@ -80,7 +81,10 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
-    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
+#    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
+
+    emat = narray::map(emat, along=2, subsets=cdata$tissue,
+                       function(x) rank(x) / length(x) - 0.5)
 
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))

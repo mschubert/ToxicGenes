@@ -3,23 +3,25 @@ sys = import('sys')
 gset = import('data/genesets')
 
 do_fit = function(genes, emat, copies, covar=1) {
+    crank = narray::map(copies[genes,,drop=FALSE], along=2, subsets=covar,
+                        function(x) rank(x) / length(x) - 0.5)
     df = data.frame(expr = c(emat[genes,]),
                     copies = c(copies[genes,]),
+                    crank = c(crank),
                     covar = rep(covar, length(genes))) %>%
         na.omit() %>%
         sample_n(min(nrow(.), 1e5))
     if (length(unique(na.omit(covar))) > 1)
-        fml = expr ~ covar + copies
+        fml = expr ~ covar + crank
     else
-        fml = expr ~ copies
+        fml = expr ~ crank
 
-    mobj = MASS::rlm(fml, data=df, maxit=100)
-    mod = broom::tidy(mobj) %>%
-        filter(term == "copies") %>%
+    mod = lm(fml, data=df) %>%
+        broom::tidy() %>%
+        filter(term == "crank") %>%
         select(-term) %>%
         mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
-               n_genes = length(genes),
-               p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
+               n_genes = length(genes))
 }
 
 sys$run({
@@ -34,7 +36,17 @@ sys$run({
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
         dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
-    emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
+#    emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
+
+#    copies = narray::like(0, dset$copies)
+#    copies[dset$copies < 1.8] = -rank(abs(dset$copies[dset$copies < 1.8]))
+#    copies[dset$copies > 2.2] = rank(dset$copies[dset$copies > 2.2])
+
+    # ranks by cohort and gene
+    emat = narray::map(dset$eset, along=2, subsets=dset$idx$tcga_code,
+                       function(x) rank(x) / length(x) - 0.5)
+    dset$copies = dset$copies[,colnames(emat)]
+    dset$idx = dset$idx[match(colnames(emat), dset$idx$CCLE_ID),]
 
     #TODO: check where these errors come from
     if (args$tissue == "SKCM") {

@@ -14,7 +14,8 @@ subworkflow tcga:
 
 rule all:
     input:
-        expand("{tissue}_{cna}/{sets}.pdf",
+        expand("{tissue}_{fit}_{cna}/{sets}.pdf",
+                fit = ['rlm', 'rank'],
                 sets = config['genesets'] + ['genes'],
                 tissue = ['pan', 'BRCA', 'SKCM', 'OV'],
                 cna = ['amp']) # del, all
@@ -23,12 +24,12 @@ rule cor:
     input:
         rscript = "cor.r",
         orf = orf("{tissue}/{sets}.xlsx"),
-        ccle = ccle("{tissue}/{sets}.xlsx"),
-        tcga_naive = tcga("naive/{tissue}/{sets}.xlsx"),
-        tcga_pur = tcga("pur/{tissue}/{sets}.xlsx"),
-        tcga_puradj = tcga("puradj/{tissue}/{sets}.xlsx")
+        ccle = ccle("{tissue}_{fit}/{sets}.xlsx"),
+        tcga_naive = tcga("naive/{tissue}_{fit}/{sets}.xlsx"),
+        tcga_pur = tcga("pur/{tissue}_{fit}/{sets}.xlsx"),
+        tcga_puradj = tcga("puradj/{tissue}_{fit}/{sets}.xlsx")
     output:
-        plotfile = "{tissue}_{cna}/{sets}.pdf"
+        plotfile = "{tissue}_{fit}_{cna}/{sets}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --orf {input.orf}"

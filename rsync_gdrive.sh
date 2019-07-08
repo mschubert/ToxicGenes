@@ -1,10 +1,9 @@
 #!/bin/sh
 
-rsync -auvr \
-    --exclude "backup" \
-    --include "orf" \
-    --include "ccle" \
-    --include "tcga" \
+rsync -auvr --prune-empty-dirs \
+    --exclude "data/" \
+    --exclude "backup/" \
+    --include "*/" \
     --include "*.pdf" \
     --include "*.xlsx" \
     --exclude="*" \

@@ -5,7 +5,7 @@ sys = import('sys')
 
 do_plot = function(data, title) {
     ylab = "Adjusted p-value (FDR)"
-    if (sum(data$adj.p < 1e-300) > 5) {
+    if (sum(data$adj.p < 1e-300, na.rm=TRUE) > 5) {
         data$adj.p = 10^-abs(pmin(data$statistic, 300))
         ylab = "Pseudo p-value (values too close to zero)"
     }

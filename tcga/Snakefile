@@ -8,7 +8,7 @@ types = [ "naive", "pur", "puradj" ]
 tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV"]
 
 mem = {
-    "pan" : 20480,
+    "pan" : 61440,
     "BRCA" : 8192,
     "*" : 4096
 }

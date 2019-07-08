@@ -7,16 +7,16 @@ gset = import('data/genesets')
 models = function(type, covar) {
     fmls = list(
         naive = list(
-            "TRUE" = erank ~ covar + crank,
-            "FALSE" = erank ~ crank
+            "TRUE" = erank ~ covar + cancer_copies,
+            "FALSE" = erank ~ cancer_copies
         ),
         pur = list (
-            "TRUE" = erank ~ covar + cancer + crank,
-            "FALSE" = erank ~ cancer + crank
+            "TRUE" = erank ~ covar + cancer + cancer_copies,
+            "FALSE" = erank ~ cancer + cancer_copies
         ),
         puradj = list(
-            "TRUE" = erank ~ covar + stroma + cancer + crank,
-            "FALSE" = erank ~ stroma + cancer + crank
+            "TRUE" = erank ~ covar + stroma + cancer + cancer_copies,
+            "FALSE" = erank ~ stroma + cancer + cancer_copies
         )
     )
     fmls[[type]][[as.character(covar)]]
@@ -32,12 +32,11 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
         mutate(expr = expr / cancer_copies,
                stroma = 2 * (1 - purity) / cancer_copies,
                cancer = (purity * cancer_copies) / cancer_copies, # simplifies to CCF
-               erank = rank(expr) / nrow(.),
-               crank = rank(cancer_copies) / nrow(.))
+               erank = rank(expr) / nrow(.))
 
     mod = lm(fml, data=df) %>%
         broom::tidy() %>%
-        filter(term == "crank") %>%
+        filter(term == "cancer_copies") %>%
         select(-term) %>%
         mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
                n_genes = length(genes))

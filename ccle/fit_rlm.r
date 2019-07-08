@@ -38,12 +38,20 @@ sys$run({
 
     #TODO: check where these errors come from
     if (args$tissue == "SKCM") {
-        emat = emat[rownames(emat) != "LINC00320",]
-        dset$copies = dset$copies[rownames(dset$copies) != "LINC00320",]
+        emat = emat[! rownames(emat) %in% c("LINC00320","DEFA4"),]
+        dset$copies = dset$copies[! rownames(dset$copies) %in% c("LINC00320", "DEFA4"),]
     }
     if (args$tissue == "BRCA") {
         emat = emat[! rownames(emat) %in% c("DNAJA1P5","DEFA4"),]
         dset$copies = dset$copies[! rownames(dset$copies) %in% c("DNAJA1P5","DEFA4"),]
+    }
+    if (args$tissue == "LUAD") {
+        emat = emat[! rownames(emat) %in% c("MBD3L3"),]
+        dset$copies = dset$copies[! rownames(dset$copies) %in% c("MBD3L3"),]
+    }
+    if (args$tissue == "SCLC") {
+        emat = emat[! rownames(emat) %in% c("DEFB4A"),]
+        dset$copies = dset$copies[! rownames(dset$copies) %in% c("DEFB4A"),]
     }
 
     if (grepl("genes\\.xlsx", args$outfile))

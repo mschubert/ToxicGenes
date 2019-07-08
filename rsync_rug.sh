@@ -1,10 +1,9 @@
 #!/bin/sh
 
-rsync -auvr \
-    --exclude ".snakemake" \
+rsync -auvr --prune-empty-dirs \
+    --include "*/" \
+    --include "*.rds" \
     --include "*.pdf" \
     --include "*.xlsx" \
-    --include "*/" \
-    --exclude "backup" \
     --exclude="*" \
     rug:/data/p282396/ORFdosage/* $(dirname $0)

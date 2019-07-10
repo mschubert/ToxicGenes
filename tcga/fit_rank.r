@@ -23,7 +23,8 @@ models = function(type, covar) {
 }
 
 do_fit = function(genes, fml, emat, copies, purity, covar=0) {
-    df = data.frame(expr = c(emat[genes,]),
+    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
+                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
                     purity = rep(purity, length(genes)),
                     covar = rep(covar, length(genes))) %>%
@@ -80,7 +81,6 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
-    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
 
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))

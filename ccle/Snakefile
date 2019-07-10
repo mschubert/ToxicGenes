@@ -1,3 +1,5 @@
+from glob import glob
+
 configfile: "../config.yaml"
 
 subworkflow data_ccle:
@@ -7,6 +9,8 @@ subworkflow data_ccle:
 subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
+
+fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
 tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
 #tissues = ["pan", "BRCA", "LUAD", "SKCM", "COADREAD", "ALL", "DLBC",
@@ -21,12 +25,7 @@ mem = {
 rule all:
     input:
         expand("{tissue}_{fit}/{sets}.pdf", tissue=tissues,
-                fit=['rlm', 'rank'], sets=config['genesets'] + ['genes'])
-
-rule data:
-    input:
-        expand("{tissue}_{fit}/{sets}.xlsx", tissue=tissues,
-                fit=['rlm', 'rank'], sets=config['genesets'] + ['genes'])
+                fit=fits, sets=config['genesets'] + ['genes'])
 
 rule fit:
     input:

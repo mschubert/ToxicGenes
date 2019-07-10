@@ -80,10 +80,7 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
-#    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
-
-    emat = narray::map(emat, along=2, subsets=cdata$tissue,
-                       function(x) rank(x) / length(x) - 0.5)
+    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
 
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))

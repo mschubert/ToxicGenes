@@ -1,11 +1,11 @@
 library(dplyr)
+library(ggplot2)
+theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 
 args = sys$cmd$parse(
     opt('c', 'ccle', 'xlsx', './ccle/pan_rlm/genes.xlsx'),
     opt('d', 'ccle', 'xlsx', './ccle/pan_rank/genes.xlsx'),
-    opt('', '', '', ''),
-    opt('', '', '', ''),
     opt('', '', '', ''))
 
 orf = readxl::read_xlsx("orf/pan/genes.xlsx") %>%
@@ -53,9 +53,17 @@ top = dset %>%
               score = sum(score, na.rm=TRUE) / n_dset^0) %>% # ^0 is sum (CDKN1A), ^1 is mean (LOCxxx)
     arrange(-score)
 
-dset %>%
-    filter(name == "SCIMP") %>%
-    mutate(dset = relevel(factor(dset), "orf")) %>%
-    ggplot(aes(x=fit, y = statistic, color=adj)) +
-        geom_point(size=5) +
-        facet_wrap(~ dset, scale="free_x")
+do_plot = function(gene) {
+    dset %>%
+        filter(name == gene) %>%
+        mutate(dset = relevel(factor(dset), "orf")) %>%
+        ggplot(aes(x=name, y = statistic, color=adj)) +
+            geom_point(size=5) +
+            facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
+            expand_limits(y=0)
+}
+
+pdf("candidates.pdf")
+for (g in head(top$name, 10))
+    print(do_plot(g) + ggtitle(g))
+dev.off()

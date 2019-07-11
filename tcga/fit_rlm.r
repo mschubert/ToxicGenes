@@ -34,13 +34,18 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
                stroma = 2 * (1 - purity) / cancer_copies,
                cancer = (purity * cancer_copies) / cancer_copies) # simplifies to CCF
 
-    mobj = MASS::rlm(fml, data=df, maxit=100)
-    mod = broom::tidy(mobj) %>%
-        filter(term == "cancer_copies") %>%
-        select(-term) %>%
-        mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
-               n_genes = length(genes),
-               p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+    tryCatch({
+        mobj = MASS::rlm(fml, data=df, maxit=100)
+        mod = broom::tidy(mobj) %>%
+            filter(term == "cancer_copies") %>%
+            select(-term) %>%
+            mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
+                   n_genes = length(genes),
+                   p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+    }, error = function(e) {
+        warning(conditionMessage(e), immediate.=TRUE)
+        data.frame(estimate = NA)
+    })
 }
 
 sys$run({

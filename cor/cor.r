@@ -18,8 +18,9 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
     cur = smat[,c(a1, a2)]
-    cur[,1] = sign(cur[,1]) * pmin(abs(cur[,1]), max(cap, -min(cur[,1], na.rm=TRUE)))
-    cur[,2] = sign(cur[,2]) * pmin(abs(cur[,2]), max(cap, -min(cur[,2], na.rm=TRUE)))
+    cap_at = function(x) sign(x) * pmin(abs(x), max(cap, -x[rank(x)==2]))
+    cur[,1] = cap_at(cur[,1])
+    cur[,2] = cap_at(cur[,2])
 
     data = as.data.frame(cur) %>%
         tibble::rownames_to_column("name") %>%

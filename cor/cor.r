@@ -17,10 +17,14 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     x2 = rlang::sym(a2)
     colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
+    cur = smat[,c(a1, a2)]
+    cur[,1] = sign(cur[,1]) * pmin(abs(cur[,1]), max(cap, -min(cur[,1], na.rm=TRUE)))
+    cur[,2] = sign(cur[,2]) * pmin(abs(cur[,2]), max(cap, -min(cur[,2], na.rm=TRUE)))
 
-    data = as.data.frame(smat[,c(a1, a2)]) %>%
+    data = as.data.frame(cur) %>%
         tibble::rownames_to_column("name") %>%
         filter(! (is.na(!! x1) & is.na(!! x2)))
+
     plot_data = data %>%
         mutate(type = case_when(
                     is.na(!! x1) | is.na(!! x2) ~ "only 1 dset",
@@ -95,10 +99,10 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
 sys$run({
     args = sys$cmd$parse(
         opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
-        opt('c', 'ccle', 'xlsx', '../ccle/pan/genes.xlsx'),
-        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan/genes.xlsx'),
-        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan/genes.xlsx'),
-        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan/genes.xlsx'),
+        opt('c', 'ccle', 'xlsx', '../ccle/pan_rlm/genes.xlsx'),
+        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan_rlm/genes.xlsx'),
+        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan_rlm/genes.xlsx'),
+        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan_rlm/genes.xlsx'),
         opt('s', 'sets', 'genes|genesets', 'genes'),
         opt('x', 'cna', 'amp|del|all', 'amp'),
         opt('m', 'stat_max', 'numeric', '20'),
@@ -116,14 +120,7 @@ sys$run({
         select(-n_aneup)
 
     cap = as.numeric(args$stat_max)
-    smat = assocs %>%
-        group_by(name, assocs) %>%
-        arrange(-statistic) %>%
-        top_n(1, "statistic") %>%
-        ungroup() %>%
-        mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
-        dplyr::distinct(assocs, name, .keep_all=TRUE) %>%
-        narray::construct(statistic ~ name + assocs)
+    smat = narray::construct(statistic ~ name + assocs, data=assocs)
 
     type = tools::file_path_sans_ext(basename(args$orf))
     if (type %in% c("genes"))

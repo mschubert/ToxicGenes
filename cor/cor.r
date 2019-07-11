@@ -15,7 +15,7 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     message(a1, " & ", a2)
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
-    colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc", "#8a8a8a"),
+    colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
     cur = smat[,c(a1, a2)]
     cur[,1] = sign(cur[,1]) * pmin(abs(cur[,1]), max(cap, -min(cur[,1], na.rm=TRUE)))
@@ -82,17 +82,17 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     missing[[a2]][is.na(missing[[a2]])] = oneDS.y
 
     ggplot(plot_data, aes_string(x=a1, y=a2)) +
-        geom_point(aes(color=type)) +
+        geom_point(aes(color=type), alpha=0.6) +
         geom_point(data=missing, aes(color=type)) +
-        geom_hline(yintercept = 0, size=1, linetype="dashed", color="#dedede") +
-        geom_vline(xintercept = 0, size=1, linetype="dashed", color="#dedede") +
+        geom_hline(yintercept=0, size=1, linetype="dashed", color="#dedede") +
+        geom_vline(xintercept=0, size=1, linetype="dashed", color="#dedede") +
         scale_color_manual(values=colors) +
-        geom_smooth(method="lm", color="#a50f15", linetype="dotted", se=FALSE, na.rm=TRUE) +
+        geom_smooth(method="lm", color="black", linetype="dotted", se=FALSE, na.rm=TRUE) +
         geom_text(data=nums, aes(hjust=hjust, vjust=vjust, label=n), x=0, y=0, size=3) +
         geom_text(data=nums2, aes(x=x, y=y, hjust=hjust, vjust=vjust, label=sprintf("%i*",n)), size=3) +
         ggrepel::geom_label_repel(data = bind_rows(plot_data, missing),
             aes(label=label, color=type, fontface=fface),
-            size=2, na.rm=TRUE, segment.alpha=0.3, fill="#ffffff70",
+            size=2, na.rm=TRUE, segment.alpha=0.3, fill="#ffffffc0",
             label.padding=0.1, max.iter=1e4, min.segment.length=0) +
         labs(subtitle = subt)
 }
@@ -127,7 +127,7 @@ sys$run({
     if (type %in% c("genes")) # (consistent, inconsistent, orf, 1 ds)
         label = c(20, 10, 20, 3)
     else
-        label = c(8, 3, 3, 1)
+        label = c(10, 3, 3, 1)
 
     plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
         filter(a1 < a2,

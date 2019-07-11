@@ -1,5 +1,5 @@
 library(dplyr)
-library(cowplot)
+library(ggplot2)
 b = import('base')
 sys = import('sys')
 
@@ -137,6 +137,7 @@ sys$run({
         tbl_df() %>%
         mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat, label=label))
 
+    theme_set(cowplot::theme_cowplot())
     pdf(args$plotfile, 10, 10)
     for (i in seq_len(nrow(plots)))
         print(plots$plots[[i]] + ggtitle(sprintf("%s vs %s", plots$a1[i], plots$a2[i])))

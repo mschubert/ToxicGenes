@@ -91,8 +91,9 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
         geom_text(data=nums, aes(hjust=hjust, vjust=vjust, label=n), x=0, y=0, size=3) +
         geom_text(data=nums2, aes(x=x, y=y, hjust=hjust, vjust=vjust, label=sprintf("%i*",n)), size=3) +
         ggrepel::geom_label_repel(data = bind_rows(plot_data, missing),
-            aes(label=label, fontface=fface), size=2, na.rm=TRUE,
-            segment.alpha=0.3, fill="#ffffff70", label.padding=0.1) +
+            aes(label=label, color=type, fontface=fface),
+            size=2, na.rm=TRUE, segment.alpha=0.3, fill="#ffffff70",
+            label.padding=0.1, max.iter=1e4, min.segment.length=0) +
         labs(subtitle = subt)
 }
 
@@ -123,10 +124,10 @@ sys$run({
     smat = narray::construct(statistic ~ name + assocs, data=assocs)
 
     type = tools::file_path_sans_ext(basename(args$orf))
-    if (type %in% c("genes"))
+    if (type %in% c("genes")) # (consistent, inconsistent, orf, 1 ds)
         label = c(20, 10, 20, 3)
     else
-        label = c(5, 3, 3, 1)
+        label = c(8, 3, 3, 1)
 
     plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
         filter(a1 < a2,

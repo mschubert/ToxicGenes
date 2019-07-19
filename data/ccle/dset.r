@@ -9,26 +9,39 @@ args = sys$cmd$parse(
     opt('c', 'copies', 'txt', 'CCLE_copynumber_byGene_2013-12-03.txt.gz'),
     opt('o', 'outfile', 'rds', 'dset.rds'))
 
-idx = readr::read_tsv(args$annot) %>%
+genes = seq$coords$gene(c("ensembl_gene_id", "external_gene_name"), chromosomes=1:22)
+clines = readr::read_tsv(args$annot) %>%
     mutate(tcga_code = sub("/", "", tcga_code),
            tcga_code = ifelse(tcga_code == "UNABLE TO CLASSIFY", NA, tcga_code))
 
-expr = io$read_gct(args$rnaseq)@mat
-expr = expr[rowMeans(expr) >= 10,] # small bias for library size?
-rownames(expr) = idmap$gene(sub("\\.[0-9]+", "", rownames(expr)), to="hgnc_symbol")
-expr = expr[!is.na(rownames(expr)),]
+expr2 = io$read_gct(args$rnaseq)@mat
+hgnc = idmap$gene(sub("\\.[0-9]+", "", rownames(expr2)), to="hgnc_symbol")
+uhgnc = unique(na.omit(hgnc))
+expr = matrix(NA_integer_, nrow=length(uhgnc), ncol=ncol(expr2),
+              dimnames = list(uhgnc, colnames(expr2)))
+for (n in rownames(expr))
+    expr[n,] = colSums(expr2[which(n == hgnc),,drop=FALSE])
+stopifnot(sum(is.na(expr)) == 0)
+#expr = narray::map(expr, along=1, sum, subsets=rownames(expr)) # oom
+expr = expr[rowMeans(expr) >= 10,] # small library size bias
 
-cinfo = readr::read_tsv(args$copies) # assuming log2(x/2)
-copies = 2^data.matrix(cinfo[,6:ncol(cinfo)]) + 1
-rownames(copies) = cinfo$SYMBOL
+cinfo = readr::read_tsv(args$copies) # assuming y = log2(x)-1 -> x = 2^(y+1)
+copies = 2 ^ (data.matrix(cinfo[,6:ncol(cinfo)]) + 1)
+e2hgnc = idmap$gene(as.character(cinfo$EGID), from="entrezgene_id", to="external_gene_name")
+pick = function(x1, x2) { # 16k -> 17k genes recovered where we have expr
+    if (x1 %in% rownames(expr)) { x1
+    } else if (x2 %in% rownames(expr)) { x2
+    } else if (x1 %in% genes$external_gene_name) { x1
+    } else if (x2 %in% genes$external_gene_name) { x2
+    } else { x1 }
+}
+rownames(copies) = mapply(pick, x1=cinfo$SYMBOL, x2=e2hgnc)
 
-chrs = seq$coords$gene(chromosomes=1:22)
+narray::intersect(clines$CCLE_ID, expr, copies, along=2)
+narray::intersect(genes$external_gene_name, expr, copies, along=1)
 
-narray::intersect(idx$CCLE_ID, expr, copies, along=2)
-narray::intersect(chrs$external_gene_name, expr, copies, along=1)
-
-eset = DESeq2::DESeqDataSetFromMatrix(expr, idx, ~1) %>%
+eset = DESeq2::DESeqDataSetFromMatrix(expr, clines, ~1) %>%
     DESeq2::estimateSizeFactors(normMatrix=copies) %>%
     DESeq2::counts(normalized=TRUE)
 
-saveRDS(list(idx=idx, copies=copies, eset=eset), file=args$outfile)
+saveRDS(list(clines=clines, copies=copies, eset=eset), file=args$outfile)

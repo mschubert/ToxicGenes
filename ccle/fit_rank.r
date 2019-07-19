@@ -37,11 +37,11 @@ sys$run({
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('c', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
-        opt('o', 'outfile', 'xlsx', 'pan.xlsx'))
+        opt('o', 'outfile', 'xlsx', 'pan_rank/genes.xlsx'))
 
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
-        dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
+        dset$clines$tcga_code[dset$clines$tcga_code != args$tissue] = NA
 
     emat = dset$eset # already copy-normalized in dset
     if (grepl("genes\\.xlsx", args$outfile))
@@ -62,7 +62,7 @@ sys$run({
     fits = lapply(ffuns, function(ff) {
         res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
                 const = list(emat=emat, copies=ff(dset$copies),
-                             covar=dset$idx$tcga_code)) %>%
+                             covar=dset$clines$tcga_code)) %>%
             setNames(names(sets)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

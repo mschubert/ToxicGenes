@@ -3,7 +3,8 @@ sys = import('sys')
 gset = import('data/genesets')
 
 do_fit = function(genes, emat, copies, covar=1) {
-    df = data.frame(expr = c(emat[genes,]),
+    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
+                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     copies = c(copies[genes,]),
                     covar = rep(covar, length(genes))) %>%
         na.omit() %>%
@@ -13,13 +14,18 @@ do_fit = function(genes, emat, copies, covar=1) {
     else
         fml = expr ~ copies
 
-    mobj = MASS::rlm(fml, data=df, maxit=100)
-    mod = broom::tidy(mobj) %>%
-        filter(term == "copies") %>%
-        select(-term) %>%
-        mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
-               n_genes = length(genes),
-               p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
+    tryCatch({
+        mobj = MASS::rlm(fml, data=df, maxit=100)
+        mod = broom::tidy(mobj) %>%
+            filter(term == "copies") %>%
+            select(-term) %>%
+            mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
+                   n_genes = length(genes),
+                   p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
+    }, error = function(e) {
+        warning(genes, " : ", conditionMessage(e), immediate.=TRUE)
+        data.frame(estimate=NA)
+    })
 }
 
 sys$run({
@@ -34,26 +40,8 @@ sys$run({
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
         dset$idx$tcga_code[dset$idx$tcga_code != args$tissue] = NA
-    emat = dset$eset / rowMeans(dset$eset, na.rm=TRUE) - 1
 
-    #TODO: check where these errors come from
-    if (args$tissue == "SKCM") {
-        emat = emat[! rownames(emat) %in% c("LINC00320","DEFA4"),]
-        dset$copies = dset$copies[! rownames(dset$copies) %in% c("LINC00320", "DEFA4"),]
-    }
-    if (args$tissue == "BRCA") {
-        emat = emat[! rownames(emat) %in% c("DNAJA1P5","DEFA4"),]
-        dset$copies = dset$copies[! rownames(dset$copies) %in% c("DNAJA1P5","DEFA4"),]
-    }
-    if (args$tissue == "LUAD") {
-        emat = emat[! rownames(emat) %in% c("MBD3L3"),]
-        dset$copies = dset$copies[! rownames(dset$copies) %in% c("MBD3L3"),]
-    }
-    if (args$tissue == "SCLC") {
-        emat = emat[! rownames(emat) %in% c("DEFB4A"),]
-        dset$copies = dset$copies[! rownames(dset$copies) %in% c("DEFB4A"),]
-    }
-
+    emat = dset$eset # already copy-normalized in dset
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))
     else

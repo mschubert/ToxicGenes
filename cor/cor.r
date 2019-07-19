@@ -1,5 +1,5 @@
 library(dplyr)
-library(cowplot)
+library(ggplot2)
 b = import('base')
 sys = import('sys')
 
@@ -15,12 +15,17 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     message(a1, " & ", a2)
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
-    colors = setNames(c("#e34a33", "#2ca25f", "#2b8cbe", "#cccccc", "#8a8a8a"),
+    colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
+    cur = smat[,c(a1, a2)]
+    cap_at = function(x) sign(x) * pmin(abs(x), max(cap, -x[rank(x)==2]))
+    cur[,1] = cap_at(cur[,1])
+    cur[,2] = cap_at(cur[,2])
 
-    data = as.data.frame(smat[,c(a1, a2)]) %>%
+    data = as.data.frame(cur) %>%
         tibble::rownames_to_column("name") %>%
         filter(! (is.na(!! x1) & is.na(!! x2)))
+
     plot_data = data %>%
         mutate(type = case_when(
                     is.na(!! x1) | is.na(!! x2) ~ "only 1 dset",
@@ -78,27 +83,28 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     missing[[a2]][is.na(missing[[a2]])] = oneDS.y
 
     ggplot(plot_data, aes_string(x=a1, y=a2)) +
-        geom_point(aes(color=type)) +
+        geom_point(aes(color=type), alpha=0.6) +
         geom_point(data=missing, aes(color=type)) +
-        geom_hline(yintercept = 0, size=1, linetype="dashed", color="#dedede") +
-        geom_vline(xintercept = 0, size=1, linetype="dashed", color="#dedede") +
+        geom_hline(yintercept=0, size=1, linetype="dashed", color="#dedede") +
+        geom_vline(xintercept=0, size=1, linetype="dashed", color="#dedede") +
         scale_color_manual(values=colors) +
-        geom_smooth(method="lm", color="#a50f15", linetype="dotted", se=FALSE, na.rm=TRUE) +
+        geom_smooth(method="lm", color="black", linetype="dotted", se=FALSE, na.rm=TRUE) +
         geom_text(data=nums, aes(hjust=hjust, vjust=vjust, label=n), x=0, y=0, size=3) +
         geom_text(data=nums2, aes(x=x, y=y, hjust=hjust, vjust=vjust, label=sprintf("%i*",n)), size=3) +
         ggrepel::geom_label_repel(data = bind_rows(plot_data, missing),
-            aes(label=label, fontface=fface), size=2, na.rm=TRUE,
-            segment.alpha=0.3, fill="#ffffff70", label.padding=0.1) +
+            aes(label=label, color=type, fontface=fface),
+            size=2, na.rm=TRUE, segment.alpha=0.3, fill="#ffffffc0",
+            label.padding=0.1, max.iter=1e4, min.segment.length=0) +
         labs(subtitle = subt)
 }
 
 sys$run({
     args = sys$cmd$parse(
         opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
-        opt('c', 'ccle', 'xlsx', '../ccle/pan/genes.xlsx'),
-        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan/genes.xlsx'),
-        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan/genes.xlsx'),
-        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan/genes.xlsx'),
+        opt('c', 'ccle', 'xlsx', '../ccle/pan_rlm/genes.xlsx'),
+        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan_rlm/genes.xlsx'),
+        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan_rlm/genes.xlsx'),
+        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan_rlm/genes.xlsx'),
         opt('s', 'sets', 'genes|genesets', 'genes'),
         opt('x', 'cna', 'amp|del|all', 'amp'),
         opt('m', 'stat_max', 'numeric', '20'),
@@ -116,20 +122,13 @@ sys$run({
         select(-n_aneup)
 
     cap = as.numeric(args$stat_max)
-    smat = assocs %>%
-        group_by(name, assocs) %>%
-        arrange(-statistic) %>%
-        top_n(1, "statistic") %>%
-        ungroup() %>%
-        mutate(statistic = sign(statistic) * pmin(abs(statistic), cap)) %>%
-        dplyr::distinct(assocs, name, .keep_all=TRUE) %>%
-        narray::construct(statistic ~ name + assocs)
+    smat = narray::construct(statistic ~ name + assocs, data=assocs)
 
     type = tools::file_path_sans_ext(basename(args$orf))
-    if (type %in% c("genes"))
+    if (type %in% c("genes")) # (consistent, inconsistent, orf, 1 ds)
         label = c(20, 10, 20, 3)
     else
-        label = c(5, 3, 3, 1)
+        label = c(10, 3, 3, 1)
 
     plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
         filter(a1 < a2,
@@ -137,6 +136,7 @@ sys$run({
         tbl_df() %>%
         mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat, label=label))
 
+    theme_set(cowplot::theme_cowplot())
     pdf(args$plotfile, 10, 10)
     for (i in seq_len(nrow(plots)))
         print(plots$plots[[i]] + ggtitle(sprintf("%s vs %s", plots$a1[i], plots$a2[i])))

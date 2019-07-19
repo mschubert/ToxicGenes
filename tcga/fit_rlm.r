@@ -23,7 +23,8 @@ models = function(type, covar) {
 }
 
 do_fit = function(genes, fml, emat, copies, purity, covar=0) {
-    df = data.frame(expr = c(emat[genes,]),
+    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
+                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
                     purity = rep(purity, length(genes)),
                     covar = rep(covar, length(genes))) %>%
@@ -33,13 +34,18 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
                stroma = 2 * (1 - purity) / cancer_copies,
                cancer = (purity * cancer_copies) / cancer_copies) # simplifies to CCF
 
-    mobj = MASS::rlm(fml, data=df, maxit=100)
-    mod = broom::tidy(mobj) %>%
-        filter(term == "cancer_copies") %>%
-        select(-term) %>%
-        mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
-               n_genes = length(genes),
-               p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+    tryCatch({
+        mobj = MASS::rlm(fml, data=df, maxit=100)
+        mod = broom::tidy(mobj) %>%
+            filter(term == "cancer_copies") %>%
+            select(-term) %>%
+            mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
+                   n_genes = length(genes),
+                   p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+    }, error = function(e) {
+        warning(conditionMessage(e), immediate.=TRUE)
+        data.frame(estimate = NA)
+    })
 }
 
 sys$run({
@@ -80,7 +86,6 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
-    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
 
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))

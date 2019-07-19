@@ -11,27 +11,30 @@ models = function(type, covar) {
             "FALSE" = erank ~ 0 + cancer_copy_dev
         ),
         pur = list (
-            "TRUE" = erank ~ 0 + covar + cancer + cancer_copy_dev,
-            "FALSE" = erank ~ 0 + cancer + cancer_copy_dev
+            "TRUE" = erank ~ 0 + covar + purity + copy_dev,
+            "FALSE" = erank ~ 0 + purity + copy_dev
         ),
         puradj = list(
-            "TRUE" = erank ~ 0 + covar + stroma + cancer + cancer_copy_dev,
-            "FALSE" = erank ~ 0 + stroma + cancer + cancer_copy_dev
+            "TRUE" = erank ~ 0 + covar + copies + stroma + copy_dev,
+            "FALSE" = erank ~ 0 + copies + stroma + copy_dev
         )
     )
     fmls[[type]][[as.character(covar)]]
 }
 
 do_fit = function(genes, fml, emat, copies, purity, covar=0) {
-    df = data.frame(expr = c(emat[genes,]),
+    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
+                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
+                    copies = c(copies[genes,]),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
                     purity = rep(purity, length(genes)),
                     covar = rep(covar, length(genes))) %>%
         na.omit() %>%
         sample_n(min(nrow(.), 1e5)) %>%
-        mutate(expr = expr / cancer_copies,
-               stroma = 2 * (1 - purity) / cancer_copies,
-               cancer = (purity * cancer_copies) / cancer_copies, # simplifies to CCF
+        mutate(#expr = expr / cancer_copies,
+               stroma = 1 - purity, #2 * (1 - purity) / cancer_copies,
+               #cancer = (purity * cancer_copies) / cancer_copies, # simplifies to CCF
+               copy_dev = copies - 2,
                cancer_copy_dev = cancer_copies - 2,
                erank = rank(expr) / nrow(.) - 0.5)
 
@@ -81,10 +84,6 @@ sys$run({
     emat = DESeq2::DESeqDataSetFromMatrix(reads, cdata, ~1) %>%
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
-#    emat = emat / rowMeans(emat, na.rm=TRUE) - 1
-
-    emat = narray::map(emat, along=2, subsets=cdata$tissue,
-                       function(x) rank(x) / length(x) - 0.5)
 
     if (grepl("genes\\.xlsx", args$outfile))
         sets = setNames(rownames(emat), rownames(emat))

@@ -22,11 +22,15 @@ do_fit = function(genes, emat, copies, covar=1) {
     else
         fml = erank ~ crank
 
+    n_aneup = sum(abs(df$copies-2) > 0.2)
+    if (n_aneup < 1)
+        return(data.frame(estimate=NA))
+
     mod = lm(fml, data=df) %>%
         broom::tidy() %>%
         filter(term == "crank") %>%
         select(-term) %>%
-        mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
+        mutate(n_aneup = n_aneup,
                n_genes = length(genes))
 }
 

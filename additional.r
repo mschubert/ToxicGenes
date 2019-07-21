@@ -40,18 +40,7 @@ dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     select(name, dset, fit, adj, statistic) %>%
     mutate(adj = ifelse(is.na(adj), "none", adj))
 
-top = dset %>%
-    group_by(dset, fit, adj) %>%
-    mutate(score = rank(-statistic) / length(statistic)) %>%
-    group_by(name, dset, fit) %>%
-    summarize(score = mean(score, na.rm=TRUE)) %>%
-    group_by(name, dset) %>%
-    summarize(score = mean(score, na.rm=TRUE)) %>%
-    group_by(name) %>%
-    filter(all(score > 0)) %>%
-    summarize(n_dset = length(name),
-              score = sum(score, na.rm=TRUE) / n_dset^0) %>% # ^0 is sum (CDKN1A), ^1 is mean (LOCxxx)
-    arrange(-score)
+top = c("OOSP2", "WEE1", "IDH2", "BANP")
 
 do_plot = function(gene) {
     dset %>%
@@ -64,7 +53,7 @@ do_plot = function(gene) {
             expand_limits(y=0)
 }
 
-pdf("candidates.pdf")
-for (g in head(top$name, 10))
+pdf("additional.pdf")
+for (g in top)
     print(do_plot(g) + ggtitle(g))
 dev.off()

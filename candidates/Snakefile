@@ -1,0 +1,58 @@
+subworkflow orf:
+    workdir: "../orf"
+    snakefile: "../orf/Snakefile"
+
+subworkflow ccle:
+    workdir: "../ccle"
+    snakefile: "../ccle/Snakefile"
+
+subworkflow tcga:
+    workdir: "../tcga"
+    snakefile: "../tcga/Snakefile"
+
+rule all:
+    input:
+        "top_genes.pdf",
+        "previous.pdf",
+        "additional.pdf"
+
+fits = ['rlm', 'rank']
+types = ['naive', 'pur', 'puradj']
+
+rule merge:
+    input:
+        rscript = "merge.r",
+        orf = lambda wc: orf("pan/" + wc.sets + ".xlsx"),
+        ccle = lambda wc: ccle(expand("pan_{fit}/" + wc.sets + ".xlsx", fit=fits)),
+        tcga = lambda wc: tcga(expand("{type}/pan_{fit}/" + wc.sets + ".xlsx", fit=fits, type=types))
+    output:
+        outfile = "merge_{sets}.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --sets {wildcards.sets}"
+            " --outfile {output.outfile}"
+
+rule make_yaml:
+    input:
+        rscript = "top_yaml.r",
+        infile = "merge_{sets}.rds"
+    output:
+        outfile = "top_{sets}.yaml"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --select {wildcards.sets}"
+            " --outfile {output.outfile}"
+
+rule plot:
+    input:
+        rscript = "plot.r",
+        dset = "merge_genes.rds",
+        yaml = "{collec}.yaml"
+    output:
+        plotfile = "{collec}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --yaml {input.yaml}"
+            " --plotfile {output.plotfile}"

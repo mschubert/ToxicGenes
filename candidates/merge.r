@@ -36,7 +36,7 @@ tcga = list(
 
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
-    select(name, dset, fit, adj, statistic) %>%
+    select(name, dset, fit, adj, statistic, adj.p) %>%
     mutate(adj = ifelse(is.na(adj), "none", adj))
 
 saveRDS(dset, file=args$outfile)

@@ -8,27 +8,35 @@ args = sys$cmd$parse(
     opt('y', 'yaml', 'yaml', 'top_genes.yaml'),
     opt('p', 'plotfile', 'pdf', 'top_genes.pdf'))
 
-do_plot = function(gene) {
-    dset %>%
-        filter(name == gene) %>%
-        mutate(dset = relevel(factor(dset), "orf")) %>%
-        ggplot(aes(x=name, y = statistic, color=adj)) +
-            geom_point(size=5) +
-            facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
-            expand_limits(y=0) +
-            geom_hline(yintercept=0, linetype="dashed", color="grey") +
-            guides(color = FALSE) +
-            labs(title = gene) +
-            theme(axis.text.x = element_blank(),
-                  axis.title.x = element_blank(),
-                  axis.title.y = element_blank())
+#' Get the percentile of x in y
+plot_stats = function(gene) {
+    cur = dset %>%
+        group_by(dset, fit, adj) %>%
+        mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
+        filter(name == gene)
+
+    ggplot(dset, aes(x=1, y = statistic, color=adj)) +
+        geom_violin(position="identity") +
+        geom_hline(yintercept=0, linetype="dashed", color="grey") +
+        geom_point(data=cur, size=5) +
+        ggrepel::geom_text_repel(data=cur, size=2, box.padding=unit(7, "pt"),
+            aes(label=sprintf("%.2f th\np %.1g", pctile, adj.p)),
+            parse=FALSE, color="black") +
+        facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
+        coord_cartesian(ylim=c(0,-40)) +
+        guides(color = FALSE) +
+        labs(title = gene) +
+        theme(axis.text.x = element_blank(),
+              axis.title.x = element_blank(),
+              axis.title.y = element_blank())
 }
 
-dset = readRDS(args$dset)
+dset = readRDS(args$dset) %>%
+    mutate(dset = relevel(factor(dset), "orf"))
 top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
 
-plots = lapply(top, do_plot)
+overview = lapply(top, plot_stats)
 
-pdf(args$plotfile, 12, 10)
-cowplot::plot_grid(plotlist=plots)
+pdf(args$plotfile, 14, 12)
+cowplot::plot_grid(plotlist=overview)
 dev.off()

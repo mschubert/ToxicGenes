@@ -16,9 +16,9 @@ plot_stats = function(gene) {
         filter(name == gene)
 
     ggplot(dset, aes(x=1, y = statistic, color=adj)) +
-        geom_violin(position="identity") +
         geom_hline(yintercept=0, linetype="dashed", color="grey") +
-        geom_point(data=cur, size=5) +
+        geom_violin(position="identity", alpha=0) +
+        geom_point(data=cur, size=5, alpha=0.7) +
         ggrepel::geom_text_repel(data=cur, size=2, box.padding=unit(7, "pt"),
             aes(label=sprintf("%.2f th\np %.1g", pctile, adj.p)),
             parse=FALSE, color="black") +

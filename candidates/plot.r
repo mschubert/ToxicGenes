@@ -10,11 +10,7 @@ args = sys$cmd$parse(
 
 #' Get the percentile of x in y
 plot_stats = function(gene) {
-    cur = dset %>%
-        group_by(dset, fit, adj) %>%
-        mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
-        filter(name == gene)
-
+    cur = filter(dset, name == gene)
     ggplot(dset, aes(x=1, y = statistic, color=adj)) +
         geom_hline(yintercept=0, linetype="dashed", color="grey") +
         geom_violin(position="identity", alpha=0) +
@@ -31,9 +27,13 @@ plot_stats = function(gene) {
               axis.title.y = element_blank())
 }
 
-dset = readRDS(args$dset) %>%
-    mutate(dset = relevel(factor(dset), "orf"))
 top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
+
+dset = readRDS(args$dset) %>%
+    group_by(dset, fit, adj) %>%
+    mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
+    ungroup() %>%
+    mutate(dset = relevel(factor(dset), "orf"))
 
 overview = lapply(top, plot_stats)
 

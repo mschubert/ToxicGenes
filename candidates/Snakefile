@@ -59,6 +59,7 @@ rule plot:
         "Rscript {input.rscript}"
             " --dset {input.dset}"
             " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
             " --plotfile {output.plotfile}"
 
 rule plot_tissue_with_pan_yaml:
@@ -74,4 +75,5 @@ rule plot_tissue_with_pan_yaml:
         "Rscript {input.rscript}"
             " --dset {input.dset}"
             " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
             " --plotfile {output.plotfile}"

@@ -61,11 +61,13 @@ porf = ggplot(orfdata, aes(x=DMSO, y=z_LFC)) +
 ccledata = readRDS("../data/ccle/dset.rds")
 names(dimnames(ccledata$copies)) = c("gene", "CCLE_ID")
 names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
+ccle_top = intersect(rownames(ccledata$copies), top)
 cd = ccledata$clines %>%
     select(CCLE_ID, Name, Site_Primary, tcga_code) %>%
-    left_join(reshape2::melt(ccledata$copies[top,], value.name="copies")) %>%
-    left_join(reshape2::melt(ccledata$eset[top,], value.name="expr")) %>%
-    mutate(expr = expr * copies/2) %>% # undo normmatrix normalization
+    left_join(reshape2::melt(ccledata$copies[ccle_top,], value.name="copies")) %>%
+    left_join(reshape2::melt(ccledata$eset[ccle_top,], value.name="expr")) %>%
+    mutate(expr = expr * copies/2, # undo normmatrix normalization
+           gene = factor(gene, levels=top)) %>%
     group_by(gene) %>%
         filter(expr < quantile(expr, 0.95)) %>%
         filter(copies < quantile(copies, 0.95)) %>%

@@ -20,7 +20,7 @@ plot_stats = function(gene) {
             aes(label=sprintf("%.2f th\nFDR %.1g", pctile, adj.p)),
             parse=FALSE, color="black", direction="y", segment.alpha=0.3) +
         facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
-        coord_cartesian(ylim=c(0,min(cur$statistic, na.rm=TRUE))) +
+        coord_cartesian(ylim=c(0,yaxis_floor)) +
         guides(color = FALSE) +
         labs(title = gene) +
         theme(axis.text.x = element_blank(),
@@ -33,6 +33,7 @@ top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
 #TODO: get the min of all top hits so we set limits?
 
 dset = readRDS(args$dset)
+yaxis_floor = dset %>% filter(name %in% top) %>% pull(statistic) %>% min(na.rm=TRUE)
 overview = lapply(top, plot_stats)
 
 ###

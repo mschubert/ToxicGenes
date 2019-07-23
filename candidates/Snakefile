@@ -18,7 +18,7 @@ rule all:
     input:
         expand("{tissue}/top-{sets}.pdf", tissue=tissues, sets=['genes']),
         expand("{tissue}/pan_{yaml}.pdf", tissue=set(tissues) - set(['pan']),
-                yaml=['top-genes', 'previous', 'additional'])
+                yaml=['top-genes']) #, 'previous', 'additional'])
 
 rule merge:
     input:

@@ -42,6 +42,7 @@ orfdata = readRDS("../orf/overview.rds")
 if (args$tissue != "pan")
     orfdata = filter(orfdata, tissue == args$tissue)
 orfdata = orfdata %>%
+    filter(`GENE SYMBOL` %in% top) %>%
     mutate(`GENE SYMBOL` = factor(`GENE SYMBOL`, levels=top)) %>%
     group_by(`GENE SYMBOL`) %>%
         mutate(construct_i = as.integer(factor(`Construct IDs`))) %>%

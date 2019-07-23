@@ -11,12 +11,12 @@ dset = readRDS(args$infile)
 
 top = dset %>%
     group_by(dset, fit, adj) %>%
-    mutate(score = rank(-statistic) / length(statistic)) %>%
-    group_by(name, dset, fit) %>%
+    mutate(score = (1-adj.p) * rank(-statistic) / length(statistic)) %>%
+    group_by(name, dset, fit) %>% # summarize adjustment (tcga: naive, pur, puradj)
     summarize(score = mean(score, na.rm=TRUE)) %>%
-    group_by(name, dset) %>%
+    group_by(name, dset) %>% # summarize by fit (rlm, rank)
     summarize(score = mean(score, na.rm=TRUE)) %>%
-    group_by(name) %>%
+    group_by(name) %>% # summarize by dset (orf, ccle, tcga)
     filter(all(score > 0)) %>%
     summarize(n_dset = length(name),
               score = sum(score, na.rm=TRUE) / n_dset^0) %>% # ^0 is sum (CDKN1A), ^1 is mean (LOCxxx)

@@ -76,7 +76,7 @@ if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
 abl = cd %>%
     group_by(gene) %>%
-    summarize(mean = median(expr[abs(copies-2) < 1.8]))
+    summarize(mean = median(expr[abs(copies-2) < 0.2]))
 pccle = ggplot(cd, aes(x=copies, y=expr)) +
     annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +

@@ -10,6 +10,9 @@ subworkflow tcga:
     workdir: "../tcga"
     snakefile: "../tcga/Snakefile"
 
+import glob
+manual = [ x[:-5] for x in glob.glob("*.yaml") ]
+
 fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
 tissues = ['pan', 'BRCA', 'OV', 'SKCM']
@@ -18,7 +21,8 @@ rule all:
     input:
         expand("{tissue}/top-{sets}.pdf", tissue=tissues, sets=['genes']),
         expand("{tissue}/pan_{yaml}.pdf", tissue=set(tissues) - set(['pan']),
-                yaml=['top-genes']) #, 'previous', 'additional'])
+                yaml=['top-genes']),
+        expand("{tissue}/{manual}.pdf", tissue=tissues, manual=manual)
 
 rule merge:
     input:
@@ -56,6 +60,20 @@ rule plot:
         rscript = "plot.r",
         dset = "merge/{tissue}/genes.rds",
         yaml = "{tissue}/{collec}.yaml"
+    output:
+        plotfile = "{tissue}/{collec}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"
+
+rule plot_manual_sets:
+    input:
+        rscript = "plot.r",
+        dset = "merge/{tissue}/genes.rds",
+        yaml = "{collec}.yaml"
     output:
         plotfile = "{tissue}/{collec}.pdf"
     shell:

@@ -5,27 +5,28 @@ sys = import('sys')
 
 args = sys$cmd$parse(
     opt('s', 'sets', 'genes|gene set', 'genes'),
+    opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
     opt('o', 'outfile', 'rds', 'merge_genes.rds'))
 
-orf = readxl::read_xlsx(sprintf("../orf/pan/%s.xlsx", args$sets)) %>%
+orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, args$sets)) %>%
     mutate(fit = "lm")
 
 ccle = list(
-    rlm = readxl::read_xlsx(sprintf("../ccle/pan_rlm/%s.xlsx", args$sets)),
-    rank = readxl::read_xlsx(sprintf("../ccle/pan_rank/%s.xlsx", args$sets))
+    rlm = readxl::read_xlsx(sprintf("../ccle/%s_rlm/%s.xlsx", args$tissue, args$sets)),
+    rank = readxl::read_xlsx(sprintf("../ccle/%s_rank/%s.xlsx", args$tissue, args$sets))
 ) %>% bind_rows(.id="fit")
 
 tcga_naive = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/naive/pan_rlm/%s.xlsx", args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/naive/pan_rank/%s.xlsx", args$sets))
+    rlm = readxl::read_xlsx(sprintf("../tcga/naive/%s_rlm/%s.xlsx", args$tissue, args$sets)),
+    rank = readxl::read_xlsx(sprintf("../tcga/naive/%s_rank/%s.xlsx", args$tissue, args$sets))
 ) %>% bind_rows(.id="fit")
 tcga_pur = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/pur/pan_rlm/%s.xlsx", args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/pur/pan_rank/%s.xlsx", args$sets))
+    rlm = readxl::read_xlsx(sprintf("../tcga/pur/%s_rlm/%s.xlsx", args$tissue, args$sets)),
+    rank = readxl::read_xlsx(sprintf("../tcga/pur/%s_rank/%s.xlsx", args$tissue, args$sets))
 ) %>% bind_rows(.id="fit")
 tcga_puradj = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/puradj/pan_rlm/%s.xlsx", args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/puradj/pan_rank/%s.xlsx", args$sets))
+    rlm = readxl::read_xlsx(sprintf("../tcga/puradj/%s_rlm/%s.xlsx", args$tissue, args$sets)),
+    rank = readxl::read_xlsx(sprintf("../tcga/puradj/%s_rank/%s.xlsx", args$tissue, args$sets))
 ) %>% bind_rows(.id="fit")
 
 tcga = list(
@@ -37,6 +38,10 @@ tcga = list(
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
     select(name, dset, fit, adj, statistic, adj.p) %>%
-    mutate(adj = ifelse(is.na(adj), "none", adj))
+    mutate(adj = ifelse(is.na(adj), "none", adj)) %>%
+    group_by(dset, fit, adj) %>%
+        mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
+    ungroup() %>%
+    mutate(dset = relevel(factor(dset), "orf"))
 
 saveRDS(dset, file=args$outfile)

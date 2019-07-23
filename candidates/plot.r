@@ -16,10 +16,10 @@ plot_stats = function(gene) {
         geom_violin(position="identity", alpha=0) +
         geom_point(data=cur, size=5, alpha=0.7) +
         ggrepel::geom_text_repel(data=cur, size=2, box.padding=unit(7, "pt"),
-            aes(label=sprintf("%.2f th\np %.1g", pctile, adj.p)),
+            aes(label=sprintf("%.2f th\nFDR %.1g", pctile, adj.p)),
             parse=FALSE, color="black") +
         facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
-        coord_cartesian(ylim=c(0,-40)) +
+        coord_cartesian(ylim=c(0,min(dset$statistic, na.rm=TRUE))) +
         guides(color = FALSE) +
         labs(title = gene) +
         theme(axis.text.x = element_blank(),
@@ -29,11 +29,9 @@ plot_stats = function(gene) {
 
 top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
 
-dset = readRDS(args$dset) %>%
-    group_by(dset, fit, adj) %>%
-    mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
-    ungroup() %>%
-    mutate(dset = relevel(factor(dset), "orf"))
+#TODO: get the min of all top hits so we set limits?
+
+dset = readRDS(args$dset)
 
 overview = lapply(top, plot_stats)
 

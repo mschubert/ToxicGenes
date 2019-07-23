@@ -42,10 +42,13 @@ rule make_yaml:
         infile = "merge/{tissue}/{sets}.rds"
     output:
         outfile = "{tissue}/top-{sets}.yaml"
+    params:
+        top = 12
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --select {wildcards.sets}"
+            " --num {params.top}"
             " --outfile {output.outfile}"
 
 rule plot:

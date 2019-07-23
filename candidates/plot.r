@@ -86,7 +86,7 @@ pccle = ggplot(cd, aes(x=copies, y=expr)) +
     labs(title = "CCLE compensation (red: expected, blue: observed); 95th% shown (expr/copies); yellow=euploid",
          y = "normalized read count")
 
-pdf(args$plotfile, 14, 12)
+pdf(args$plotfile, 15, 12)
 cowplot::plot_grid(plotlist=overview)
 print(porf)
 print(pccle)

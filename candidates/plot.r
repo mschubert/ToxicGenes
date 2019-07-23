@@ -62,7 +62,7 @@ ccledata = readRDS("../data/ccle/dset.rds")
 names(dimnames(ccledata$copies)) = c("gene", "CCLE_ID")
 names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
 cd = ccledata$clines %>%
-    select(CCLE_ID, Name, Site_Primary) %>%
+    select(CCLE_ID, Name, Site_Primary, tcga_code) %>%
     left_join(reshape2::melt(ccledata$copies[top,], value.name="copies")) %>%
     left_join(reshape2::melt(ccledata$eset[top,], value.name="expr")) %>%
     mutate(expr = expr * copies/2) %>% # undo normmatrix normalization
@@ -70,6 +70,8 @@ cd = ccledata$clines %>%
         filter(expr < quantile(expr, 0.95)) %>%
         filter(copies < quantile(copies, 0.95)) %>%
     ungroup()
+if (args$tissue != "pan")
+    cd = filter(cd, tcga_code == args$tissue)
 abl = cd %>%
     group_by(gene) %>%
     summarize(mean = median(expr[abs(copies-2) < 1.8]))

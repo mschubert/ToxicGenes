@@ -69,8 +69,8 @@ cd = ccledata$clines %>%
     mutate(expr = expr * copies/2, # undo normmatrix normalization
            gene = factor(gene, levels=top)) %>%
     group_by(gene) %>%
-        filter(expr < quantile(expr, 0.95),
-               copies < quantile(copies, 0.95)) %>%
+        filter(expr > quantile(expr, 0.05) & expr < quantile(expr, 0.95),
+               copies > min(1, quantile(copies, 0.05)) & copies < max(3, quantile(copies, 0.95))) %>%
     ungroup()
 if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
@@ -118,7 +118,7 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98),
-               copies > min(1.5, quantile(copies, 0.02)) & copies < quantile(copies, 0.98)) %>%
+               copies > min(1, quantile(copies, 0.02)) & copies < max(3, quantile(copies, 0.98))) %>%
     ungroup()
 abl = td %>%
     group_by(gene) %>%

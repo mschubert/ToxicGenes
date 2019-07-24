@@ -12,7 +12,7 @@ subworkflow genesets:
 
 fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
-tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV"]
+tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV", "PRAD"]
 #tissues = ["pan", "BRCA", "LUAD", "SKCM", "COADREAD", "ALL", "DLBC",
 #           "BLCA", "KIRC", "HNSC", "LUSC", "LIHC", "OV", "PAAD",
 #           "STAD", "UCEC", "GBM", "ESCA"]

@@ -17,7 +17,7 @@ rule all:
         expand("{tissue}_{fit}_{cna}/{sets}.pdf",
                 fit = ['rlm', 'rank'],
                 sets = config['genesets'] + ['genes'],
-                tissue = ['pan', 'BRCA', 'SKCM', 'OV'],
+                tissue = ['pan', 'BRCA', 'SKCM', 'OV', 'LUAD', 'PRAD'],
                 cna = ['amp']) # del, all
 
 rule cor:

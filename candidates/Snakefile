@@ -1,0 +1,102 @@
+configfile: "../config.yaml"
+
+subworkflow orf:
+    workdir: "../orf"
+    snakefile: "../orf/Snakefile"
+
+subworkflow ccle:
+    workdir: "../ccle"
+    snakefile: "../ccle/Snakefile"
+
+subworkflow tcga:
+    workdir: "../tcga"
+    snakefile: "../tcga/Snakefile"
+
+import glob
+manual = [ x[:-5] for x in glob.glob("*.yaml") ]
+
+fits = ['rlm', 'rank']
+types = ['naive', 'pur', 'puradj']
+tissues = config['cor_tissues']
+
+rule all:
+    input:
+        expand("{tissue}/top-{sets}.pdf", tissue=tissues, sets=['genes']),
+        expand("{tissue}/pan_{yaml}.pdf", tissue=set(tissues) - set(['pan']),
+                yaml=['top-genes']),
+        expand("{tissue}/{manual}.pdf", tissue=tissues, manual=manual)
+
+rule merge:
+    input:
+        rscript = "merge.r",
+        orf = lambda wc: orf(wc.tissue + "/" + wc.sets + ".xlsx"),
+        ccle = lambda wc: ccle(expand(wc.tissue + "_{fit}/" + wc.sets +
+            ".xlsx", fit=fits)),
+        tcga = lambda wc: tcga(expand("{type}/" + wc.tissue + "_{fit}/" +
+            wc.sets + ".xlsx", fit=fits, type=types))
+    output:
+        outfile = "merge/{tissue}/{sets}.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --sets {wildcards.sets}"
+            " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"
+
+rule make_yaml:
+    input:
+        rscript = "top_yaml.r",
+        infile = "merge/{tissue}/{sets}.rds"
+    output:
+        outfile = "{tissue}/top-{sets}.yaml"
+    params:
+        top = 12
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --select {wildcards.sets}"
+            " --num {params.top}"
+            " --outfile {output.outfile}"
+
+rule plot:
+    input:
+        rscript = "plot.r",
+        dset = "merge/{tissue}/genes.rds",
+        yaml = "{tissue}/{collec}.yaml"
+    output:
+        plotfile = "{tissue}/{collec}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"
+
+rule plot_manual_sets:
+    input:
+        rscript = "plot.r",
+        dset = "merge/{tissue}/genes.rds",
+        yaml = "{collec}.yaml"
+    output:
+        plotfile = "{tissue}/{collec}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"
+
+rule plot_tissue_with_pan_yaml:
+    input:
+        rscript = "plot.r",
+        dset = "merge/{tissue}/genes.rds",
+        yaml = "pan/{collec}.yaml"
+    output:
+        plotfile = "{tissue}/pan_{collec}.pdf"
+    wildcard_constraints:
+        tissue = "^[^p].*"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --yaml {input.yaml}"
+            " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"

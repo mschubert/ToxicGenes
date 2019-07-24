@@ -1,3 +1,6 @@
+### project-specific
+candidates/*/*.yaml
+
 ### seq
 *.bam
 *.bai

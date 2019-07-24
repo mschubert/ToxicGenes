@@ -8,7 +8,7 @@ rule all:
     input:
         expand("overview_{type}.pdf", type=['naive', 'corrected']),
         expand("fits_{type}.pdf", type=['naive', 'corrected']),
-        expand("{tissue}/{gset}.pdf", tissue=['pan', "NB", "OV", "BRCA", "SKCM", "MB"],
+        expand("{tissue}/{gset}.pdf", tissue=config['orf_tissues'],
                 gset=config['genesets'] + ['genes'])
 
 rule overview_naive:

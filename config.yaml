@@ -8,3 +8,13 @@ genesets:
     - MSigDB_Oncogenic_Signatures
     - CH.HALLMARK
     - CORUM
+
+orf_tissues:
+    - pan
+    - NB
+    - OV
+    - BRCA
+    - SKCM
+    - MB
+    - LUAD # only H2077
+    - PRAD # only LNCaP

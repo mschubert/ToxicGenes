@@ -69,8 +69,8 @@ cd = ccledata$clines %>%
     mutate(expr = expr * copies/2, # undo normmatrix normalization
            gene = factor(gene, levels=top)) %>%
     group_by(gene) %>%
-        filter(expr < quantile(expr, 0.95)) %>%
-        filter(copies < quantile(copies, 0.95)) %>%
+        filter(expr < quantile(expr, 0.95),
+               copies < quantile(copies, 0.95)) %>%
     ungroup()
 if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
@@ -88,8 +88,58 @@ pccle = ggplot(cd, aes(x=copies, y=expr)) +
     labs(title = "CCLE compensation (red: expected, blue: observed); 95th% shown (expr/copies); yellow=euploid",
          y = "normalized read count")
 
+###
+### TCGA data
+###
+idmap = import('process/idmap')
+tcga = import('data/tcga')
+load_expr = function(cohort, genes) {
+    if (cohort == "pan")
+        cohort = tcga$cohorts()
+    lapply(cohort, function(x) {
+        expr = tcga$rna_seq(x)
+        rownames(expr) = idmap$gene(rownames(expr), to="hgnc_symbol")
+        expr[intersect(genes, rownames(expr)),,drop=FALSE]
+    }) %>% narray::stack(along=2)
+}
+load_copies = function(cohort, genes) {
+    if (cohort == "pan")
+        cohort = tcga$cohorts()
+    lapply(cohort, function(x) {
+        cns = tcga$cna_genes(x, gene="external_gene_name")
+        cns[intersect(genes, rownames(cns)),,drop=FALSE]
+    }) %>% narray::stack(along=2)
+}
+tcga_expr = load_expr(args$tissue, top)
+tcga_cns = load_copies(args$tissue, top)
+names(dimnames(tcga_expr)) = c("gene", "sample")
+names(dimnames(tcga_cns)) = c("gene", "sample")
+td = reshape2::melt(tcga_expr, value.name="expr") %>%
+    inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
+    group_by(gene) %>%
+        filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98),
+               copies > min(1.5, quantile(copies, 0.02)) & copies < quantile(copies, 0.98)) %>%
+    ungroup()
+abl = td %>%
+    group_by(gene) %>%
+    summarize(mean = median(expr[abs(copies-2) < 0.2]))
+ptcga = ggplot(td, aes(x=copies, y=expr)) +
+    annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
+    geom_vline(xintercept=2, color="grey") +
+    geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
+    geom_abline(data=abl, aes(intercept=0, slope=mean/2), color="red", linetype="dashed") +
+    geom_point(alpha=0.05) +
+    geom_smooth(method="lm") +
+    facet_wrap(~ gene, scales="free") +
+    labs(title = "TCGA compensation (red: expected, blue: observed); 98th% shown (expr/copies); yellow=euploid",
+         y = "normalized read count")
+
+###
+### actually plot
+###
 pdf(args$plotfile, 15, 12)
 cowplot::plot_grid(plotlist=overview)
 print(porf)
 print(pccle)
+print(ptcga)
 dev.off()

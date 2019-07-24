@@ -18,3 +18,33 @@ orf_tissues:
     - MB
     - LUAD # only H2077
     - PRAD # only LNCaP
+
+ccle_tissues:
+    - pan
+    - BRCA
+    - LUAD
+    - SCLC
+    - SKCM
+    - COADREAD
+    - OV
+    - PRAD
+
+tcga_tissues:
+    - pan
+    - BRCA
+    - LUAD
+    - LUSC
+    - HNSC
+    - KIRC
+    - SKCM
+    - COAD
+    - OV
+    - PRAD
+
+cor_tissues:
+    - pan
+    - BRCA
+    - OV
+    - SKCM
+    - LUAD
+    - PRAD

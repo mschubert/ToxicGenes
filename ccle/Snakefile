@@ -12,11 +12,6 @@ subworkflow genesets:
 
 fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
-tissues = ["pan", "BRCA", "LUAD", "SCLC", "SKCM", "COADREAD", "OV", "PRAD"]
-#tissues = ["pan", "BRCA", "LUAD", "SKCM", "COADREAD", "ALL", "DLBC",
-#           "BLCA", "KIRC", "HNSC", "LUSC", "LIHC", "OV", "PAAD",
-#           "STAD", "UCEC", "GBM", "ESCA"]
-
 mem = {
     'pan' : 4096,
     '*' : 2048
@@ -24,7 +19,7 @@ mem = {
 
 rule all:
     input:
-        expand("{tissue}_{fit}/{sets}.pdf", tissue=tissues,
+        expand("{tissue}_{fit}/{sets}.pdf", tissue=config['ccle_tissues'],
                 fit=fits, sets=config['genesets'] + ['genes'])
 
 rule fit:

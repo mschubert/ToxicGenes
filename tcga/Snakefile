@@ -10,7 +10,6 @@ subworkflow genesets:
 fits = [ 'rlm', 'rank' ]
 
 types = [ "naive", "pur", "puradj" ]
-tissues = ["pan", "BRCA", "LUAD", "LUSC", "HNSC", "KIRC", "SKCM", "COAD", "OV", "PRAD"]
 
 mem = {
     "pan" : 61440,
@@ -20,8 +19,8 @@ mem = {
 
 rule all:
     input:
-        expand("{type}/{tissue}_{fit}/{sets}.pdf", tissue=tissues, type=types,
-                fit=fits, sets=config['genesets'] + ['genes'])
+        expand("{type}/{tissue}_{fit}/{sets}.pdf", tissue=config['tcga_tissues'],
+                type=types, fit=fits, sets=config['genesets'] + ['genes'])
 
 rule fit:
     input:

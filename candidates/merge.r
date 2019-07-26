@@ -1,45 +1,38 @@
 library(dplyr)
-library(ggplot2)
-theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 
 args = sys$cmd$parse(
     opt('s', 'sets', 'genes|gene set', 'genes'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
-    opt('o', 'outfile', 'rds', 'merge_genes.rds'))
+    opt('o', 'outfile', 'rds', 'merge/pan/genes.rds'))
 
 orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, args$sets)) %>%
-    mutate(fit = "lm")
+    mutate(adj = "none", fit = "lm", cna = "oe")
 
-ccle = list(
-    rlm = readxl::read_xlsx(sprintf("../ccle/%s_rlm/%s.xlsx", args$tissue, args$sets)),
-    rank = readxl::read_xlsx(sprintf("../ccle/%s_rank/%s.xlsx", args$tissue, args$sets))
-) %>% bind_rows(.id="fit")
+ccle = tidyr::crossing(adj = "none",
+                       fit = c("rlm", "rank"),
+                       cna = c("amp", "del", "all")) %>%
+    mutate(data = purrr::pmap(list(fit, cna), function(fit, cna) {
+        fname = sprintf("../ccle/%s_%s/%s.xlsx", args$tissue, fit, args$sets)
+        message(fname)
+        readxl::read_xlsx(fname, sheet = cna)
+    })) %>%
+    tidyr::unnest()
 
-tcga_naive = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/naive/%s_rlm/%s.xlsx", args$tissue, args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/naive/%s_rank/%s.xlsx", args$tissue, args$sets))
-) %>% bind_rows(.id="fit")
-tcga_pur = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/pur/%s_rlm/%s.xlsx", args$tissue, args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/pur/%s_rank/%s.xlsx", args$tissue, args$sets))
-) %>% bind_rows(.id="fit")
-tcga_puradj = list(
-    rlm = readxl::read_xlsx(sprintf("../tcga/puradj/%s_rlm/%s.xlsx", args$tissue, args$sets)),
-    rank = readxl::read_xlsx(sprintf("../tcga/puradj/%s_rank/%s.xlsx", args$tissue, args$sets))
-) %>% bind_rows(.id="fit")
-
-tcga = list(
-    naive = tcga_naive,
-    pur = tcga_pur,
-    puradj = tcga_puradj
-) %>% bind_rows(.id="adj")
+tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
+                       fit = c("rlm", "rank"),
+                       cna = c("amp", "del", "all")) %>%
+    mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
+        fname = sprintf("../tcga/%s/%s_%s/%s.xlsx", adj, args$tissue, fit, args$sets)
+        message(fname)
+        readxl::read_xlsx(fname, sheet = cna)
+    })) %>%
+    tidyr::unnest()
 
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
-    select(name, dset, fit, adj, statistic, adj.p) %>%
-    mutate(adj = ifelse(is.na(adj), "none", adj)) %>%
-    group_by(dset, fit, adj) %>%
+    select(name, dset, cna, fit, adj, statistic, adj.p) %>%
+    group_by(dset, cna, fit, adj) %>%
         mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
     ungroup() %>%
     mutate(dset = relevel(factor(dset), "orf"))

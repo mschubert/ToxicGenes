@@ -1,4 +1,6 @@
 genes:
+    - IRF2
+    - NRF1
     - DAZAP1
     - LOC254896
     - ZNF124

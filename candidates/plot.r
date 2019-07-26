@@ -119,13 +119,20 @@ names(dimnames(tcga_cns)) = c("gene", "sample")
 td = reshape2::melt(tcga_expr, value.name="expr") %>%
     inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
     inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
+    mutate(cancer_copies = (copies - 2) / purity + 2) %>%
     group_by(gene) %>%
-        filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98),
-               copies > min(1, quantile(copies, 0.02)) & copies < max(3, quantile(copies, 0.98))) %>%
+        filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98)) %>%
+        mutate(copies = ifelse(
+                    copies > min(1, quantile(copies, 0.02)) & copies < max(3, quantile(copies, 0.98)),
+                    copies, NA),
+               cancer_copies = ifelse(
+                    cancer_copies > min(1, quantile(cancer_copies, 0.02)) &
+                    cancer_copies < max(3, quantile(cancer_copies, 0.98)),
+                    cancer_copies, NA)) %>%
     ungroup()
 abl = td %>%
     group_by(gene) %>%
-    summarize(mean = median(expr[abs(copies-2) < 0.2]))
+    summarize(mean = median(expr[abs(copies-2) < 0.2], na.rm=TRUE))
 ptcga = ggplot(td, aes(x=copies, y=expr)) +
     annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
@@ -138,6 +145,18 @@ ptcga = ggplot(td, aes(x=copies, y=expr)) +
                        "98th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
 
+ptcga2 = ggplot(td, aes(x=cancer_copies, y=expr)) +
+    annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
+    geom_vline(xintercept=2, color="grey") +
+    geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
+    geom_abline(data=abl, aes(intercept=0, slope=mean/2), color="red", linetype="dashed") +
+    geom_point(alpha=0.05) +
+    geom_smooth(method="lm") +
+    facet_wrap(~ gene, scales="free") +
+    labs(title = paste("cancer copy TCGA compensation (red: expected, blue: observed);",
+                       "98th% shown (expr/copies); yellow=euploid"),
+         y = "normalized read count")
+
 ###
 ### actually plot
 ###
@@ -146,4 +165,5 @@ cowplot::plot_grid(plotlist=overview)
 print(porf)
 print(pccle)
 print(ptcga)
+print(ptcga2)
 dev.off()

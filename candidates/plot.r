@@ -9,6 +9,9 @@ args = sys$cmd$parse(
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
     opt('p', 'plotfile', 'pdf', 'pan/top-genes.pdf'))
 
+quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
+top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
+
 #' Get the percentile of x in y
 plot_stats = function(gene) {
     cur = filter(dset, name == gene)
@@ -27,8 +30,6 @@ plot_stats = function(gene) {
               axis.title.x = element_blank(),
               axis.title.y = element_blank())
 }
-
-top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
 
 #TODO: get the min of all top hits so we set limits?
 
@@ -85,7 +86,8 @@ pccle = ggplot(cd, aes(x=copies, y=expr)) +
     geom_point(alpha=0.3) +
     geom_smooth(method="lm") +
     facet_wrap(~ gene, scales="free") +
-    labs(title = "CCLE compensation (red: expected, blue: observed); 95th% shown (expr/copies); yellow=euploid",
+    labs(title = paste("CCLE compensation (red: expected, blue: observed);",
+                       "95th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
 
 ###
@@ -116,6 +118,7 @@ names(dimnames(tcga_expr)) = c("gene", "sample")
 names(dimnames(tcga_cns)) = c("gene", "sample")
 td = reshape2::melt(tcga_expr, value.name="expr") %>%
     inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
+    inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98),
                copies > min(1, quantile(copies, 0.02)) & copies < max(3, quantile(copies, 0.98))) %>%
@@ -131,7 +134,8 @@ ptcga = ggplot(td, aes(x=copies, y=expr)) +
     geom_point(alpha=0.05) +
     geom_smooth(method="lm") +
     facet_wrap(~ gene, scales="free") +
-    labs(title = "TCGA compensation (red: expected, blue: observed); 98th% shown (expr/copies); yellow=euploid",
+    labs(title = paste("naive TCGA compensation (red: expected, blue: observed);",
+                       "98th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
 
 ###

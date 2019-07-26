@@ -133,19 +133,7 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
 abl = td %>%
     group_by(gene) %>%
     summarize(mean = median(expr[abs(copies-2) < 0.2], na.rm=TRUE))
-ptcga = ggplot(td, aes(x=copies, y=expr)) +
-    annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
-    geom_vline(xintercept=2, color="grey") +
-    geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
-    geom_abline(data=abl, aes(intercept=0, slope=mean/2), color="red", linetype="dashed") +
-    geom_point(alpha=0.05) +
-    geom_smooth(method="lm") +
-    facet_wrap(~ gene, scales="free") +
-    labs(title = paste("naive TCGA compensation (red: expected, blue: observed);",
-                       "98th% shown (expr/copies); yellow=euploid"),
-         y = "normalized read count")
-
-ptcga2 = ggplot(td, aes(x=cancer_copies, y=expr)) +
+ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
     annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
@@ -165,5 +153,4 @@ cowplot::plot_grid(plotlist=overview)
 print(porf)
 print(pccle)
 print(ptcga)
-print(ptcga2)
 dev.off()

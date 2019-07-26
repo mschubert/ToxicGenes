@@ -19,7 +19,7 @@ top = dset %>%
     summarize(score = mean(score, na.rm=TRUE)) %>%
     group_by(name) %>% # summarize by dset (orf, ccle, tcga)
     summarize(n_dset = length(name),
-              score = sum(score, na.rm=TRUE)) %>% # root prioritizes consistency across dsets
+              score = sum(score^0.5, na.rm=TRUE)) %>% # root prioritizes consistency across dsets
     arrange(-score)
 
 obj = list(head(top$name, as.integer(args$num)))

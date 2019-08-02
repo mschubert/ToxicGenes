@@ -5,6 +5,7 @@ theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 
 args = sys$cmd$parse(
+    opt('c', 'config', 'yaml', '../config.yaml'),
     opt('d', 'dset', 'rds', 'merge/pan/genes.rds'),
     opt('y', 'yaml', 'yaml', 'pan/top-genes.yaml'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
@@ -14,6 +15,7 @@ quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
 top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
 shapes = c("oe", "amp", "del", "all")
 shape_i = c(21, 24, 25, 23)
+et = yaml::read_yaml(args$config)$euploid_tol
 
 #' Get the percentile of x in y
 plot_stats = function(gene) {
@@ -85,16 +87,16 @@ if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
 abl = cd %>%
     group_by(gene) %>%
-    summarize(med_expr = median(expr[abs(copies-2) < 0.2]),
+    summarize(med_expr = median(expr[abs(copies-2) < et]),
               none = 0.5 * med_expr,
               full = 0,
               observed = NA) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
     mutate(intcp = ifelse(type == "full", med_expr, 0))
 pccle = ggplot(cd, aes(x=copies, y=expr)) +
-    annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
+    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
-    geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
+    geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(alpha=0.3) +
     geom_smooth(aes(color="blue"), method="lm", color="blue") +
@@ -149,16 +151,16 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     ungroup()
 abl = td %>%
     group_by(gene) %>%
-    summarize(med_expr = median(expr[abs(cancer_copies-2) < 0.2], na.rm=TRUE),
+    summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),
               none = 0.5 * med_expr,
               full = 0,
               observed = NA) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
     mutate(intcp = ifelse(type == "full", med_expr, 0))
 ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
-    annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
+    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
-    geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
+    geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(alpha=0.05) +
     geom_smooth(method="lm") +

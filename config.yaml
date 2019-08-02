@@ -48,3 +48,5 @@ cor_tissues:
     - SKCM
     - LUAD
     - PRAD
+
+euploid_tol: 0.15

@@ -2,7 +2,7 @@ library(dplyr)
 sys = import('sys')
 gset = import('data/genesets')
 
-do_fit = function(genes, emat, copies, covar=1) {
+do_fit = function(genes, emat, copies, covar=1, et=0.2) {
     df = data.frame(expr = c(emat[genes,,drop=FALSE] /
                              rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     copies = c(copies[genes,]),
@@ -19,7 +19,7 @@ do_fit = function(genes, emat, copies, covar=1) {
         mod = broom::tidy(mobj) %>%
             filter(term == "copies") %>%
             select(-term) %>%
-            mutate(n_aneup = sum(abs(df$copies-2) > 0.2),
+            mutate(n_aneup = sum(abs(df$copies-2) > et),
                    n_genes = length(genes),
                    p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
     }, error = function(e) {
@@ -30,12 +30,15 @@ do_fit = function(genes, emat, copies, covar=1) {
 
 sys$run({
     args = sys$cmd$parse(
+        opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('c', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
         opt('o', 'outfile', 'xlsx', 'pan_rlm/genes.xlsx'))
+
+    et = yaml::read_yaml(args$config)$euploid_tol
 
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
@@ -52,15 +55,15 @@ sys$run({
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(
-        amp = function(x) { x[x < 1.8] = NA; x },
-        del = function(x) { x[x > 2.2] = NA; x },
+        amp = function(x) { x[x < 2-et] = NA; x },
+        del = function(x) { x[x > 2+et] = NA; x },
         dev = function(x) abs(x-2),
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
         res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
                 const = list(emat=emat, copies=ff(dset$copies),
-                             covar=dset$clines$tcga_code)) %>%
+                             covar=dset$clines$tcga_code, et=et)) %>%
             setNames(names(sets)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

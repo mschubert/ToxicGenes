@@ -22,7 +22,7 @@ models = function(type, covar) {
     fmls[[type]][[as.character(covar)]]
 }
 
-do_fit = function(genes, fml, emat, copies, purity, covar=0) {
+do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.2) {
     df = data.frame(expr = c(emat[genes,,drop=FALSE] /
                              rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
@@ -39,7 +39,7 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
         mod = broom::tidy(mobj) %>%
             filter(term == "cancer_copies") %>%
             select(-term) %>%
-            mutate(n_aneup = sum(abs(df$cancer_copies-2) > 0.2),
+            mutate(n_aneup = sum(abs(df$cancer_copies-2) > et),
                    n_genes = length(genes),
                    p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
     }, error = function(e) {
@@ -50,12 +50,15 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0) {
 
 sys$run({
     args = sys$cmd$parse(
+        opt('c', 'config', 'yaml', '../config.yaml'),
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
-        opt('c', 'cores', 'integer', '10'),
+        opt('j', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '4096'),
         opt('o', 'outfile', 'xlsx', 'LUAD/genes.xlsx'))
+
+    et = yaml::read_yaml(args$config)$euploid_tol
 
     if (args$tissue == "pan")
         args$tissue = tcga$cohorts()
@@ -98,8 +101,8 @@ sys$run({
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(
-        amp = function(x) { x[x < 1.8] = NA; x },
-        del = function(x) { x[x > 2.2] = NA; x },
+        amp = function(x) { x[x < 2-et] = NA; x },
+        del = function(x) { x[x > 2+et] = NA; x },
 #        dev = function(x) abs(x-2),
         all = identity
     )
@@ -107,7 +110,7 @@ sys$run({
         has_covar = length(unique(cdata$tissue)) != 1
         res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
                 const = list(fml=models(args$type, has_covar),
-                             emat=emat, copies=ff(copies),
+                             emat=emat, copies=ff(copies), et=et,
                              purity=purity$estimate, covar=cdata$tissue)) %>%
             setNames(names(sets)) %>%
             bind_rows(.id="name") %>%

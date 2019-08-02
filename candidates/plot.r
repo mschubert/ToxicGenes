@@ -85,16 +85,25 @@ if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
 abl = cd %>%
     group_by(gene) %>%
-    summarize(mean = median(expr[abs(copies-2) < 0.2]))
+    summarize(med_expr = median(expr[abs(copies-2) < 0.2]),
+              none = 0.5 * med_expr,
+              full = 0,
+              observed = NA) %>%
+    tidyr::gather("type", "slope", -gene, -med_expr) %>%
+    mutate(intcp = ifelse(type == "full", med_expr, 0))
 pccle = ggplot(cd, aes(x=copies, y=expr)) +
     annotate("rect", xmin=1.8, xmax=2.2, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(1.8,2.2), color="grey", linetype="dotted") +
-    geom_abline(data=abl, aes(intercept=0, slope=mean/2), color="red", linetype="dashed") +
+    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(alpha=0.3) +
-    geom_smooth(method="lm") +
+    geom_smooth(aes(color="blue"), method="lm", color="blue") +
     facet_wrap(~ gene, scales="free") +
-    labs(title = paste("CCLE compensation (red: expected, blue: observed);",
+    scale_fill_identity(name="CNA", guide="legend", labels="euploid") +
+    scale_color_manual(name="Compensation", guide="legend",
+                       values=c("brown", "red", "blue"),
+                       labels=c("full", "none", "observed")) +
+    labs(title = paste("CCLE compensation",
                        "95th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
 
@@ -156,7 +165,7 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 ###
 ### actually plot
 ###
-pdf(args$plotfile, 15, 12)
+pdf(args$plotfile, 15, 13)
 ov = overview # only way to get the legend to work
 pg1 = patchworkGrob(
     ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /

@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 
@@ -30,7 +31,6 @@ plot_stats = function(gene) {
             aes(label=label), color="black", direction="y", segment.alpha=0.3) +
         facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
         coord_cartesian(ylim=c(0,yaxis_floor)) +
-        guides(color=FALSE, fill=FALSE, shape=FALSE) +
         labs(title = gene) +
         theme(axis.text.x = element_blank(),
               axis.title.x = element_blank(),
@@ -42,6 +42,8 @@ plot_stats = function(gene) {
 dset = readRDS(args$dset)
 yaxis_floor = dset %>% filter(name %in% top) %>% pull(statistic) %>% min(na.rm=TRUE)
 overview = lapply(top, plot_stats)
+ex_legend = cowplot::get_legend(overview[[1]])
+overview = lapply(overview, function(p) p + guides(color=FALSE, fill=FALSE, shape=FALSE))
 
 ###
 ### ORF data
@@ -155,7 +157,13 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 ### actually plot
 ###
 pdf(args$plotfile, 15, 12)
-cowplot::plot_grid(plotlist=overview)
+ov = overview # only way to get the legend to work
+pg1 = patchworkGrob(
+    ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /
+      ( ov[[5]] | ov[[6]] | ov[[7]] | ov[[8]] ) /
+      ( ov[[9]] | ov[[10]] | ov[[11]] | ov[[12]] ) )
+)
+gridExtra::grid.arrange(pg1, ex_legend, ncol=2, widths=c(10,1))
 print(porf)
 print(pccle)
 print(ptcga)

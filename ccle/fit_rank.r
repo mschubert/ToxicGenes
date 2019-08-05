@@ -2,7 +2,7 @@ library(dplyr)
 sys = import('sys')
 gset = import('data/genesets')
 
-do_fit = function(genes, emat, copies, covar=1) {
+do_fit = function(genes, emat, copies, covar=1, et=0.2) {
     cov_noNA = covar
     cov_noNA[is.na(covar)] = "unknown"
     crank = narray::map(copies[genes,,drop=FALSE], along=2, subsets=cov_noNA,
@@ -22,7 +22,7 @@ do_fit = function(genes, emat, copies, covar=1) {
     else
         fml = erank ~ crank
 
-    n_aneup = sum(abs(df$copies-2) > 0.2)
+    n_aneup = sum(abs(df$copies-2) > et)
     if (n_aneup < 1)
         return(data.frame(estimate=NA))
 
@@ -36,12 +36,15 @@ do_fit = function(genes, emat, copies, covar=1) {
 
 sys$run({
     args = sys$cmd$parse(
+        opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('c', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
         opt('o', 'outfile', 'xlsx', 'pan_rank/genes.xlsx'))
+
+    et = yaml::read_yaml(args$config)$euploid_tol
 
     dset = readRDS(args$infile)
     if (args$tissue != "pan")
@@ -58,15 +61,15 @@ sys$run({
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(
-        amp = function(x) { x[x < 1.8] = NA; x },
-        del = function(x) { x[x > 2.2] = NA; x },
+        amp = function(x) { x[x < 2-et] = NA; x },
+        del = function(x) { x[x > 2+et] = NA; x },
         dev = function(x) abs(x-2),
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
         res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
                 const = list(emat=emat, copies=ff(dset$copies),
-                             covar=dset$clines$tcga_code)) %>%
+                             covar=dset$clines$tcga_code, et=et)) %>%
             setNames(names(sets)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

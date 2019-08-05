@@ -17,14 +17,16 @@ manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
 fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
-tissues = config['cor_tissues']
+select = ['top.stat', 'top.comp']
 
 rule all:
     input:
-        expand("{tissue}/top-{sets}.pdf", tissue=tissues, sets=['genes']),
-        expand("{tissue}/pan_{yaml}.pdf", tissue=set(tissues) - set(['pan']),
-                yaml=['top-genes']),
-        expand("{tissue}/{manual}.pdf", tissue=tissues, manual=manual)
+        expand("{tissue}/{select}-{sets}.pdf", tissue=config['cor_tissues'],
+                sets=['genes'], select=select),
+        expand("{tissue}/pan_{select}-genes.pdf", select=select,
+                tissue=set(config['cor_tissues']) - set(['pan'])),
+        expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
+                manual=manual)
 
 rule merge:
     input:
@@ -44,17 +46,17 @@ rule merge:
 
 rule make_yaml:
     input:
-        rscript = "top_yaml.r",
+        rscript = "select_{select}.r",
         infile = "merge/{tissue}/{sets}.rds"
     output:
-        outfile = "{tissue}/top-{sets}.yaml"
+        outfile = "{tissue}/{select}-{sets}.yaml"
     params:
-        top = 12
+        n = 12
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --select {wildcards.sets}"
-            " --num {params.top}"
+            " --num {params.n}"
             " --outfile {output.outfile}"
 
 rule plot:

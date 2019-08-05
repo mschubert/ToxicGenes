@@ -131,8 +131,8 @@ load_copies = function(cohort, genes) {
         cns[intersect(genes, rownames(cns)),,drop=FALSE]
     }) %>% narray::stack(along=2)
 }
-tcga_expr = load_expr(args$tissue, top)
-tcga_cns = load_copies(args$tissue, top)
+tcga_expr = load_expr(args$tissue, top) # only primary because purity() only
+tcga_cns = load_copies(args$tissue, top) # has those samples
 names(dimnames(tcga_expr)) = c("gene", "sample")
 names(dimnames(tcga_cns)) = c("gene", "sample")
 td = reshape2::melt(tcga_expr, value.name="expr") %>%

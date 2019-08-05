@@ -9,7 +9,51 @@ rule enrichr:
         rscript = "make_set.r"
     output:
         outfile = "{geneset}.rds"
+    wildcard_constraints:
+        geneset = "(?!manua).*"
     shell:
         "Rscript {input.rscript}"
             " --geneset {wildcards.geneset}"
             " --outfile {output.outfile}"
+
+rule manual:
+    input:
+        rscript = "manual.r",
+        haplo = "pnas.1900437116.sd01.xlsx",
+        essential = "depmap_essential.txt",
+        nonessential = "depmap_nonessential.txt",
+        davoli = "1-s2.0-S0092867413012877-mmc2.xlsx"
+    output:
+        outfile = "manual.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --haplo {input.haplo}"
+            " --essential {input.essential}"
+            " --nonessential {input.nonessential}"
+            " --davoli {input.davoli}"
+            " --outfile {output.outfile}"
+
+rule haploinsuff:
+    output:
+        "pnas.1900437116.sd01.xlsx"
+    shell:
+        "wget -N https://www.pnas.org/highwire/filestream/866105/"
+            "field_highwire_adjunct_files/1/{output}"
+
+rule depmap_essential:
+    output:
+        "depmap_essential.txt"
+    shell:
+        "wget -N -O {output} https://ndownloader.figshare.com/files/15023519"
+
+rule depmap_nonessential:
+    output:
+        "depmap_nonessential.txt"
+    shell:
+        "wget -N -O {output} https://ndownloader.figshare.com/files/15023522"
+
+rule davoli_og_tsg:
+    output:
+        "1-s2.0-S0092867413012877-mmc2.xlsx"
+    shell:
+        "wget -N https://ars.els-cdn.com/content/image/{output}"

@@ -8,6 +8,7 @@ genesets:
     - MSigDB_Oncogenic_Signatures
     - CH.HALLMARK
     - CORUM
+    - manual
 
 orf_tissues:
     - pan

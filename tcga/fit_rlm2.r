@@ -14,9 +14,9 @@ models = function(type, covar) {
             "TRUE" = expr - cancer_copies ~ 0 + covar + cancer + cancer_copies,
             "FALSE" = expr - cancer_copies ~ 0 + cancer + cancer_copies
         ),
-        puradj = list(
-            "TRUE" = expr - cancer_copies ~ 0 + covar + stroma + cancer + cancer_copies,
-            "FALSE" = expr - cancer_copies ~ 0 + stroma + cancer + cancer_copies
+        puradj = list( # 0 + cancer + stroma is singular?!
+            "TRUE" = expr - cancer_copies ~ 1 + covar + stroma + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ 1 + stroma + cancer_copies
         )
     )
     fmls[[type]][[as.character(covar)]]

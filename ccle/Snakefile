@@ -12,10 +12,8 @@ subworkflow genesets:
 
 fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
-mem = {
-    'pan' : 4096,
-    '*' : 2048
-}
+mem = { 'pan' : 4096, '*' : 2048 }
+cores = { 'pan' : 5, '*' : 0 }
 
 rule all:
     input:
@@ -31,8 +29,8 @@ rule fit:
         outfile = "{tissue}_{fit}/{set}.xlsx",
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
-        walltime = 240,
-        cores = 0
+        cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
+        walltime = 240
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

@@ -3,35 +3,43 @@ sys = import('sys')
 gset = import('data/genesets')
 
 do_fit = function(genes, emat, copies, covar=1, et=0.15) {
-    cov_noNA = covar
-    cov_noNA[is.na(covar)] = "unknown"
-    crank = narray::map(copies[genes,,drop=FALSE], along=2, subsets=cov_noNA,
-                        function(x) rank(x) / length(x) - 0.5)
-    erank = narray::map(emat[genes,,drop=FALSE], along=2, subsets=cov_noNA,
-                        function(x) rank(x) / length(x) - 0.5)
-    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
-                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
+    df = data.frame(gene = rep(genes, each=ncol(emat)),
+                    expr = c(emat[genes,,drop=FALSE]),
                     copies = c(copies[genes,]),
-                    erank = c(erank),
-                    crank = c(crank),
                     covar = rep(covar, length(genes))) %>%
+#        filter(copies >= 0.5) %>% # otherwise genes with 0 copies and FP reads
+        mutate(expr = expr * copies / 2) %>% #, # undo normmatrix normalization
+#        filter(expr < quantile(expr, 0.95) & copies < quantile(copies, 0.99)) %>%
         na.omit() %>%
         sample_n(min(nrow(.), 1e5))
     if (length(unique(na.omit(covar))) > 1)
-        fml = erank ~ covar + crank
+        fml = expr - copies ~ 0 + covar + copies
     else
-        fml = erank ~ crank
+        fml = expr - copies ~ 0 + copies
 
-    n_aneup = sum(abs(df$copies-2) > et)
-    if (n_aneup < 1)
-        return(data.frame(estimate=NA))
+    tryCatch({
+        # fit intercept model
+        df2 = df %>%
+            filter(copies > 2-et & copies < 2+et) %>%
+            group_by(gene, covar) %>%
+            summarize(intcp = MASS::rlm(expr ~ 1, maxit=100)$coefficients["(Intercept)"]) %>%
+            inner_join(df, by=c("gene", "covar")) %>%
+            mutate(expr = expr / intcp - 1,
+                   copies = copies / 2 - 1) %>%
+            na.omit()
 
-    mod = lm(fml, data=df) %>%
-        broom::tidy() %>%
-        filter(term == "crank") %>%
-        select(-term) %>%
-        mutate(n_aneup = n_aneup,
-               n_genes = length(genes))
+        # fit actual model
+        mobj = MASS::rlm(fml, data=df2, maxit=100)
+        mod = broom::tidy(mobj) %>%
+            filter(term == "copies") %>%
+            select(-term) %>%
+            mutate(n_aneup = sum(abs(df$copies-2) > et),
+                   n_genes = length(genes),
+                   p.value = sfsmisc::f.robftest(mobj, var="copies")$p.value)
+    }, error = function(e) {
+        warning(genes, " : ", conditionMessage(e), immediate.=TRUE)
+        data.frame(estimate=NA)
+    })
 }
 
 sys$run({
@@ -40,9 +48,9 @@ sys$run({
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
         opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('c', 'cores', 'integer', '10'),
+        opt('j', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
-        opt('o', 'outfile', 'xlsx', 'pan_rank/genes.xlsx'))
+        opt('o', 'outfile', 'xlsx', 'pan_rlm/genes.xlsx'))
 
     et = yaml::read_yaml(args$config)$euploid_tol
 
@@ -63,7 +71,6 @@ sys$run({
     ffuns = list(
         amp = function(x) { x[x < 2-et] = NA; x },
         del = function(x) { x[x > 2+et] = NA; x },
-        dev = function(x) abs(x-2),
         all = identity
     )
     fits = lapply(ffuns, function(ff) {

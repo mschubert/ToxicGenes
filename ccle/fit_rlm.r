@@ -2,7 +2,7 @@ library(dplyr)
 sys = import('sys')
 gset = import('data/genesets')
 
-do_fit = function(genes, emat, copies, covar=1, et=0.2) {
+do_fit = function(genes, emat, copies, covar=1, et=0.15) {
     df = data.frame(expr = c(emat[genes,,drop=FALSE] /
                              rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     copies = c(copies[genes,]),

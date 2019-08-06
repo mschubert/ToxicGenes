@@ -22,7 +22,7 @@ models = function(type, covar) {
     fmls[[type]][[as.character(covar)]]
 }
 
-do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.2) {
+do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
     df = data.frame(expr = c(emat[genes,,drop=FALSE] /
                              rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),

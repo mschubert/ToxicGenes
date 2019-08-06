@@ -6,16 +6,12 @@ subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
 
-#fits = [ g[4:-2] for g in glob("fit_*.r") ]
-fits = [ 'rlm', 'rank' ]
-
+fits = [ g[4:-2] for g in glob("fit_*.r") ]
+#fits = [ 'rlm', 'rank' ]
 types = [ "naive", "pur", "puradj" ]
 
-mem = {
-    "pan" : 61440,
-    "BRCA" : 8192,
-    "*" : 4096
-}
+mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
+cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 
 rule all:
     input:
@@ -30,8 +26,8 @@ rule fit:
         outfile = "{type}/{tissue}_{fit}/{sets}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
-        walltime = 480,
-        cores = 5
+        cores = lambda wc: cores[wc.tissue] if wc.tissue in cores.keys() else cores["*"],
+        walltime = 480
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

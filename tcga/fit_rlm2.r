@@ -7,43 +7,53 @@ gset = import('data/genesets')
 models = function(type, covar) {
     fmls = list(
         naive = list(
-            "TRUE" = erank ~ 0 + covar + cancer_copy_dev,
-            "FALSE" = erank ~ 0 + cancer_copy_dev
+            "TRUE" = expr - cancer_copies ~ 0 + covar + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ 0 + cancer_copies
         ),
         pur = list (
-            "TRUE" = erank ~ 0 + covar + purity + copy_dev,
-            "FALSE" = erank ~ 0 + purity + copy_dev
+            "TRUE" = expr - cancer_copies ~ 0 + covar + cancer + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ 0 + cancer + cancer_copies
         ),
         puradj = list(
-            "TRUE" = erank ~ 0 + covar + copies + stroma + copy_dev,
-            "FALSE" = erank ~ 0 + copies + stroma + copy_dev
+            "TRUE" = expr - cancer_copies ~ 0 + covar + stroma + cancer + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ 0 + stroma + cancer + cancer_copies
         )
     )
     fmls[[type]][[as.character(covar)]]
 }
 
-do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.2) {
-    df = data.frame(expr = c(emat[genes,,drop=FALSE] /
-                             rowMeans(emat[genes,,drop=FALSE], na.rm=TRUE)),
-                    copies = c(copies[genes,]),
+do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
+    df = data.frame(gene = rep(genes, each=ncol(emat)),
+                    expr = c(emat[genes,,drop=FALSE]),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
                     purity = rep(purity, length(genes)),
                     covar = rep(covar, length(genes))) %>%
         na.omit() %>%
         sample_n(min(nrow(.), 1e5)) %>%
-        mutate(#expr = expr / cancer_copies,
-               stroma = 1 - purity, #2 * (1 - purity) / cancer_copies,
-               #cancer = (purity * cancer_copies) / cancer_copies, # simplifies to CCF
-               copy_dev = copies - 2,
-               cancer_copy_dev = cancer_copies - 2,
-               erank = rank(expr) / nrow(.) - 0.5)
+        mutate(cancer = purity,
+               stroma = 1 - purity)
 
-    mod = lm(fml, data=df) %>%
-        broom::tidy() %>%
-        filter(term == "cancer_copy_dev") %>%
-        select(-term) %>%
-        mutate(n_aneup = sum(abs(df$cancer_copies-2) > et),
-               n_genes = length(genes))
+    tryCatch({
+        df2 = df %>%
+            filter(cancer_copies > 2-et & cancer_copies < 2+et) %>%
+            group_by(gene, covar) %>%
+            summarize(intcp = MASS::rlm(expr ~ stroma, maxit=100)$coefficients["(Intercept)"]) %>%
+            inner_join(df, by=c("gene", "covar")) %>%
+            mutate(expr = expr / intcp - 1,
+                   cancer_copies = cancer_copies / 2 - 1) %>%
+            na.omit()
+
+        mobj = MASS::rlm(fml, data=df2, maxit=100)
+        mod = broom::tidy(mobj) %>%
+            filter(term == "cancer_copies") %>%
+            select(-term) %>%
+            mutate(n_aneup = sum(abs(df$cancer_copies-2) > et),
+                   n_genes = length(genes),
+                   p.value = sfsmisc::f.robftest(mobj, var="cancer_copies")$p.value)
+    }, error = function(e) {
+        warning(conditionMessage(e), immediate.=TRUE)
+        data.frame(estimate = NA)
+    })
 }
 
 sys$run({
@@ -101,7 +111,6 @@ sys$run({
     ffuns = list(
         amp = function(x) { x[x < 2-et] = NA; x },
         del = function(x) { x[x > 2+et] = NA; x },
-#        dev = function(x) abs(x-2),
         all = identity
     )
     fits = lapply(ffuns, function(ff) {

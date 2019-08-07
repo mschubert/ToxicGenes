@@ -29,7 +29,6 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
                     purity = rep(purity, length(genes)),
                     covar = rep(covar, length(genes))) %>%
         na.omit() %>%
-        sample_n(min(nrow(.), 1e5)) %>%
         mutate(cancer = purity,
                stroma = 1 - purity)
 
@@ -37,11 +36,13 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
         df2 = df %>%
             filter(cancer_copies > 2-et & cancer_copies < 2+et) %>%
             group_by(gene, covar) %>%
+            filter(n() >= 5) %>% # at least 5 euploid samples per cohort per gene
             summarize(intcp = MASS::rlm(expr ~ stroma, maxit=100)$coefficients["(Intercept)"]) %>%
             inner_join(df, by=c("gene", "covar")) %>%
             mutate(expr = expr / intcp - 1,
                    cancer_copies = cancer_copies / 2 - 1) %>%
-            na.omit()
+            na.omit() %>%
+            sample_n(min(nrow(.), 1e5))
 
         mobj = MASS::rlm(fml, data=df2, maxit=100)
         mod = broom::tidy(mobj) %>%

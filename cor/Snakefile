@@ -15,7 +15,7 @@ subworkflow tcga:
 rule all:
     input:
         expand("{tissue}_{fit}_{cna}/{sets}.pdf",
-                fit = ['rlm', 'rank'],
+                fit = ['rlm', 'rlm2', 'rank'],
                 sets = config['genesets'] + ['genes'],
                 tissue = config['cor_tissues'],
                 cna = ['amp', 'del', 'all' ])

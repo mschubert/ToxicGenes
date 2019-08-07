@@ -18,9 +18,9 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a"),
         c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
     cur = smat[,c(a1, a2)]
-    cap_at = function(x) sign(x) * pmin(abs(x), max(cap, -x[rank(x)==2]))
-    cur[,1] = cap_at(cur[,1])
-    cur[,2] = cap_at(cur[,2])
+    cap_at = function(x, m) sign(x) * pmin(abs(x), max(cap, -x[m][rank(x[m])==2]))
+    cur[,1] = cap_at(cur[,1], !is.na(cur[,2]))
+    cur[,2] = cap_at(cur[,2], !is.na(cur[,1]))
 
     data = as.data.frame(cur) %>%
         tibble::rownames_to_column("name") %>%
@@ -83,8 +83,8 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
     missing[[a2]][is.na(missing[[a2]])] = oneDS.y
 
     ggplot(plot_data, aes_string(x=a1, y=a2)) +
-        geom_point(aes(color=type), alpha=0.6) +
         geom_point(data=missing, aes(color=type)) +
+        geom_point(aes(color=type), alpha=0.6) +
         geom_hline(yintercept=0, size=1, linetype="dashed", color="#dedede") +
         geom_vline(xintercept=0, size=1, linetype="dashed", color="#dedede") +
         scale_color_manual(values=colors) +
@@ -101,14 +101,14 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
 sys$run({
     args = sys$cmd$parse(
         opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
-        opt('c', 'ccle', 'xlsx', '../ccle/pan_rlm/genes.xlsx'),
-        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan_rlm/genes.xlsx'),
-        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan_rlm/genes.xlsx'),
-        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan_rlm/genes.xlsx'),
+        opt('c', 'ccle', 'xlsx', '../ccle/pan_rlm2/genes.xlsx'),
+        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan_rlm2/genes.xlsx'),
+        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan_rlm2/genes.xlsx'),
+        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan_rlm2/genes.xlsx'),
         opt('s', 'sets', 'genes|genesets', 'genes'),
-        opt('x', 'cna', 'amp|del|all', 'amp'),
+        opt('x', 'cna', 'amp|del|all', 'all'),
         opt('m', 'stat_max', 'numeric', '20'),
-        opt('p', 'plotfile', 'pdf', 'pan_amp/genes.pdf'))
+        opt('p', 'plotfile', 'pdf', 'pan_all/genes.pdf'))
 
     dset = list(
         orf = readxl::read_xlsx(args$orf),

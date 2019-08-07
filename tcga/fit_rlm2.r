@@ -38,6 +38,7 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
             group_by(gene, covar) %>%
             filter(n() >= 5) %>% # at least 5 euploid samples per cohort per gene
             summarize(intcp = MASS::rlm(expr ~ stroma, maxit=100)$coefficients["(Intercept)"]) %>%
+            ungroup() %>%
             inner_join(df, by=c("gene", "covar")) %>%
             mutate(expr = expr / intcp - 1,
                    cancer_copies = cancer_copies / 2 - 1) %>%

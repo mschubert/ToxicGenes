@@ -12,7 +12,9 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'pan/top-genes.pdf'))
 
 quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
-top = yaml::read_yaml(args$yaml)$genes #TODO: use right set if not only genes
+select = yaml::read_yaml(args$yaml)
+fits = select$methods
+top = select$genes #TODO: use right set if not only genes
 shapes = c("oe", "amp", "del", "all")
 shape_i = c(21, 24, 25, 23)
 et = yaml::read_yaml(args$config)$euploid_tol
@@ -41,7 +43,10 @@ plot_stats = function(gene) {
 
 #TODO: get the min of all top hits so we set limits?
 
-dset = readRDS(args$dset)
+dset = readRDS(args$dset) %>%
+    filter(fit %in% fits) %>%
+    mutate(statistic = pmax(statistic, -50),
+           name = factor(name, levels=top))
 yaxis_floor = dset %>% filter(name %in% top) %>% pull(statistic) %>% min(na.rm=TRUE)
 overview = lapply(top, plot_stats)
 ex_legend = cowplot::get_legend(overview[[1]])
@@ -63,7 +68,7 @@ porf = ggplot(orfdata, aes(x=DMSO, y=z_LFC)) +
     geom_hline(yintercept=0, color="red") +
     geom_hline(yintercept=c(-1,1), color="red", linetype="dotted") +
     geom_point(aes(color=tissue, shape=factor(construct_i)), size=3, alpha=0.6) +
-    facet_wrap(~ `GENE SYMBOL`) +
+    facet_wrap(~ `GENE SYMBOL`, drop=FALSE) +
     ggtitle("ORF drop-out (loess normalized, red line: mean +/- SD)")
 
 ###

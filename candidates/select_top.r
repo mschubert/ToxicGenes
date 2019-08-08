@@ -10,7 +10,8 @@ args = sys$cmd$parse(
 dset = readRDS(args$infile)
 
 top = dset %>%
-    filter(adj %in% c("none", "puradj")) %>%
+    filter(adj %in% c("none", "puradj"),
+           fit %in% c("lm", "rank", "rlm")) %>%
     group_by(dset, fit, adj) %>%
     mutate(score = (1-adj.p) * rank(-statistic) / length(statistic)) %>%
     group_by(name, dset, fit) %>% # select most significant cna (amp, del, all)
@@ -24,4 +25,5 @@ top = dset %>%
 
 obj = list(head(top$name, as.integer(args$num)))
 names(obj) = args$select
+obj$methods = c("lm", "rank", "rlm")
 yaml::write_yaml(obj, file=args$outfile)

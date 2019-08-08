@@ -9,6 +9,10 @@ arrayexpress = {
     'ccle' : 'E-MTAB-2770/static/E-MTAB-2770-atlasExperimentSummary.Rdata'
 }
 
+depmap = {
+    'meth' : 'CCLE_RRBS_TSS_1kb_20180614.txt'
+}
+
 rule all:
     input:
         "dset.rds"
@@ -19,18 +23,26 @@ rule ccle_download:
     shell:
         "wget -N https://data.broadinstitute.org/ccle/{file}"
 
+#rule depmap_meth:
+#    output:
+#        outfile = "{file}"
+#    shell:
+#        "wget -N https://depmap.org/portal/download/api/download/external?file_name={file}"
+
 rule dset:
     input:
         rscript = "dset.r",
         annot = ccle['annot'],
         rnaseq = ccle['rnaseq'],
-        copies = ccle['copies']
+        copies = ccle['copies'],
+        meth = depmap['meth']
     output:
         outfile = "dset.rds"
     resources:
-        mem = 3072,
+        mem = 4096,
     shell:
         "Rscript {input.rscript}"
             " --annot {input.annot}"
             " --rnaseq {input.rnaseq}"
             " --copies {input.copies}"
+            " --meth {input.meth}"

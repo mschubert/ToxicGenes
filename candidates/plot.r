@@ -153,7 +153,11 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
                     cancer_copies > min(1, quantile(cancer_copies, 0.02)) &
                     cancer_copies < max(3, quantile(cancer_copies, 0.98)),
                     cancer_copies, NA)) %>%
-    ungroup()
+    ungroup() %>%
+    left_join(tcga$mutations() %>%
+                transmute(sample = Tumor_Sample_Barcode,
+                          gene = Hugo_Symbol,
+                          mut = factor(Variant_Classification)))
 abl = td %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),
@@ -167,12 +171,17 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
-    geom_point(alpha=0.05) +
+    geom_point(aes(shape=mut, alpha=is.na(mut))) +
     geom_smooth(method="lm") +
     facet_wrap(~ gene, scales="free") +
     scale_color_manual(name="Compensation", guide="legend",
                        values=c("brown", "red", "blue"),
                        labels=c("full", "none", "observed")) +
+    scale_shape_manual(name="Mutation", guide="legend", na.value=1,
+                       values=seq_along(levels(td$mut))+1,
+                       labels=levels(td$mut)) +
+    scale_alpha_manual(name="has mut", guide="legend",
+                       values=c(1, 0.1), labels=c("mut", "wt")) +
     labs(title = paste("cancer copy TCGA compensation;",
                        "98th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")

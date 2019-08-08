@@ -166,7 +166,8 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
                     cancer_copies, NA)) %>%
     ungroup() %>%
     left_join(tcga_mut) %>%
-    left_join(tcga_meth)
+    left_join(tcga_meth) %>%
+    mutate(gene = factor(gene, levels=top))
 abl = td %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),

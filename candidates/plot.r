@@ -77,16 +77,25 @@ porf = ggplot(orfdata, aes(x=DMSO, y=z_LFC)) +
 ccledata = readRDS("../data/ccle/dset.rds")
 names(dimnames(ccledata$copies)) = c("gene", "CCLE_ID")
 names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
+names(dimnames(ccledata$meth)) = c("gene", "CCLE_ID")
 ccle_top = intersect(rownames(ccledata$copies), top)
 cd = ccledata$clines %>%
     select(CCLE_ID, Name, Site_Primary, tcga_code) %>%
     left_join(reshape2::melt(ccledata$copies[ccle_top,], value.name="copies")) %>%
     left_join(reshape2::melt(ccledata$eset[ccle_top,], value.name="expr")) %>%
+    left_join(reshape2::melt(ccledata$meth[ccle_top,], value.name="meth")) %>%
     mutate(expr = expr * copies/2, # undo normmatrix normalization
            gene = factor(gene, levels=top)) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.05) & expr < quantile(expr, 0.95),
                copies > min(1, quantile(copies, 0.05)) & copies < max(3, quantile(copies, 0.95))) %>%
+    ungroup() %>%
+    group_by(gene) %>%
+#        mutate(meth = meth / max(meth, na.rm=TRUE)) %>%
+        mutate(meth = rank(meth, ties="min", na="keep"),
+               meth = meth / max(meth, na.rm=TRUE),
+               meth = cut(meth, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
+               meth = factor(meth)) %>%
     ungroup()
 if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
@@ -98,18 +107,21 @@ abl = cd %>%
               observed = NA) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
     mutate(intcp = ifelse(type == "full", med_expr, 0))
-pccle = ggplot(cd, aes(x=copies, y=expr)) +
+pccle =
+    ggplot(cd, aes(x=copies, y=expr)) +
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
-    geom_point(alpha=0.3) +
+    geom_point(aes(fill=meth), alpha=0.5, shape=21) +
     geom_smooth(aes(color="blue"), method="lm", color="blue") +
     facet_wrap(~ gene, scales="free") +
 #    scale_fill_identity(name="CNA", guide="legend", labels="euploid") +
     scale_color_manual(name="Compensation", guide="legend",
                        values=c("brown", "red", "blue"),
                        labels=c("full", "none", "observed")) +
+    scale_fill_brewer(palette="RdBu", direction=-1,
+                      labels=c("lowest", "low", "high", "highest")) +
     labs(title = paste("CCLE compensation;",
                        "95th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")

@@ -3,6 +3,7 @@ library(ggplot2)
 library(patchwork)
 theme_set(cowplot::theme_cowplot())
 sys = import('sys')
+plt = import('plot')
 
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
@@ -23,7 +24,9 @@ if (!is.list(genes))
     genes = list(genes=genes)
 
 pdf(args$plotfile, 16, 12)
-for (top in genes) {
+for (i in seq_along(genes)) {
+top = genes[[i]]
+plt$text(names(genes)[i], size=20)
 
 #' Get the percentile of x in y
 plot_stats = function(gene) {

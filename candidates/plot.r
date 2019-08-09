@@ -92,10 +92,10 @@ cd = ccledata$clines %>%
     ungroup() %>%
     group_by(gene) %>%
 #        mutate(meth = meth / max(meth, na.rm=TRUE)) %>%
-        mutate(meth = rank(meth, ties="min", na="keep"),
-               meth = meth / max(meth, na.rm=TRUE),
-               meth = cut(meth, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
-               meth = factor(meth)) %>%
+        mutate(meth_class = rank(meth, ties="min", na="keep"),
+               meth_class = meth_class / max(meth_class, na.rm=TRUE),
+               meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
+               meth_class = factor(meth_class)) %>%
     ungroup()
 if (args$tissue != "pan")
     cd = filter(cd, tcga_code == args$tissue)
@@ -113,7 +113,7 @@ pccle =
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
-    geom_point(aes(fill=meth), alpha=0.5, shape=21) +
+    geom_point(aes(fill=meth_class), alpha=0.5, shape=21) +
     geom_smooth(aes(color="blue"), method="lm", color="blue") +
     facet_wrap(~ gene, scales="free") +
 #    scale_fill_identity(name="CNA", guide="legend", labels="euploid") +
@@ -154,10 +154,10 @@ tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) %>% # 
     reshape2::melt() %>%
     transmute(sample = Var2, gene = Var1, meth = value) %>%
     group_by(gene) %>%
-    mutate(meth = scale(meth)) %>%
+    mutate(meth_class = scale(meth)) %>%
 #    mutate(meth = factor(cut_number(meth, n=5, labels=FALSE))) %>%
     ungroup() %>%
-    mutate(meth = cut(meth, c(-Inf, -1.5, -0.5, 0.5, 1.5, Inf)))
+    mutate(meth_class = cut(meth_class, c(-Inf, -1.5, -0.5, 0.5, 1.5, Inf)))
 #levels(tcga_meth$meth) = c("lowest", "low", "normal", "high", "highest")
 tcga_mut = tcga$mutations() %>%
     transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
@@ -192,11 +192,11 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
-    geom_point(data = td %>% filter(is.na(meth) | is.na(mut)),
+    geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),
                aes(shape=mut), fill="#ffffff00", color="#00000033") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
-    geom_point(data = td %>% filter(!is.na(meth)), color="#ffffff00", shape=21,
-               aes(fill=meth, alpha=meth)) +
+    geom_point(data = td %>% filter(!is.na(meth_class)), color="#ffffff00", shape=21,
+               aes(fill=meth_class, alpha=meth_class)) +
     geom_point(data = td %>% filter(!is.na(mut)),
                aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
     geom_smooth(method="lm") +
@@ -217,6 +217,47 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
          y = "normalized read count")
 
 ###
+### Methylation quantification
+###
+plot_gene = function(g) {
+    cur = ct %>% filter(gene == g)
+    stats = cur %>%
+        group_by(dset) %>%
+        mutate(x=1.5, y = max(meth, na.rm=TRUE)) %>%
+        group_by(dset, cna, x, y) %>%
+        summarize(pval = wilcox.test(meth[expr == "low"], meth[expr == "high"])$p.value) %>%
+        ungroup() %>%
+        mutate(pvseu = purrr::map2_dbl(dset, cna, function(d, c) {
+            eu = cur %>% filter(dset == d, cna == "eu") %>% pull(meth)
+            vs = cur %>% filter(dset == d, cna == c) %>% pull(meth)
+            wilcox.test(eu, vs)$p.value
+        })) %>% mutate(label = sprintf("eu: %.2g\nex: %.2g", pvseu, pval))
+    ggplot(cur, aes(x=expr, y=meth)) +
+#        ggbeeswarm::geom_quasirandom() + # too many points
+        geom_violin(color="grey50") +
+        geom_boxplot(width=0.25, outlier.shape=NA) +
+        geom_text(data=stats, aes(x=x, y=y, label=label), hjust=0.5, vjust=1.5, size=3, color="blue") +
+        facet_grid(dset ~ cna, scales="free_y") +
+        ggtitle(g)
+}
+ct = bind_rows(ccle=cd, tcga=mutate(td, copies = cancer_copies), .id = "dset") %>%
+    select(gene, dset, copies, expr, meth) %>%
+    group_by(dset, gene) %>%
+    mutate(cna = case_when(
+            copies < 2-et ~ "del",
+            copies < 2+et ~ "eu",
+            copies >= 2+et ~ "amp",
+            TRUE ~ as.character(NA)),
+           cna = factor(cna, levels=c("del", "eu", "amp")),
+           expr = case_when(
+            expr < median(expr, na.rm=TRUE) ~ "low",
+            expr >= median(expr, na.rm=TRUE) ~ "high",
+            TRUE ~ as.character(NA)),
+           expr = factor(expr, levels=c("low", "high"))
+    ) %>% ungroup() %>% na.omit() %>% mutate(dset = factor(dset, levels=c("tcga", "ccle")))
+pmeth = lapply(top, plot_gene)
+
+###
 ### actually plot
 ###
 pdf(args$plotfile, 16, 12) # patchworkGrob creates empty page in PDF
@@ -232,4 +273,5 @@ gridExtra::grid.arrange(pg1, ex_legend, ncol=2, widths=c(10,1))
 print(porf)
 print(pccle)
 print(ptcga)
+print(cowplot::plot_grid(plotlist=pmeth))
 dev.off()

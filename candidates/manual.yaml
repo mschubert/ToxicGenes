@@ -11,3 +11,7 @@ genes:
     - WEE1
     - IDH2
     - BANP
+
+methods:
+    - lm
+    - rlm

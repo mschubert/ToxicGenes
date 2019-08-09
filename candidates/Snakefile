@@ -17,18 +17,23 @@ manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
 fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
-select = ['top.stat', 'top.comp']
+select = ['top'] #, 'comp']
+sets = ['genes']
 
 rule all:
     input:
         expand("{tissue}/{select}-{sets}.pdf", tissue=config['cor_tissues'],
-                sets=['genes'], select=select),
+                sets=sets, select=select),
         expand("{tissue}/pan_{select}-genes.pdf", select=select,
                 tissue=set(config['cor_tissues']) - set(['pan'])),
         expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
                 manual=manual)
 
 rule merge:
+    input:
+        expand("merge/{tissue}/{sets}.rds", tissue=config['cor_tissues'], sets=sets)
+
+rule merge_one:
     input:
         rscript = "merge.r",
         orf = lambda wc: orf(wc.tissue + "/" + wc.sets + ".xlsx"),

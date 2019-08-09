@@ -71,6 +71,8 @@ rule plot:
         yaml = "{tissue}/{collec}.yaml"
     output:
         plotfile = "{tissue}/{collec}.pdf"
+    resources:
+        mem = 8192
     shell:
         "Rscript {input.rscript}"
             " --dset {input.dset}"
@@ -85,6 +87,8 @@ rule plot_manual_sets:
         yaml = "{collec}.yaml"
     output:
         plotfile = "{tissue}/{collec}.pdf"
+    resources:
+        mem = 8192
     shell:
         "Rscript {input.rscript}"
             " --dset {input.dset}"
@@ -99,6 +103,8 @@ rule plot_tissue_with_pan_yaml:
         yaml = "pan/{collec}.yaml"
     output:
         plotfile = "{tissue}/pan_{collec}.pdf"
+    resources:
+        mem = 8192
     wildcard_constraints:
         tissue = "^[^p].*"
     shell:

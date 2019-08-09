@@ -14,10 +14,16 @@ args = sys$cmd$parse(
 quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
 select = yaml::read_yaml(args$yaml)
 fits = select$methods
-top = select$genes #TODO: use right set if not only genes
+genes = select$genes #TODO: use right set if not only genes
 shapes = c("oe", "amp", "del", "all")
 shape_i = c(21, 24, 25, 23)
 et = yaml::read_yaml(args$config)$euploid_tol
+
+if (!is.list(genes))
+    genes = list(genes=genes)
+
+pdf(args$plotfile, 16, 12)
+for (top in genes) {
 
 #' Get the percentile of x in y
 plot_stats = function(gene) {
@@ -260,18 +266,20 @@ pmeth = lapply(top, plot_gene)
 ###
 ### actually plot
 ###
-pdf(args$plotfile, 16, 12) # patchworkGrob creates empty page in PDF
 ov = overview # only way to get the legend to work
+invisible(capture.output({
 pg1 = patchworkGrob(
     ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /
       ( ov[[5]] | ov[[6]] | ov[[7]] | ov[[8]] ) /
       ( ov[[9]] | ov[[10]] | ov[[11]] | ov[[12]] ) )
 )
-dev.off()
-pdf(args$plotfile, 16, 12)
+}))
 gridExtra::grid.arrange(pg1, ex_legend, ncol=2, widths=c(10,1))
 print(porf)
 print(pccle)
 print(ptcga)
 print(cowplot::plot_grid(plotlist=pmeth))
+
+}
+
 dev.off()

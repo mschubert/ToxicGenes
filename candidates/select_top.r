@@ -7,15 +7,13 @@ args = sys$cmd$parse(
     opt('n', 'num', 'number of top hits', '12'),
     opt('o', 'outfile', 'yaml', 'pan/top.stat_genes.yaml'))
 
-dset = readRDS(args$infile)
-
-top = dset %>%
+n = as.integer(args$num)
+dset = readRDS(args$infile) %>%
     filter(adj %in% c("none", "puradj"),
            fit %in% c("lm", "rank", "rlm")) %>%
-    group_by(dset, fit, adj) %>%
-    mutate(score = (1-adj.p) * rank(-statistic) / length(statistic)) %>%
-    group_by(name, dset, fit) %>% # select most significant cna (amp, del, all)
-    top_n(1, -score) %>%
+    mutate(score = (1-adj.p) * rank(-statistic) / length(statistic))
+
+select_top = . %>%
     group_by(name, dset) %>% # mean by fit (rlm, rank)
     summarize(score = mean(score, na.rm=TRUE)) %>%
     group_by(name) %>% # summarize by dset (orf, ccle, tcga)
@@ -23,7 +21,16 @@ top = dset %>%
               score = sum(score^0.5, na.rm=TRUE)) %>% # root prioritizes consistency across dsets
     arrange(-score)
 
-obj = list(head(top$name, as.integer(args$num)))
+top_all = select_top(dset %>% filter(cna %in% c("oe", "all")))
+top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp")))
+top_del = select_top(dset %>% filter(cna %in% c("oe", "del")))
+
+obj = list(list(
+    all = top_all$name[seq_len(n)],
+    all2 = top_all$name[seq_len(n)+n],
+    amp = top_amp$name[seq_len(n)],
+    del = top_del$name[seq_len(n)]
+))
 names(obj) = args$select
 obj$methods = c("lm", "rank", "rlm")
 yaml::write_yaml(obj, file=args$outfile)

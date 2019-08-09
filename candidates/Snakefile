@@ -17,7 +17,7 @@ manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
 fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
-select = ['top', 'comp']
+select = ['top'] #, 'comp']
 sets = ['genes']
 
 rule all:

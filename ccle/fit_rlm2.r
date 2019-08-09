@@ -13,9 +13,9 @@ do_fit = function(genes, emat, copies, covar=1, et=0.15) {
         na.omit() %>%
         sample_n(min(nrow(.), 1e5))
     if (length(unique(na.omit(covar))) > 1)
-        fml = expr - copies ~ 0 + covar + copies
+        fml = expr - copies ~ covar + copies
     else
-        fml = expr - copies ~ 0 + copies
+        fml = expr - copies ~ copies
 
     tryCatch({
         # fit intercept model

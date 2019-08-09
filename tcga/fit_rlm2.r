@@ -7,16 +7,16 @@ gset = import('data/genesets')
 models = function(type, covar) {
     fmls = list(
         naive = list(
-            "TRUE" = expr - cancer_copies ~ 0 + covar + cancer_copies,
-            "FALSE" = expr - cancer_copies ~ 0 + cancer_copies
+            "TRUE" = expr - cancer_copies ~ covar + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ cancer_copies
         ),
         pur = list (
-            "TRUE" = expr - cancer_copies ~ 0 + covar + cancer + cancer_copies,
-            "FALSE" = expr - cancer_copies ~ 0 + cancer + cancer_copies
+            "TRUE" = expr - cancer_copies ~ covar + cancer + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ cancer + cancer_copies
         ),
         puradj = list( # 0 + cancer + stroma is singular?!
-            "TRUE" = expr - cancer_copies ~ 1 + covar + stroma + cancer_copies,
-            "FALSE" = expr - cancer_copies ~ 1 + stroma + cancer_copies
+            "TRUE" = expr - cancer_copies ~ covar + stroma + cancer_copies,
+            "FALSE" = expr - cancer_copies ~ stroma + cancer_copies
         )
     )
     fmls[[type]][[as.character(covar)]]

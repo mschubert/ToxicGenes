@@ -26,7 +26,7 @@ if (!is.list(genes))
 pdf(args$plotfile, 16, 12)
 for (i in seq_along(genes)) {
 top = genes[[i]]
-plt$text(names(genes)[i], size=20)
+print(plt$text(names(genes)[i], size=20))
 
 #' Get the percentile of x in y
 plot_stats = function(gene) {
@@ -199,13 +199,13 @@ abl = td %>%
     mutate(intcp = ifelse(type == "full", med_expr, 0))
 ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
-    geom_vline(xintercept=2, color="grey") +
-    geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),
                aes(shape=mut), fill="#ffffff00", color="#00000033") +
-    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(data = td %>% filter(!is.na(meth_class)), color="#ffffff00", shape=21,
                aes(fill=meth_class, alpha=meth_class)) +
+    geom_vline(xintercept=2, color="grey") +
+    geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
+    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(data = td %>% filter(!is.na(mut)),
                aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
     geom_smooth(method="lm") +
@@ -228,18 +228,19 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 ###
 ### Methylation quantification
 ###
+swil = function(x, y) tryCatch(wilcox.test(x, y)$p.value, error=function(e) NA)
 plot_gene = function(g) {
     cur = ct %>% filter(gene == g)
     stats = cur %>%
         group_by(dset) %>%
         mutate(x=1.5, y = max(meth, na.rm=TRUE)) %>%
         group_by(dset, cna, x, y) %>%
-        summarize(pval = wilcox.test(meth[expr == "low"], meth[expr == "high"])$p.value) %>%
+        summarize(pval = swil(meth[expr == "low"], meth[expr == "high"])) %>%
         ungroup() %>%
         mutate(pvseu = purrr::map2_dbl(dset, cna, function(d, c) {
             eu = cur %>% filter(dset == d, cna == "eu") %>% pull(meth)
             vs = cur %>% filter(dset == d, cna == c) %>% pull(meth)
-            wilcox.test(eu, vs)$p.value
+            swil(eu, vs)
         })) %>% mutate(label = sprintf("eu: %.2g\nex: %.2g", pvseu, pval))
     ggplot(cur, aes(x=expr, y=meth)) +
 #        ggbeeswarm::geom_quasirandom() + # too many points
@@ -270,13 +271,13 @@ pmeth = lapply(top, plot_gene)
 ### actually plot
 ###
 ov = overview # only way to get the legend to work
-invisible(capture.output({
+pdf("/dev/null")
 pg1 = patchworkGrob(
     ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /
       ( ov[[5]] | ov[[6]] | ov[[7]] | ov[[8]] ) /
       ( ov[[9]] | ov[[10]] | ov[[11]] | ov[[12]] ) )
 )
-}))
+dev.off()
 gridExtra::grid.arrange(pg1, ex_legend, ncol=2, widths=c(10,1))
 print(porf)
 print(pccle)

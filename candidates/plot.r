@@ -232,21 +232,26 @@ swil = function(x, y) tryCatch(wilcox.test(x, y)$p.value, error=function(e) NA)
 plot_gene = function(g) {
     cur = ct %>% filter(gene == g)
     stats = cur %>%
-        group_by(dset) %>%
-        mutate(x=1.5, y = max(meth, na.rm=TRUE)) %>%
-        group_by(dset, cna, x, y) %>%
-        summarize(pval = swil(meth[expr == "low"], meth[expr == "high"])) %>%
+        group_by(dset, cna) %>%
+        summarize(x = 1.5,
+                  y = quantile(meth, 0.9),
+                  pval = swil(meth[expr == "low"], meth[expr == "high"])) %>%
         ungroup() %>%
         mutate(pvseu = purrr::map2_dbl(dset, cna, function(d, c) {
             eu = cur %>% filter(dset == d, cna == "eu") %>% pull(meth)
             vs = cur %>% filter(dset == d, cna == c) %>% pull(meth)
             swil(eu, vs)
         })) %>% mutate(label = sprintf("eu: %.2g\nex: %.2g", pvseu, pval))
+    cur = cur %>%
+        group_by(dset, gene) %>%
+        mutate(meth = pmax(meth, quantile(meth, 0.1)),
+               meth = pmin(meth, quantile(meth, 0.9)))
     ggplot(cur, aes(x=expr, y=meth)) +
 #        ggbeeswarm::geom_quasirandom() + # too many points
         geom_violin(color="grey50") +
         geom_boxplot(width=0.25, outlier.shape=NA) +
-        geom_text(data=stats, aes(x=x, y=y, label=label), hjust=0.5, vjust=1.5, size=3, color="blue") +
+        geom_text(data=stats, aes(x=x, y=y, label=label),
+                  hjust=0.5, vjust=1.5, size=3, color="blue") +
         facet_grid(dset ~ cna, scales="free_y") +
         ggtitle(g)
 }

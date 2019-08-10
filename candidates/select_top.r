@@ -21,15 +21,15 @@ select_top = . %>%
               score = sum(score^0.5, na.rm=TRUE)) %>% # root prioritizes consistency across dsets
     arrange(-score)
 
-top_all = select_top(dset %>% filter(cna %in% c("oe", "all")))
-top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp")))
-top_del = select_top(dset %>% filter(cna %in% c("oe", "del")))
+top_all = select_top(dset %>% filter(cna %in% c("oe", "all"))) %>% pull(name) %>% head(n*2)
+top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp"), ! name %in% top_all)) %>% pull(name)
+top_del = select_top(dset %>% filter(cna %in% c("oe", "del"), ! name %in% top_all)) %>% pull(name)
 
 obj = list(list(
-    all = top_all$name[seq_len(n)],
-    all2 = top_all$name[seq_len(n)+n],
-    amp = top_amp$name[seq_len(n)],
-    del = top_del$name[seq_len(n)]
+    all = top_all[seq_len(n)],
+    all2 = top_all[seq_len(n)+n],
+    amp = top_amp[seq_len(n)],
+    del = top_del[seq_len(n)]
 ))
 names(obj) = args$select
 obj$methods = c("lm", "rank", "rlm")

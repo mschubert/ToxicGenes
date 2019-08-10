@@ -248,19 +248,25 @@ plot_gene = function(g) {
                    slope = mod$estimate[mod$term == "subs == xcmpTRUE"],
                    p.value = mod$p.value[mod$term == "subs == xcmpTRUE"]) })
         )) %>%
-        tidyr::unnest()
+        tidyr::unnest() %>%
+        inner_join(cur %>% group_by(dset) %>% summarize(yrange = diff(range(meth, na.rm=TRUE)))) %>%
+        mutate(label_col = ifelse(!is.na(p.value) & p.value < 0.05, "p<0.05", "ns"),
+               label = sprintf("%.2g", p.value),
+               angle = 0)
+#               angle = atan(yrange/4 * slope / (xcmp-xref) * (180/pi)))
     ggplot(cur, aes(x=subs, y=meth), color="grey50") +
 #        ggbeeswarm::geom_quasirandom() + # too many points
         geom_violin(aes(fill=cna)) +
         geom_boxplot(width=0.25, outlier.shape=NA) +
-        geom_segment(data=stats, aes(x=xref, y=intcp, xend=xcmp, yend=intcp+slope),
-                     size=1, color="blue") +
-        geom_text(data=stats, size=10, aes(label=ifelse(p.value < 0.05, "*", NA),
+        geom_segment(data=stats, aes(x=xref, y=intcp, xend=xcmp, yend=intcp+slope,
+                                     color=label_col), size=1) +
+        geom_text(data=stats, size=2, aes(label=label, color=label_col, angle=angle,
                   # https://github.com/tidyverse/ggplot2/issues/577
                   x=ifelse(facetx == "all", (as.integer(xref)+as.integer(xcmp))/2 - 2,
                                             (as.integer(xref)+as.integer(xcmp))/2),
-                  y=intcp+slope/2), color="blue") +
+                  y=intcp+slope/2), vjust=-0.5) +
         facet_grid(dset ~ facetx, scales="free", space="free_x") +
+        scale_color_manual(labels=c("ns", "p<0.05"), values=c("grey20", "blue"), guide=FALSE) +
         scale_fill_manual(labels=c("amp", "del", "eu"), guide=FALSE,
                           values=c("#83242455", "#3A3A9855", "white")) +
         ggtitle(g)

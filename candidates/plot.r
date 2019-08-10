@@ -232,24 +232,23 @@ swil = function(x, y) tryCatch(wilcox.test(x, y)$p.value, error=function(e) NA)
 plot_gene = function(g) {
     #TODO: lines pancan + per tissue
     #TODO: regress out stromal fraction
-    cur = ct %>% filter(gene == g)
+    cur = ct %>% filter(gene == g) %>%
+        group_by(dset, gene) %>%
+        mutate(meth = pmax(meth, quantile(meth, 0.1)),
+               meth = pmin(meth, quantile(meth, 0.9)))
     stats = tibble(facetx = factor(c("del", "amp", "all", "all"), levels=levels(cur$facetx)),
                    xref = factor(c("low", "low", "eu", "eu"), levels=levels(cur$subs)),
                    xcmp = factor(c("high", "high", "del", "amp"), levels=levels(cur$subs))) %>%
         inner_join(cur, by="facetx") %>%
         filter(subs == xref | subs == xcmp) %>%
         group_by(dset, facetx, xref, xcmp) %>%
-        summarize(res = list({
+        summarize(res = list(tryCatch(error = function(e) tibble(intcp=NA, slope=NA, p.value=NA), {
             mod = broom::tidy(lm(meth ~ subs==xcmp))
             tibble(intcp = mod$estimate[mod$term == "(Intercept)"],
                    slope = mod$estimate[mod$term == "subs == xcmpTRUE"],
-                   p.value = mod$p.value[mod$term == "subs == xcmpTRUE"])
-        })) %>%
+                   p.value = mod$p.value[mod$term == "subs == xcmpTRUE"]) })
+        )) %>%
         tidyr::unnest()
-    cur = cur %>%
-        group_by(dset, gene) %>%
-        mutate(meth = pmax(meth, quantile(meth, 0.1)),
-               meth = pmin(meth, quantile(meth, 0.9)))
     ggplot(cur, aes(x=subs, y=meth), color="grey50") +
 #        ggbeeswarm::geom_quasirandom() + # too many points
         geom_violin(aes(fill=cna)) +

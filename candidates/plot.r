@@ -230,46 +230,63 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 ###
 swil = function(x, y) tryCatch(wilcox.test(x, y)$p.value, error=function(e) NA)
 plot_gene = function(g) {
+    #TODO: lines pancan + per tissue
+    #TODO: regress out stromal fraction
     cur = ct %>% filter(gene == g)
-    stats = cur %>%
-        group_by(dset, cna) %>%
-        summarize(x = 1.5,
-                  y = quantile(meth, 0.9),
-                  pval = swil(meth[expr == "low"], meth[expr == "high"])) %>%
-        ungroup() %>%
-        mutate(pvseu = purrr::map2_dbl(dset, cna, function(d, c) {
-            eu = cur %>% filter(dset == d, cna == "eu") %>% pull(meth)
-            vs = cur %>% filter(dset == d, cna == c) %>% pull(meth)
-            swil(eu, vs)
-        })) %>% mutate(label = sprintf("eu: %.2g\nex: %.2g", pvseu, pval))
+    stats = tibble(facetx = factor(c("del", "amp", "all", "all"), levels=levels(cur$facetx)),
+                   xref = factor(c("low", "low", "eu", "eu"), levels=levels(cur$subs)),
+                   xcmp = factor(c("high", "high", "del", "amp"), levels=levels(cur$subs))) %>%
+        inner_join(cur, by="facetx") %>%
+        filter(subs == xref | subs == xcmp) %>%
+        group_by(dset, facetx, xref, xcmp) %>%
+        summarize(res = list({
+            mod = broom::tidy(lm(meth ~ subs==xcmp))
+            tibble(intcp = mod$estimate[mod$term == "(Intercept)"],
+                   slope = mod$estimate[mod$term == "subs == xcmpTRUE"],
+                   p.value = mod$p.value[mod$term == "subs == xcmpTRUE"])
+        })) %>%
+        tidyr::unnest()
     cur = cur %>%
         group_by(dset, gene) %>%
         mutate(meth = pmax(meth, quantile(meth, 0.1)),
                meth = pmin(meth, quantile(meth, 0.9)))
-    ggplot(cur, aes(x=expr, y=meth)) +
+    ggplot(cur, aes(x=subs, y=meth), color="grey50") +
 #        ggbeeswarm::geom_quasirandom() + # too many points
-        geom_violin(color="grey50") +
+        geom_violin(aes(fill=cna)) +
         geom_boxplot(width=0.25, outlier.shape=NA) +
-        geom_text(data=stats, aes(x=x, y=y, label=label),
-                  hjust=0.5, vjust=1.5, size=3, color="blue") +
-        facet_grid(dset ~ cna, scales="free_y") +
+        geom_segment(data=stats, aes(x=xref, y=intcp, xend=xcmp, yend=intcp+slope),
+                     size=1, color="blue") +
+        geom_text(data=stats, size=10, aes(label=ifelse(p.value < 0.05, "*", NA),
+                  # https://github.com/tidyverse/ggplot2/issues/577
+                  x=ifelse(facetx == "all", (as.integer(xref)+as.integer(xcmp))/2 - 2,
+                                            (as.integer(xref)+as.integer(xcmp))/2),
+                  y=intcp+slope/2), color="blue") +
+        facet_grid(dset ~ facetx, scales="free", space="free_x") +
+        scale_fill_manual(labels=c("amp", "del", "eu"), guide=FALSE,
+                          values=c("#83242455", "#3A3A9855", "white")) +
         ggtitle(g)
 }
 ct = bind_rows(ccle=cd, tcga=mutate(td, copies = cancer_copies), .id = "dset") %>%
-    select(gene, dset, copies, expr, meth) %>%
-    group_by(dset, gene) %>%
-    mutate(cna = case_when(
-            copies < 2-et ~ "del",
-            copies < 2+et ~ "eu",
-            copies >= 2+et ~ "amp",
-            TRUE ~ as.character(NA)),
-           cna = factor(cna, levels=c("del", "eu", "amp")),
-           expr = case_when(
-            expr < median(expr, na.rm=TRUE) ~ "low",
-            expr >= median(expr, na.rm=TRUE) ~ "high",
-            TRUE ~ as.character(NA)),
-           expr = factor(expr, levels=c("low", "high"))
-    ) %>% ungroup() %>% na.omit() %>% mutate(dset = factor(dset, levels=c("tcga", "ccle")))
+    select(gene, dset, copies, expr, meth)
+eu_cna = ct %>%
+    group_by(dset) %>%
+    mutate(facetx = "all", cna = case_when(
+        copies < 2-et ~ "del",
+        copies < 2+et ~ "eu",
+        copies >= 2+et ~ "amp",
+        TRUE ~ as.character(NA)), subs=cna) %>% ungroup() %>% na.omit()
+cna_diff = eu_cna %>%
+    mutate(facetx = subs) %>%
+    filter(subs != "eu") %>%
+    group_by(dset, facetx) %>%
+    mutate(subs = case_when(
+        expr < median(expr, na.rm=TRUE) ~ "low", #TODO: fix for actual comp lines
+        expr > median(expr, na.rm=TRUE) ~ "high",
+        TRUE ~ as.character(NA))) %>% ungroup() %>% na.omit()
+ct = bind_rows(eu_cna, cna_diff) %>%
+    mutate(facetx = factor(facetx, levels=c("del", "all", "amp")),
+           subs = factor(subs, levels=c("low", "high", "del", "eu", "amp")),
+           dset = factor(dset, levels=c("tcga", "ccle")))
 pmeth = lapply(top, plot_gene)
 
 ###

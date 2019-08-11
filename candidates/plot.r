@@ -50,9 +50,8 @@ plot_stats = function(gene) {
               axis.title.y = element_blank())
 }
 
-#TODO: get the min of all top hits so we set limits?
-
-dset = readRDS(args$dset) %>%
+assocs = readRDS(args$dset)
+dset = assocs %>%
     filter(fit %in% fits) %>%
     mutate(statistic = pmax(statistic, -50),
            name = factor(name, levels=top))
@@ -113,10 +112,12 @@ abl = cd %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(copies-2) < et]),
               none = 0.5 * med_expr,
-              full = 0,
-              observed = NA) %>%
+              full = 0) %>%
+    left_join(assocs %>% filter(dset=="ccle", fit=="rlm2", cna=="all") %>%
+              transmute(gene=factor(name, levels=top), observed=estimate)) %>%
+    mutate(observed = none * (1 + observed)) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
-    mutate(intcp = ifelse(type == "full", med_expr, 0))
+    mutate(intcp = med_expr - 2*slope)
 pccle =
     ggplot(cd, aes(x=copies, y=expr)) +
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
@@ -194,10 +195,12 @@ abl = td %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),
               none = 0.5 * med_expr,
-              full = 0,
-              observed = NA) %>%
+              full = 0) %>%
+    left_join(assocs %>% filter(dset=="tcga", fit=="rlm2", cna=="all") %>%
+              transmute(gene=factor(name, levels=top), observed=estimate)) %>%
+    mutate(observed = none * (1 + observed)) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
-    mutate(intcp = ifelse(type == "full", med_expr, 0))
+    mutate(intcp = med_expr - 2*slope)
 ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),

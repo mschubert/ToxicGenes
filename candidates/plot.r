@@ -107,7 +107,8 @@ cd = ccledata$clines %>%
                meth_class = meth_class / max(meth_class, na.rm=TRUE),
                meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
                meth_class = factor(meth_class)) %>%
-    ungroup()
+    ungroup() %>%
+    mutate(Name = ifelse(args$tissue == "pan", NA, Name)) # only name if not pancan
 if (args$tissue != "pan")
     cd = filter(cd, cohort == args$tissue)
 abl = cd %>%
@@ -128,6 +129,7 @@ pccle =
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(aes(fill=meth_class), alpha=0.5, shape=21) +
     geom_smooth(aes(color="blue"), method="lm", color="blue") +
+    ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
     facet_wrap(~ gene, scales="free") +
 #    scale_fill_identity(name="CNA", guide="legend", labels="euploid") +
     scale_color_manual(name="Compensation", guide="legend",

@@ -166,11 +166,12 @@ tcga_cns = load_copies(args$tissue, top) # has those samples
 tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) %>% # cpg=stdev too many NAs
     reshape2::melt() %>%
     transmute(cohort = tcga$barcode2study(Var2), sample = Var2, gene = Var1, meth = value) %>%
-    group_by(cohort, gene) %>%
-    mutate(meth_class = scale(meth)) %>%
+    group_by(gene) %>%
+        mutate(meth_class = scale(meth)) %>%
+#    group_by(cohort, gene) %>%
 #    mutate(meth = factor(cut_number(meth, n=5, labels=FALSE))) %>%
     ungroup() %>%
-    mutate(meth_class = cut(meth_class, c(-Inf, -1.5, -0.5, 0.5, 1.5, Inf)))
+    mutate(meth_class = cut(meth, c(-Inf, -1.5, -0.5, 0.5, 1.5, Inf)))
 #levels(tcga_meth$meth) = c("lowest", "low", "normal", "high", "highest")
 tcga_mut = tcga$mutations() %>%
     transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
@@ -192,6 +193,9 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     ungroup() %>%
     left_join(tcga_mut) %>%
     left_join(tcga_meth) %>%
+    group_by(gene) %>%
+        mutate(meth = (meth - median(meth[abs(cancer_copies-2)<et], na.rm=TRUE))) %>%
+    ungroup() %>%
     mutate(gene = factor(gene, levels=top))
 abl = td %>%
     group_by(gene) %>%
@@ -203,12 +207,22 @@ abl = td %>%
     mutate(observed = none * (1 + observed)) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
     mutate(intcp = med_expr - 2*slope)
-ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
-    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
-    geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),
-               aes(shape=mut), fill="#ffffff00", color="#00000033") +
-    geom_point(data = td %>% filter(!is.na(meth_class)), color="#ffffff00", shape=21,
-               aes(fill=meth_class, alpha=meth_class)) +
+ptcga =
+    ggplot(td, aes(x=cancer_copies, y=expr)) +
+    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow")
+if (args$tissue == "pan") {
+    ptcga = ptcga +
+        stat_binhex(data=filter(td, is.na(meth)|meth==0), aes(alpha=..count..), fill="#000000") +
+        stat_binhex(data=filter(td, meth<0), aes(alpha=..count..), fill="#002BFF") +
+        stat_binhex(data=filter(td, meth>0), aes(alpha=..count..), fill="#FFD500")
+} else {
+    ptcga = ptcga +
+        geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),
+                   aes(shape=mut), fill="#ffffff00", color="#00000033") +
+        geom_point(data = td %>% filter(!is.na(meth_class)), color="#ffffff00", shape=21,
+                   aes(fill=meth_class, alpha=meth_class))
+}
+ptcga = ptcga +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
@@ -224,9 +238,11 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
                        labels=levels(td$mut)) +
     scale_size_manual(name="has mut", guide="legend",
                        values=c(2, 1), labels=c("mut", "wt")) +
-    scale_fill_brewer(name="cohort z(M) CpG meth", type="diverging", palette="RdBu",
-                      direction=-1, na.value="#ffffff00") +
-    scale_alpha_manual(guide="none", values = c(1,0.5,0,0.5,1)) +
+    scale_alpha(trans="log") +
+#    scale_fill_gradient(low="#00000000", high="#000000ff", trans="log") +
+#    scale_fill_brewer(name="cohort z(M) CpG meth", type="diverging", palette="RdBu",
+#                      direction=-1, na.value="#ffffff00") +
+#    scale_alpha_manual(guide="none", values = c(1,0.5,0,0.5,1)) +
     labs(title = paste("cancer copy TCGA compensation;",
                        "98th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")

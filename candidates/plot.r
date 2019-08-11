@@ -89,12 +89,13 @@ names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
 names(dimnames(ccledata$meth)) = c("gene", "CCLE_ID")
 ccle_top = intersect(rownames(ccledata$copies), top)
 cd = ccledata$clines %>%
-    select(CCLE_ID, Name, Site_Primary, tcga_code) %>%
+    select(CCLE_ID, Name, Site_Primary, cohort=tcga_code) %>%
     left_join(reshape2::melt(ccledata$copies[ccle_top,], value.name="copies")) %>%
     left_join(reshape2::melt(ccledata$eset[ccle_top,], value.name="expr")) %>%
     left_join(reshape2::melt(ccledata$meth[ccle_top,], value.name="meth")) %>%
     mutate(expr = expr * copies/2, # undo normmatrix normalization
-           gene = factor(gene, levels=top)) %>%
+           gene = factor(gene, levels=top),
+           purity = 1) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.05) & expr < quantile(expr, 0.95),
                copies > min(1, quantile(copies, 0.05)) & copies < max(3, quantile(copies, 0.95))) %>%
@@ -107,7 +108,7 @@ cd = ccledata$clines %>%
                meth_class = factor(meth_class)) %>%
     ungroup()
 if (args$tissue != "pan")
-    cd = filter(cd, tcga_code == args$tissue)
+    cd = filter(cd, cohort == args$tissue)
 abl = cd %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(copies-2) < et]),
@@ -161,8 +162,8 @@ tcga_expr = load_expr(args$tissue, top) # only primary because purity() only
 tcga_cns = load_copies(args$tissue, top) # has those samples
 tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) %>% # cpg=stdev too many NAs
     reshape2::melt() %>%
-    transmute(sample = Var2, gene = Var1, meth = value) %>%
-    group_by(gene) %>%
+    transmute(cohort = tcga$barcode2study(Var2), sample = Var2, gene = Var1, meth = value) %>%
+    group_by(cohort, gene) %>%
     mutate(meth_class = scale(meth)) %>%
 #    mutate(meth = factor(cut_number(meth, n=5, labels=FALSE))) %>%
     ungroup() %>%
@@ -218,7 +219,7 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
                        labels=levels(td$mut)) +
     scale_size_manual(name="has mut", guide="legend",
                        values=c(2, 1), labels=c("mut", "wt")) +
-    scale_fill_brewer(name="z CpG meth", type="diverging", palette="RdBu",
+    scale_fill_brewer(name="cohort z(M) CpG meth", type="diverging", palette="RdBu",
                       direction=-1, na.value="#ffffff00") +
     scale_alpha_manual(guide="none", values = c(1,0.5,0,0.5,1)) +
     labs(title = paste("cancer copy TCGA compensation;",
@@ -228,7 +229,6 @@ ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 ###
 ### Methylation quantification
 ###
-swil = function(x, y) tryCatch(wilcox.test(x, y)$p.value, error=function(e) NA)
 plot_gene = function(g) {
     #TODO: lines pancan + per tissue
     #TODO: regress out stromal fraction
@@ -243,7 +243,10 @@ plot_gene = function(g) {
         filter(subs == xref | subs == xcmp) %>%
         group_by(dset, facetx, xref, xcmp) %>%
         summarize(res = list(tryCatch(error = function(e) tibble(intcp=NA, slope=NA, p.value=NA), {
-            mod = broom::tidy(lm(meth ~ subs==xcmp))
+            if (length(unique(cohort)) == 1)
+                mod = broom::tidy(lm(meth ~ (1-purity) + (subs==xcmp)))
+            else
+                mod = broom::tidy(lm(meth ~ (1-purity) + cohort + (subs==xcmp)))
             tibble(intcp = mod$estimate[mod$term == "(Intercept)"],
                    slope = mod$estimate[mod$term == "subs == xcmpTRUE"],
                    p.value = mod$p.value[mod$term == "subs == xcmpTRUE"]) })
@@ -272,7 +275,7 @@ plot_gene = function(g) {
         ggtitle(g)
 }
 ct = bind_rows(ccle=cd, tcga=mutate(td, copies = cancer_copies), .id = "dset") %>%
-    select(gene, dset, copies, expr, meth)
+    select(cohort, gene, dset, purity, copies, expr, meth)
 eu_cna = ct %>%
     group_by(dset) %>%
     mutate(facetx = "all", cna = case_when(

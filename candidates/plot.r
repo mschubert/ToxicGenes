@@ -94,8 +94,10 @@ cd = ccledata$clines %>%
               reshape2::melt(value.name="expr")) %>%
     left_join(ccledata$meth[intersect(top, rownames(ccledata$meth)),] %>%
               reshape2::melt(value.name="meth")) %>%
+    left_join(ccledata$mut %>% dplyr::rename(Name=cline, mut=type)) %>%
     mutate(expr = expr * copies/2, # undo normmatrix normalization
            gene = factor(gene, levels=top),
+           mut = factor(mut),
            purity = 1) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.05) & expr < quantile(expr, 0.95),
@@ -129,7 +131,7 @@ pccle =
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
-    geom_point(aes(fill=meth_class), alpha=0.5, shape=21) +
+    geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
     geom_smooth(method="lm", color="blue", alpha=0.3) +
     ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
     facet_wrap(~ gene, scales="free") +
@@ -138,6 +140,11 @@ pccle =
                        labels=c("full", "none", "observed")) +
     scale_fill_brewer(palette="RdBu", direction=-1,
                       labels=c("lowest", "low", "high", "highest")) +
+    scale_shape_manual(name="Mutation", guide="legend", na.value=21,
+                       values=c(0, seq_along(levels(cd$mut))[-1]),
+                       labels=levels(cd$mut)) +
+    scale_size_manual(guide="none", values=c(2, 1)) +
+    scale_alpha_manual(guide="none", values=c(0.8, 0.5)) +
     labs(title = paste("CCLE compensation;",
                        "95th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
@@ -230,7 +237,7 @@ ptcga =
     scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                        values=c(0, seq_along(levels(td$mut))[-1]),
                        labels=levels(td$mut)) +
-    scale_size_manual(name="has mut", guide="legend",
+    scale_size_manual(name="has mut", guide="none",
                        values=c(2, 1), labels=c("mut", "wt")) +
     scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
     labs(title = paste("cancer copy TCGA compensation;",

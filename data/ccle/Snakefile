@@ -10,6 +10,7 @@ arrayexpress = {
 }
 
 depmap = {
+    'mut' : 'CCLE_mutations.csv',
     'meth' : 'CCLE_RRBS_TSS_1kb_20180614.txt'
 }
 
@@ -35,6 +36,7 @@ rule dset:
         annot = ccle['annot'],
         rnaseq = ccle['rnaseq'],
         copies = ccle['copies'],
+        mut = depmap['mut'],
         meth = depmap['meth']
     output:
         outfile = "dset.rds"
@@ -45,4 +47,5 @@ rule dset:
             " --annot {input.annot}"
             " --rnaseq {input.rnaseq}"
             " --copies {input.copies}"
+            " --mut {input.mut}"
             " --meth {input.meth}"

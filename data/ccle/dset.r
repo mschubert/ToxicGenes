@@ -7,6 +7,7 @@ args = sys$cmd$parse(
     opt('a', 'annot', 'txt', 'Cell_lines_annotations_20181226.txt'),
     opt('r', 'rnaseq', 'gct', 'CCLE_RNAseq_genes_counts_20180929.gct.gz'),
     opt('c', 'copies', 'txt', 'CCLE_copynumber_byGene_2013-12-03.txt.gz'),
+    opt('s', 'mut', 'csv', 'CCLE_mutations.csv'),
     opt('m', 'meth', 'txt', 'CCLE_RRBS_TSS_1kb_20180614.txt'),
     opt('o', 'outfile', 'rds', 'dset.rds'))
 
@@ -45,6 +46,15 @@ pick = function(x1, x2) { # 16k -> 17k genes recovered where we have expr
 rownames(copies) = mapply(pick, x1=cinfo$SYMBOL, x2=e2hgnc)
 
 ###
+### Mutations
+###
+mut = readr::read_csv(args$mut)  %>%
+    inner_join(clines %>% select(cline=Name, DepMap_ID=depMapID)) %>%
+    transmute(cline = cline,
+              gene = Hugo_Symbol,
+              type = Variant_Classification)
+
+###
 ### Methylation
 ###
 mdata = readr::read_tsv(args$meth) 
@@ -71,4 +81,4 @@ loc = readr::read_tsv("LOC254896_GE_values.txt") %>%
 eset = rbind(eset, LOC254896=loc$LOC254896[match(colnames(eset), loc$ccle_name)])
 copies = rbind(copies, LOC254896=copies["TNFRSF10C",])
 
-saveRDS(list(clines=clines, copies=copies, eset=eset, meth=meth), file=args$outfile)
+saveRDS(list(clines=clines, copies=copies, eset=eset, mut=mut, meth=meth), file=args$outfile)

@@ -26,10 +26,10 @@ top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp"), ! name %in% top_al
 top_del = select_top(dset %>% filter(cna %in% c("oe", "del"), ! name %in% top_all)) %>% pull(name)
 
 obj = list(list(
-    all = top_all[seq_len(n)],
-    all2 = top_all[seq_len(n)+n],
-    amp = top_amp[seq_len(n)],
-    del = top_del[seq_len(n)]
+    "top 12 (amp and del)" = top_all[seq_len(n)],
+    "top 24 (amp and del)" = top_all[seq_len(n)+n],
+    "amp top 12" = top_amp[seq_len(n)],
+    "del top 12" = top_del[seq_len(n)]
 ))
 names(obj) = args$select
 obj$methods = c("lm", "rank", "rlm")

@@ -107,10 +107,12 @@ cd = ccledata$clines %>%
                meth_class = meth_class / max(meth_class, na.rm=TRUE),
                meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
                meth_class = factor(meth_class)) %>%
-    ungroup() %>%
-    mutate(Name = ifelse(args$tissue == "pan", NA, Name)) # only name if not pancan
-if (args$tissue != "pan")
+    ungroup()
+if (args$tissue == "pan") {
+    cd$Name = NA # do not label cell lines in pan-can plots (too many)
+} else {
     cd = filter(cd, cohort == args$tissue)
+}
 abl = cd %>%
     group_by(gene) %>%
     summarize(med_expr = median(expr[abs(copies-2) < et]),

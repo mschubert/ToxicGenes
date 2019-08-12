@@ -131,7 +131,6 @@ pccle =
     geom_smooth(aes(color="blue"), method="lm", color="blue") +
     ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
     facet_wrap(~ gene, scales="free") +
-#    scale_fill_identity(name="CNA", guide="legend", labels="euploid") +
     scale_color_manual(name="Compensation", guide="legend",
                        values=c("brown", "red", "blue"),
                        labels=c("full", "none", "observed")) +
@@ -211,26 +210,16 @@ abl = td %>%
     mutate(intcp = med_expr - 2*slope)
 ptcga =
     ggplot(td, aes(x=cancer_copies, y=expr)) +
-    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow")
-if (args$tissue == "pan") {
-    ptcga = ptcga +
-        stat_binhex(data=filter(td, is.na(meth)|meth==0), aes(alpha=..count..), fill="#000000") +
-        stat_binhex(data=filter(td, meth<0), aes(alpha=..count..), fill="#002BFF") +
-        stat_binhex(data=filter(td, meth>0), aes(alpha=..count..), fill="#FFD500")
-} else {
-    ptcga = ptcga +
-        geom_point(data = td %>% filter(is.na(meth_class) | is.na(mut)),
-                   aes(shape=mut), fill="#ffffff00", color="#00000033") +
-        geom_point(data = td %>% filter(!is.na(meth_class)), color="#ffffff00", shape=21,
-                   aes(fill=meth_class, alpha=meth_class))
-}
-ptcga = ptcga +
+    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
+    stat_binhex(data=filter(td, is.na(meth)|meth==0), aes(alpha=..count..), fill="#000000", bins=20) +
+    stat_binhex(data=filter(td, meth<0), aes(alpha=..count..), fill="#002BFF", bins=20) +
+    stat_binhex(data=filter(td, meth>0), aes(alpha=..count..), fill="#FFD500", bins=20) +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
+    geom_smooth(method="lm", alpha=0.5) +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
     geom_point(data = td %>% filter(!is.na(mut)),
                aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
-    geom_smooth(method="lm") +
     facet_wrap(~ gene, scales="free") +
     scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
                        values=c("brown", "red", "blue", "#000000ff"),
@@ -241,12 +230,8 @@ ptcga = ptcga +
     scale_size_manual(name="has mut", guide="legend",
                        values=c(2, 1), labels=c("mut", "wt")) +
     scale_alpha(trans="log") +
-#    scale_fill_gradient(low="#00000000", high="#000000ff", trans="log") +
-#    scale_fill_brewer(name="cohort z(M) CpG meth", type="diverging", palette="RdBu",
-#                      direction=-1, na.value="#ffffff00") +
-#    scale_alpha_manual(guide="none", values = c(1,0.5,0,0.5,1)) +
     labs(title = paste("cancer copy TCGA compensation;",
-                       "98th% shown (expr/copies); yellow=euploid"),
+                       "98th% shown (expr/copies); dashed line model, solid capped data"),
          y = "normalized read count")
 
 ###
@@ -254,7 +239,6 @@ ptcga = ptcga +
 ###
 plot_gene = function(g) {
     #TODO: lines pancan + per tissue
-    #TODO: regress out stromal fraction
     cur = ct %>% filter(gene == g) %>%
         group_by(dset, gene) %>%
         mutate(meth = pmax(meth, quantile(meth, 0.1)),

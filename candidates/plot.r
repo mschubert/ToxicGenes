@@ -110,12 +110,12 @@ cd = ccledata$clines %>%
     ungroup()
 if (args$tissue == "pan") {
     cd$Name = NA # do not label cell lines in pan-can plots (too many)
-    sizes = c(1.5, 3) # wt, mut
-    alphas = c(0.5, 0.5) # wt, mut
+    sizes = c(3, 1.5) # mut, wt
+    alphas = c(0.5, 0.5)
 } else {
     cd = filter(cd, cohort == args$tissue)
-    sizes = c(3, 1.5) # wt, mut
-    alphas = c(0.8, 1) # wt, mut
+    sizes = c(2, 3) # mut, wt
+    alphas = c(0.8, 1)
 }
 abl = cd %>%
     group_by(gene) %>%
@@ -132,9 +132,8 @@ pccle =
     annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
     geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
-    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
+    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
     geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
-    geom_smooth(method="lm", color="blue", alpha=0.3) +
     ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
     facet_wrap(~ gene, scales="free") +
     scale_color_manual(name="Compensation", guide="legend",
@@ -226,8 +225,7 @@ ptcga =
     stat_binhex(data=filter(td, meth>0), aes(alpha=..count..), fill="#FFD500", bins=20) +
 #    geom_vline(xintercept=2, color="grey") +
     geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
-    geom_smooth(method="lm", color="blue", alpha=0.3) +
-    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), linetype="dashed") +
+    geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
     geom_point(data = td %>% filter(!is.na(mut)),
                aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
     facet_wrap(~ gene, scales="free") +

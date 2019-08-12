@@ -8,9 +8,11 @@ args = sys$cmd$parse(
     opt('o', 'outfile', 'yaml', 'pan/top.stat_genes.yaml'))
 
 n = as.integer(args$num)
+meths = c("lm", "rlm", "rlm2")
+
 dset = readRDS(args$infile) %>%
     filter(adj %in% c("none", "puradj"),
-           fit %in% c("lm", "rank", "rlm")) %>%
+           fit %in% meths) %>%
     mutate(score = (1-adj.p) * rank(-statistic) / length(statistic))
 
 select_top = . %>%
@@ -32,5 +34,5 @@ obj = list(list(
     "del top 12" = top_del[seq_len(n)]
 ))
 names(obj) = args$select
-obj$methods = c("lm", "rank", "rlm")
+obj$methods = meths
 yaml::write_yaml(obj, file=args$outfile)

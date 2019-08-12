@@ -100,20 +100,22 @@ cd = ccledata$clines %>%
            mut = factor(mut),
            purity = 1) %>%
     group_by(gene) %>%
-        filter(expr > quantile(expr, 0.05) & expr < quantile(expr, 0.95),
-               copies > min(1, quantile(copies, 0.05)) & copies < max(3, quantile(copies, 0.95))) %>%
+        mutate(expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
+               copies = pmax(pmin(copies, quantile(copies, 0.95)), quantile(copies, 0.05))) %>%
     ungroup() %>%
     group_by(gene) %>%
-#        mutate(meth = meth / max(meth, na.rm=TRUE)) %>%
-        mutate(meth_class = rank(meth, ties="min", na="keep"),
-               meth_class = meth_class / max(meth_class, na.rm=TRUE),
+        mutate(meth_class = rank(meth, ties="min", na="keep") / sum(!is.na(meth)),
                meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
                meth_class = factor(meth_class)) %>%
     ungroup()
 if (args$tissue == "pan") {
     cd$Name = NA # do not label cell lines in pan-can plots (too many)
+    sizes = c(1.5, 3) # wt, mut
+    alphas = c(0.5, 0.5) # wt, mut
 } else {
     cd = filter(cd, cohort == args$tissue)
+    sizes = c(3, 1.5) # wt, mut
+    alphas = c(0.8, 1) # wt, mut
 }
 abl = cd %>%
     group_by(gene) %>%
@@ -140,11 +142,12 @@ pccle =
                        labels=c("full", "none", "observed")) +
     scale_fill_brewer(palette="RdBu", direction=-1,
                       labels=c("lowest", "low", "high", "highest")) +
+    guides(fill = guide_legend(override.aes=list(shape=21, size=5))) +
     scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                        values=c(0, seq_along(levels(cd$mut))[-1]),
                        labels=levels(cd$mut)) +
-    scale_size_manual(guide="none", values=c(2, 1)) +
-    scale_alpha_manual(guide="none", values=c(0.8, 0.5)) +
+    scale_size_manual(guide="none", values=sizes) +
+    scale_alpha_manual(guide="none", values=alphas) +
     labs(title = paste("CCLE compensation;",
                        "95th% shown (expr/copies); yellow=euploid"),
          y = "normalized read count")
@@ -193,13 +196,10 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     mutate(cancer_copies = (copies - 2) / purity + 2) %>%
     group_by(gene) %>%
         filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98)) %>%
-        mutate(copies = ifelse(
-                    copies > min(1, quantile(copies, 0.02)) & copies < max(3, quantile(copies, 0.98)),
-                    copies, NA),
-               cancer_copies = ifelse(
-                    cancer_copies > min(1, quantile(cancer_copies, 0.02)) &
-                    cancer_copies < max(3, quantile(cancer_copies, 0.98)),
-                    cancer_copies, NA)) %>%
+        mutate(expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),
+               copies = pmax(pmin(copies, quantile(copies, 0.98)), quantile(copies, 0.02)),
+               cancer_copies = pmax(pmin(copies, quantile(cancer_copies, 0.98)),
+                                    quantile(cancer_copies, 0.02))) %>%
     ungroup() %>%
     left_join(tcga_mut) %>%
     left_join(tcga_meth) %>%

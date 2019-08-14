@@ -189,6 +189,11 @@ tcga_mut = tcga$mutations() %>%
     transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
 names(dimnames(tcga_expr)) = c("gene", "sample")
 names(dimnames(tcga_cns)) = c("gene", "sample")
+scale_ref = function(x, ref) {
+    medref = median(x[ref], na.rm=TRUE)
+    sdref = sd(x[ref], na.rm=TRUE)
+    (x - medref) / sdref
+}
 td = reshape2::melt(tcga_expr, value.name="expr") %>%
     inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
     inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
@@ -203,7 +208,8 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     left_join(tcga_mut) %>%
     left_join(tcga_meth) %>%
     group_by(gene) %>%
-        mutate(meth = (meth - median(meth[abs(cancer_copies-2)<et], na.rm=TRUE))) %>%
+        mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
+               meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%
     ungroup() %>%
     mutate(gene = factor(gene, levels=top))
 abl = td %>%
@@ -216,19 +222,46 @@ abl = td %>%
     mutate(observed = none * (1 + observed)) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%
     mutate(intcp = med_expr - 2*slope)
+stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
+        position = "identity", na.rm = FALSE, show.legend = NA,
+        inherit.aes = TRUE, bins = 20, cap_z=TRUE, ...) {
+    loess2d = ggproto("loess2d", Stat, # also: sd/se as alpha?; pts<=density?
+        compute_group = function(data, scales, bins=20, cap_z=TRUE) {
+            rx = range(data$x, na.rm=TRUE)
+            ry = range(data$y, na.rm=TRUE)
+            df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
+                             y = seq(ry[1], ry[2], length.out=bins))
+
+            lsurf = loess(fill ~ x + y, data=data)
+            df$fill = c(predict(lsurf, newdata=df))
+            if (cap_z) {
+                df$fill = pmax(df$fill, min(df$fill, na.rm=TRUE))
+                df$fill = pmin(df$fill, max(df$fill, na.rm=TRUE))
+            }
+
+            df$width = rep(diff(rx) / (bins - 1), bins)
+            df$height = rep(diff(ry) / (bins - 1), each=bins)
+            df
+        },
+        required_aes = c("x", "y", "fill")
+    )
+
+    layer(
+        stat = loess2d, data = data, mapping = mapping, geom = geom,
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+        params = list(bins = bins, cap_z=TRUE, na.rm = na.rm, ...)
+    )
+}
 ptcga =
     ggplot(td, aes(x=cancer_copies, y=expr)) +
-#    annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.1, fill="red") +
-    #TODO: find a way to use full alpha scale for blending blue + yellow (not [0.1,0.5])
-    stat_binhex(data=filter(td, is.na(meth)|meth==0), aes(alpha=..count..), fill="#000000", bins=20) +
-    stat_binhex(data=filter(td, meth<0), aes(alpha=..count..), fill="#002BFF", bins=20) +
-    stat_binhex(data=filter(td, meth>0), aes(alpha=..count..), fill="#FFD500", bins=20) +
-#    geom_vline(xintercept=2, color="grey") +
+    stat_loess2d(aes(fill=meth_eup_scaled)) +
+    geom_density2d(bins=20, color="#00000050") +
     geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
     geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
     geom_point(data = td %>% filter(!is.na(mut)),
                aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
     facet_wrap(~ gene, scales="free") +
+    scale_fill_gradient2(low="blue", mid="white", high="red") +
     scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
                        values=c("brown", "red", "blue", "#000000ff"),
                        labels=c("full", "none", "observed", "x")) +

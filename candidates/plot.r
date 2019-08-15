@@ -175,16 +175,16 @@ load_copies = function(cohort, genes) {
 }
 tcga_expr = load_expr(args$tissue, top) # only primary because purity() only
 tcga_cns = load_copies(args$tissue, top) # has those samples
-tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) %>% # cpg=stdev too many NAs
+if (args$yaml == "BRCA/top-genes.yaml") { # workaround HDF5 bug
+    tcga_meth1 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=head(top, 10))
+    tcga_meth2 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top[11:12])
+    tcga_meth = narray::stack(tcga_meth1, tcga_meth2, along=1)
+} else {
+    tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
+}
+tcga_meth = tcga_meth %>%
     reshape2::melt() %>%
-    transmute(cohort = tcga$barcode2study(Var2), sample = Var2, gene = Var1, meth = value) %>%
-    group_by(gene) %>%
-        mutate(meth_class = scale(meth)) %>%
-#    group_by(cohort, gene) %>%
-#    mutate(meth = factor(cut_number(meth, n=5, labels=FALSE))) %>%
-    ungroup() %>%
-    mutate(meth_class = cut(meth, c(-Inf, -1.5, -0.5, 0.5, 1.5, Inf)))
-#levels(tcga_meth$meth) = c("lowest", "low", "normal", "high", "highest")
+    transmute(cohort = tcga$barcode2study(Var2), sample = Var2, gene = Var1, meth = value)
 tcga_mut = tcga$mutations() %>%
     transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
 names(dimnames(tcga_expr)) = c("gene", "sample")
@@ -235,8 +235,8 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
             lsurf = loess(fill ~ x + y, data=data, span=0.1)
             df$fill = c(predict(lsurf, newdata=df))
             if (cap_z) {
-                df$fill = pmax(df$fill, min(df$fill, na.rm=TRUE))
-                df$fill = pmin(df$fill, max(df$fill, na.rm=TRUE))
+                df$fill = pmax(df$fill, min(data$fill, na.rm=TRUE))
+                df$fill = pmin(df$fill, max(data$fill, na.rm=TRUE))
             }
 
             df$width = rep(diff(rx) / (bins - 1), bins)

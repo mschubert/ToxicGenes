@@ -72,7 +72,8 @@ rule plot:
     output:
         plotfile = "{tissue}/{collec}.pdf"
     resources:
-        mem = 8192
+        mem = 10240,
+        walltime = 120
     shell:
         "Rscript {input.rscript}"
             " --dset {input.dset}"

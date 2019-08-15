@@ -232,7 +232,7 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
             df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
                              y = seq(ry[1], ry[2], length.out=bins))
 
-            lsurf = loess(fill ~ x + y, data=data)
+            lsurf = loess(fill ~ x + y, data=data, span=0.1)
             df$fill = c(predict(lsurf, newdata=df))
             if (cap_z) {
                 df$fill = pmax(df$fill, min(df$fill, na.rm=TRUE))

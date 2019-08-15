@@ -224,16 +224,21 @@ abl = td %>%
     mutate(intcp = med_expr - 2*slope)
 stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
         position = "identity", na.rm = FALSE, show.legend = NA,
-        inherit.aes = TRUE, bins = 20, cap_z=TRUE, ...) {
+        inherit.aes = TRUE, bins = 20, se_alpha=TRUE, cap_z=TRUE, ...) {
     loess2d = ggproto("loess2d", Stat, # also: sd/se as alpha?; pts<=density?
-        compute_group = function(data, scales, bins=20, cap_z=TRUE) {
+        compute_group = function(data, scales, bins=20, se_alpha=TRUE, cap_z=TRUE) {
             rx = range(data$x, na.rm=TRUE)
             ry = range(data$y, na.rm=TRUE)
             df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
                              y = seq(ry[1], ry[2], length.out=bins))
 
             lsurf = loess(fill ~ x + y, data=data, span=0.1)
-            df$fill = c(predict(lsurf, newdata=df))
+            pred = predict(lsurf, newdata=df, se=TRUE)
+            df$fill = c(pred$fit)
+            if (se_alpha) {
+                df$alpha = c(pred$se.fit) / 1.5
+                df$alpha = pmax(0, with(df, 1 - abs(alpha/fill)))
+            }
             if (cap_z) {
                 df$fill = pmax(df$fill, min(data$fill, na.rm=TRUE))
                 df$fill = pmin(df$fill, max(data$fill, na.rm=TRUE))
@@ -249,7 +254,7 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
     layer(
         stat = loess2d, data = data, mapping = mapping, geom = geom,
         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-        params = list(bins = bins, cap_z=TRUE, na.rm = na.rm, ...)
+        params = list(bins = bins, se_alpha=TRUE, cap_z=TRUE, na.rm = na.rm, ...)
     )
 }
 ptcga =

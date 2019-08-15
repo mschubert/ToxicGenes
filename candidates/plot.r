@@ -217,7 +217,7 @@ abl = td %>%
     summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),
               none = 0.5 * med_expr,
               full = 0) %>%
-    left_join(assocs %>% filter(dset=="tcga", fit=="rlm2", cna=="all") %>%
+    left_join(assocs %>% filter(dset=="tcga", fit=="rlm2", cna=="all", adj=="puradj") %>%
               transmute(gene=factor(name, levels=top), observed=estimate)) %>%
     mutate(observed = none * (1 + observed)) %>%
     tidyr::gather("type", "slope", -gene, -med_expr) %>%

@@ -207,7 +207,7 @@ td = reshape2::melt(tcga_expr, value.name="expr") %>%
     ungroup() %>%
     left_join(tcga_mut) %>%
     left_join(tcga_meth) %>%
-    group_by(gene) %>%
+    group_by(gene, cohort) %>%
         mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
                meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%
     ungroup() %>%

@@ -12,8 +12,10 @@ meths = c("lm", "rlm", "rlm2")
 
 dset = readRDS(args$infile) %>%
     filter(adj %in% c("none", "puradj"),
-           fit %in% meths) %>%
-    mutate(score = (1-adj.p) * rank(-statistic) / length(statistic))
+           fit %in% c("lm", "rlm2")) %>%
+    mutate(estimate = ifelse(dset == "orf", 2^estimate - 1, estimate),
+           estimate = pmax(estimate, -1)) %>%
+    mutate(score = (1-adj.p) * (rank(-statistic) / length(statistic)) * (-estimate))
 
 select_top = . %>%
     group_by(name, dset) %>% # mean by fit (rlm, rank)

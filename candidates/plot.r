@@ -176,8 +176,8 @@ load_copies = function(cohort, genes) {
 tcga_expr = load_expr(args$tissue, top) # only primary because purity() only
 tcga_cns = load_copies(args$tissue, top) # has those samples
 if (args$yaml == "BRCA/top-genes.yaml") { # workaround HDF5 bug
-    tcga_meth1 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=head(top, 10))
-    tcga_meth2 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top[11:12])
+    tcga_meth1 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=head(top, 5))
+    tcga_meth2 = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top[6:12])
     tcga_meth = narray::stack(tcga_meth1, tcga_meth2, along=1)
 } else {
     tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs

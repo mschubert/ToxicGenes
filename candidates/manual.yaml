@@ -2,14 +2,14 @@ genes:
     - PTEN
     - BAX
     - HNRNPL
-    - KANK1
-    - BCL2L1
+    - RPL23P8
+    - RPL23AP7
+    - HSP90AB2P
+    - H3F3C
+    - HLA-DRB6
     - GTF2H2C
     - CPSF6
-    - LOC254896
     - BRD4
-    - OOSP2
-    - IDH2
     - CEBPE
 
 methods:

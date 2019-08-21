@@ -57,8 +57,6 @@ dset = assocs %>%
            name = factor(name, levels=top))
 yaxis_floor = dset %>% filter(name %in% top) %>% pull(statistic) %>% min(na.rm=TRUE)
 overview = lapply(top, plot_stats)
-ex_legend = cowplot::get_legend(overview[[1]])
-overview = lapply(overview, function(p) p + guides(color=FALSE, fill=FALSE, shape=FALSE))
 
 ###
 ### ORF data
@@ -359,7 +357,14 @@ pmeth = lapply(top, plot_gene)
 ###
 ### actually plot
 ###
-ov = overview # only way to get the legend to work
+ex_legend = cowplot::get_legend(overview[[1]]) # only way to get the legend to work
+ov = lapply(seq_len(12), function(i) {
+    p = overview[[i]]
+    if (class(try(ggplot_build(p))) == "try-error")
+        plot_spacer()
+    else
+        p + guides(color=FALSE, fill=FALSE, shape=FALSE)
+})
 pdf("/dev/null")
 pg1 = patchworkGrob(
     ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /

@@ -105,7 +105,8 @@ rule plot_tissue_with_pan_yaml:
     output:
         plotfile = "{tissue}/pan_{collec}.pdf"
     resources:
-        mem = 8192
+        mem = 8192,
+        walltime = 120
     wildcard_constraints:
         tissue = "^[^p].*"
     shell:

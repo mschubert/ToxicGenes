@@ -1,16 +1,16 @@
 genes:
-    - IRF2
-    - NRF1
-    - DAZAP1
-    - CDKN1A
+    - PTEN
+    - BAX
+    - HNRNPL
+    - KANK1
+    - BCL2L1
+    - GTF2H2C
+    - CPSF6
     - LOC254896
-    - ZNF124
-    - NEDD9
     - BRD4
     - OOSP2
-    - WEE1
     - IDH2
-    - BANP
+    - CEBPE
 
 methods:
     - lm

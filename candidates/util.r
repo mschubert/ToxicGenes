@@ -65,7 +65,7 @@ load_ccle = function(top) {
         ungroup()
 }
 
-summary_ccle = function(cd) {
+summary_ccle = function(cd, et=0.15) {
     abl = cd %>%
         group_by(gene) %>%
         summarize(med_expr = median(expr[abs(copies-2) < et]),
@@ -82,7 +82,7 @@ summary_ccle = function(cd) {
 #'
 #' @param cohort  TCGA cohort identifier or "pan"
 #' @param genes   Character vector of genes of interest
-load_tcga = function(cohort, top) {
+load_tcga = function(cohort, top, et=0.15) {
     load_expr = function(cohort, genes) {
         if (cohort == "pan")
             cohort = tcga$cohorts()
@@ -141,7 +141,7 @@ load_tcga = function(cohort, top) {
 #'
 #' @param td  data.frame from load_tcga()
 #' @return    data.frame for lines of expected vs observed compensation
-summary_tcga = function(td) {
+summary_tcga = function(assocs, td, et=0.15) {
     abl = td %>%
         group_by(gene) %>%
         summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),

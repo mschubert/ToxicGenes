@@ -68,7 +68,7 @@ for (i in seq_along(genes)) {
         sizes = c(2, 3) # mut, wt
         alphas = c(0.8, 1)
     }
-    abl = util$summary_ccle(cd)
+    abl = util$summary_ccle(cd, et=et)
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
@@ -95,8 +95,8 @@ for (i in seq_along(genes)) {
     ###
     ### TCGA data
     ###
-    td = util$load_tcga(args$tissue, top)
-    abl = util$summary_tcga(td)
+    td = util$load_tcga(args$tissue, top, et=et)
+    abl = util$summary_tcga(assocs, td, et=et)
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
         util$stat_loess2d(aes(fill=meth_eup_scaled), se_size=TRUE) +
         geom_density2d(bins=20, color="#00000050") +

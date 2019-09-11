@@ -18,7 +18,8 @@ cohorts = setdiff(cfg$cor_tissues, "pan")
 # p53: some drop issues, should fix
 td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
     bind_rows() %>%
-    filter(cohort %in% cohorts, gene == args$gene)
+    filter(cohort %in% cohorts, gene == args$gene) %>%
+    mutate(p53_mut = ifelse(is.na(p53_mut), "wt", "mut"))
 #abl = util$summary_tcga(assocs, td) # add assocs?
 
 ### exon expression ###
@@ -50,19 +51,19 @@ cpg = lapply(cohorts, load_cpg, gene=args$gene) %>%
 colnames(exons) = make.names(colnames(exons))
 dset = narray::stack(list(exons, cpg), along=2)
 tcga$intersect(td$sample, dset, along=1)
-cols = c("purity", colnames(exons), "meth", colnames(cpg))
+cols = c("purity", colnames(exons), "meth_eup_scaled", colnames(cpg))
 dset = cbind(td, dset)
 
 ### plot ###
-plot_l2d = function(dset, variable, et=0.15) {
+plot_l2d = function(dset, variable, opt="magma", et=0.15) {
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_loess2d(aes_string(fill=variable), se_size=TRUE) +
         geom_density2d(bins=20, color="#00000050") +
         geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
-        facet_wrap(~ cohort, scales="free", nrow=1) +
-        scale_fill_viridis_c(option="magma", direction=-1) +
+        facet_grid(p53_mut ~ cohort, scales="free") +
+        scale_fill_viridis_c(option=opt, direction=-1) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
@@ -71,7 +72,7 @@ plot_l2d = function(dset, variable, et=0.15) {
              y = "normalized read count")
 }
 
-pdf(args$plotfile, 16, 4)
+pdf(args$plotfile, 16, 8)
 for (v in cols)
     print(plot_l2d(dset, v))
 dev.off()

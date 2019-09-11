@@ -18,7 +18,7 @@ cohorts = setdiff(cfg$cor_tissues, "pan")
 # p53: some drop issues, should fix
 td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
     bind_rows() %>%
-    filter(gene == args$gene)
+    filter(cohort %in% cohorts, gene == args$gene)
 #abl = util$summary_tcga(assocs, td) # add assocs?
 
 ### exon expression ###

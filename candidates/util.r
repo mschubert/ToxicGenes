@@ -129,6 +129,7 @@ load_tcga = function(cohort, top, et=0.15) {
                                         quantile(cancer_copies, 0.02))) %>%
         ungroup() %>%
         left_join(tcga_mut) %>%
+        left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%
         left_join(tcga_meth) %>%
         group_by(gene, cohort) %>%
             mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),

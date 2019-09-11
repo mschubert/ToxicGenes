@@ -19,6 +19,7 @@ fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
 select = ['top'] #, 'comp']
 sets = ['genes']
+bygene = ['CDKN1A', 'SNRPA', 'RBM12', 'RBM14', 'SNRPA', "HNPNPL"]
 
 rule all:
     input:
@@ -27,7 +28,8 @@ rule all:
         expand("{tissue}/pan_{select}-genes.pdf", select=select,
                 tissue=set(config['cor_tissues']) - set(['pan'])),
         expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
-                manual=manual)
+                manual=manual),
+        expand("by_gene/{gene}.pdf", gene=bygene)
 
 rule merge:
     input:
@@ -114,4 +116,18 @@ rule plot_tissue_with_pan_yaml:
             " --dset {input.dset}"
             " --yaml {input.yaml}"
             " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"
+
+rule by_gene:
+    input:
+        rscript = "by_gene.r"
+    output:
+        plotfile = "by_gene/{gene}.pdf"
+    resources:
+        mem = 40960,
+        walltime = 60
+    shell:
+        "Rscript {input.rscript}"
+            " --config ../config.yaml"
+            " --gene {wildcards.gene}"
             " --plotfile {output.plotfile}"

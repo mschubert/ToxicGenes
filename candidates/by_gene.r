@@ -59,26 +59,19 @@ plot_l2d = function(dset, variable, et=0.15) {
         util$stat_loess2d(aes_string(fill=variable), se_size=TRUE) +
         geom_density2d(bins=20, color="#00000050") +
         geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
-#        geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
-        facet_wrap(~ cohort, scales="free") +
-        scale_fill_gradient2(low="blue", mid="white", high="red") +
-#        scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
-#                           values=c("brown", "red", "blue", "#000000ff"),
-#                           labels=c("full", "none", "observed", "x")) +
+        facet_wrap(~ cohort, scales="free", nrow=1) +
+        scale_fill_viridis_c(option="magma", direction=-1) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
-        scale_size_manual(name="has mut", guide="none",
-                           values=c(2, 1), labels=c("mut", "wt")) +
-#        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
         guides(fill=guide_legend(title="")) +
         labs(title = variable,
              y = "normalized read count")
 }
 
-pdf(args$plotfile, 16, 6)
+pdf(args$plotfile, 16, 4)
 for (v in cols)
     print(plot_l2d(dset, v))
 dev.off()

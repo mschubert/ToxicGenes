@@ -32,7 +32,8 @@ load_exon = function(cohort, gene) {
     mat = emat[names(idx),]
 }
 exons = lapply(cohorts, load_exon, gene=args$gene) %>%
-    narray::stack(along=2) %>% t()
+    narray::stack(along=2) %>%
+    tcga$map_id("specimen") %>% t()
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -42,7 +43,8 @@ load_cpg = function(cohort, gene) {
     mat = SummarizedExperiment::assay(cpgs)[names(idx),]
 }
 cpg = lapply(cohorts, load_cpg, gene=args$gene) %>%
-    narray::stack(along=2) %>% t()
+    narray::stack(along=2) %>%
+    tcga$map_id("specimen") %>% t()
 
 ### assemble dataset ###
 colnames(exons) = make.names(colnames(exons))
@@ -62,15 +64,16 @@ plot_l2d = function(dset, variable, et=0.15) {
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
         facet_wrap(~ cohort, scales="free") +
         scale_fill_gradient2(low="blue", mid="white", high="red") +
-        scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
-                           values=c("brown", "red", "blue", "#000000ff"),
-                           labels=c("full", "none", "observed", "x")) +
+#        scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
+#                           values=c("brown", "red", "blue", "#000000ff"),
+#                           labels=c("full", "none", "observed", "x")) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
         scale_size_manual(name="has mut", guide="none",
                            values=c(2, 1), labels=c("mut", "wt")) +
-        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
+#        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
+        guides(fill=guide_legend(title="")) +
         labs(title = variable,
              y = "normalized read count")
 }

@@ -19,7 +19,10 @@ fits = ['rlm', 'rank']
 types = ['naive', 'pur', 'puradj']
 select = ['top'] #, 'comp']
 sets = ['genes']
-bygene = ['CDKN1A', 'SNRPA', 'RBM12', 'RBM14', 'SNRPA', "HNPNPL"]
+bygene = ['CDKN1A', 'SNRPA', 'RBM12', 'RBM14', 'SNRPA', "HNRNPL", "HES1",
+          "DAZAP1", "BANP", "ERG", "PKNOX1", "A2M", "INPP5D", "POU2F1",
+          "TNFRSF13B", "RPL23P8", "RPL23AP7", "HSP90AB2P", "H3F3C", "GTF2H2C",
+          "CPSF6", "CEBPE", "HLA−DRB6", "PTEN"]
 
 rule all:
     input:

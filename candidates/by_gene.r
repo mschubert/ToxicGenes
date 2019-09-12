@@ -19,7 +19,10 @@ cohorts = setdiff(cfg$cor_tissues, "pan")
 td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
     bind_rows() %>%
     filter(cohort %in% cohorts, gene == args$gene) %>%
-    mutate(p53_mut = ifelse(is.na(p53_mut), "wt", "mut"))
+    mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", "p53_mut")) %>%
+    group_by(cohort, gene) %>%
+        mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
+    ungroup()
 #abl = util$summary_tcga(assocs, td) # add assocs?
 
 ### exon expression ###
@@ -51,17 +54,14 @@ cpg = lapply(cohorts, load_cpg, gene=args$gene) %>%
 colnames(exons) = make.names(colnames(exons))
 dset = narray::stack(list(exons, cpg), along=2)
 tcga$intersect(td$sample, dset, along=1)
-cols = c("purity", colnames(exons), "meth_eup_scaled", colnames(cpg))
 dset = cbind(td, dset)
 
 ### plot ###
 plot_l2d = function(dset, variable, opt="magma", et=0.15) {
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_loess2d(aes_string(fill=variable), se_size=TRUE) +
-        geom_density2d(bins=20, color="#00000050") +
-        geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
-        geom_point(data = td %>% filter(!is.na(mut)),
-                   aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
+        geom_density2d(bins=20, color="chartreuse4") +
+        geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed") +
         facet_grid(p53_mut ~ cohort, scales="free") +
         scale_fill_viridis_c(option=opt, direction=-1) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
@@ -73,6 +73,13 @@ plot_l2d = function(dset, variable, opt="magma", et=0.15) {
 }
 
 pdf(args$plotfile, 16, 8)
-for (v in cols)
+print(plot_l2d(dset, "purity"))
+
+for (v in colnames(exons))
+    print(plot_l2d(dset, v))
+
+print(plot_l2d(dset, "meth_eup_scaled"))
+
+for (v in colnames(cpg))
     print(plot_l2d(dset, v))
 dev.off()

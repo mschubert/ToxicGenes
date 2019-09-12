@@ -46,9 +46,10 @@ load_cpg = function(cohort, gene) {
         filter(Gene_Symbol == gene)
     mat = SummarizedExperiment::assay(cpgs)[names(idx),]
 }
-cpg = lapply(cohorts, load_cpg, gene=args$gene) %>%
+cpg = tryCatch(error = function(e) NULL, # in case no meth data
+    lapply(cohorts, load_cpg, gene=args$gene) %>%
     narray::stack(along=2) %>%
-    tcga$map_id("specimen") %>% t()
+    tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
 colnames(exons) = make.names(colnames(exons))

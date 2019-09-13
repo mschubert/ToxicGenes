@@ -35,9 +35,13 @@ load_exon = function(cohort, gene) {
         filter(external_gene_name == gene)
     mat = emat[names(idx),]
 }
-exons = lapply(cohorts, load_exon, gene=args$gene) %>%
-    narray::stack(along=2) %>%
-    tcga$map_id("specimen") %>% t()
+exons = tryCatch(error = function(e) NULL, { # in case no exon data
+    re = lapply(cohorts, load_exon, gene=args$gene) %>%
+        narray::stack(along=2) %>%
+        tcga$map_id("specimen") %>% t()
+    colnames(re) = make.names(colnames(re))
+    re
+})
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -52,7 +56,6 @@ cpg = tryCatch(error = function(e) NULL, # in case no meth data
     tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
-colnames(exons) = make.names(colnames(exons))
 dset = narray::stack(list(exons, cpg), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
@@ -75,6 +78,7 @@ plot_l2d = function(dset, variable, opt="magma", et=0.15) {
 
 pdf(args$plotfile, 16, 8)
 print(plot_l2d(dset, "purity"))
+print(plot_l2d(dset, "expr"))
 
 for (v in colnames(exons))
     print(plot_l2d(dset, v))

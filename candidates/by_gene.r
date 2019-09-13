@@ -13,7 +13,7 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'by_gene/CDKN1A.pdf'))
 
 cfg = yaml::read_yaml(args$config)
-cohorts = setdiff(cfg$cor_tissues, "pan")
+cohorts = c(setdiff(cfg$cor_tissues, "pan"), "LUSC", "HNSC", "COAD")
 
 # p53: some drop issues, should fix
 td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
@@ -23,7 +23,11 @@ td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
     group_by(cohort, gene) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
-#abl = util$summary_tcga(assocs, td) # add assocs?
+
+### rna isoforms ###
+load_isoform = function(cohort, gene) {
+}
+#isos = lapply(cohorts, load_isoform, gene=args$gene)
 
 ### exon expression ###
 load_exon = function(cohort, gene) {
@@ -43,6 +47,11 @@ exons = tryCatch(error = function(e) NULL, { # in case no exon data
     re
 })
 
+### miRNAs ###
+load_mirnas = function(cohort, gene) {
+}
+#mirnas = lapply(cohorts, load_mirnas, gene=args$gene)
+
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
     cpgs = tcga$meth_cpg(cohort, annot=TRUE)
@@ -61,13 +70,14 @@ tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
 ### plot ###
-plot_l2d = function(dset, variable, opt="magma", et=0.15) {
+plot_l2d = function(dset, variable, opt="magma", et=0.15,
+                    from=min(dset[[variable]], na.rm=TRUE), to=max(dset[[variable]], na.rm=TRUE)) {
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_loess2d(aes_string(fill=variable), se_size=TRUE) +
         geom_density2d(bins=20, color="chartreuse4") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed") +
         facet_grid(p53_mut ~ cohort, scales="free") +
-        scale_fill_viridis_c(option=opt, direction=-1) +
+        scale_fill_viridis_c(option=opt, direction=-1, limits=c(from, to)) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
@@ -76,15 +86,15 @@ plot_l2d = function(dset, variable, opt="magma", et=0.15) {
              y = "normalized read count")
 }
 
-pdf(args$plotfile, 16, 8)
+pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity"))
-print(plot_l2d(dset, "expr"))
+print(plot_l2d(dset, "expr", from=0))
 
 for (v in colnames(exons))
-    print(plot_l2d(dset, v))
+    print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
 
 print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))
-    print(plot_l2d(dset, v))
+    print(plot_l2d(dset, v, from=0, to=1))
 dev.off()

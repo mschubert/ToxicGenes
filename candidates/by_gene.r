@@ -7,6 +7,12 @@ sys = import('sys')
 tcga = import('data/tcga')
 util = import('./util')
 
+#' Handle error as warning and return NULL
+muffle = function(e) {
+    warning(e, immediate.=TRUE)
+    NULL
+}
+
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
     opt('g', 'gene', 'HGNC symbol', 'CDKN1A'),
@@ -39,7 +45,7 @@ load_exon = function(cohort, gene) {
         filter(external_gene_name == gene)
     mat = emat[names(idx),]
 }
-exons = tryCatch(error = function(e) NULL, { # in case no exon data
+exons = tryCatch(error = muffle, { # in case no exon data
     re = lapply(cohorts, load_exon, gene=args$gene) %>%
         narray::stack(along=2) %>%
         tcga$map_id("specimen") %>% t()
@@ -49,7 +55,8 @@ exons = tryCatch(error = function(e) NULL, { # in case no exon data
 
 ### miRNAs ###
 load_mirnas = function(cohort, gene) {
-    mirnas = tcga$mirna_seq(cohort) %>%
+    mirnas = tcga$mirna_seq(cohort)
+    mirnas = mirnas[,!duplicated(colnames(mirnas))] %>%
         DESeq2::DESeqDataSetFromMatrix(colData=data.frame(sample=colnames(.)), design=~ 1) %>%
         DESeq2::estimateSizeFactors() %>%
         DESeq2::counts(normalized=TRUE)
@@ -60,9 +67,13 @@ load_mirnas = function(cohort, gene) {
         filter(values == gene)
 
     #TODO: check if -[1-3] is the same miRNA or not (keeping it in for now)
-    mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,]
+    re = mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,]
+    rownames(re) = make.names(rownames(re))
+    re
 }
-mirnas = lapply(cohorts, load_mirnas, gene=args$gene)
+mirnas = tryCatch(error = muffle,
+    lapply(cohorts, load_mirnas, gene=args$gene) %>%
+        narray::stack(along=2) %>% t())
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -71,10 +82,10 @@ load_cpg = function(cohort, gene) {
         filter(Gene_Symbol == gene)
     mat = SummarizedExperiment::assay(cpgs)[names(idx),]
 }
-cpg = tryCatch(error = function(e) NULL, # in case no meth data
+cpg = tryCatch(error = muffle, # in case no meth data
     lapply(cohorts, load_cpg, gene=args$gene) %>%
-    narray::stack(along=2) %>%
-    tcga$map_id("specimen") %>% t())
+        narray::stack(along=2) %>%
+        tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
 dset = narray::stack(list(exons, cpg, mirnas), along=2)

@@ -15,7 +15,7 @@ subworkflow tcga:
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
-fits = ['rlm', 'rank']
+fits = ['rlm', 'rlm2']
 types = ['naive', 'pur', 'puradj']
 select = ['top'] #, 'comp']
 sets = ['genes']

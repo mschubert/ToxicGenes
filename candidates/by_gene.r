@@ -71,9 +71,10 @@ load_mirnas = function(cohort, gene) {
     rownames(re) = make.names(rownames(re))
     re
 }
-mirnas = tryCatch(error = muffle,
+mirna = tryCatch(error = muffle,
     lapply(cohorts, load_mirnas, gene=args$gene) %>%
-        narray::stack(along=2) %>% t())
+        narray::stack(along=2) %>%
+        tcga$map_id("specimen") %>% t())
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -88,7 +89,7 @@ cpg = tryCatch(error = muffle, # in case no meth data
         tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
-dset = narray::stack(list(exons, cpg, mirnas), along=2)
+dset = narray::stack(list(exons, cpg, mirna), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
@@ -114,6 +115,9 @@ print(plot_l2d(dset, "purity"))
 print(plot_l2d(dset, "expr", from=0))
 
 for (v in colnames(exons))
+    print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
+
+for (v in colnames(mirna))
     print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
 
 print(plot_l2d(dset, "meth_eup_scaled"))

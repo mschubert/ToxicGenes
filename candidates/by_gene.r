@@ -49,8 +49,20 @@ exons = tryCatch(error = function(e) NULL, { # in case no exon data
 
 ### miRNAs ###
 load_mirnas = function(cohort, gene) {
+    mirnas = tcga$mirna_seq(cohort) %>%
+        DESeq2::DESeqDataSetFromMatrix(colData=data.frame(sample=colnames(.)), design=~ 1) %>%
+        DESeq2::estimateSizeFactors() %>%
+        DESeq2::counts(normalized=TRUE)
+
+    binding = readRDS("../data/genesets/miRTarBase_2017.rds") %>%
+        stack() %>%
+        mutate(ind = sub("-[1-9]p?$", "", ind)) %>%
+        filter(values == gene)
+
+    #TODO: check if -[1-3] is the same miRNA or not (keeping it in for now)
+    mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,]
 }
-#mirnas = lapply(cohorts, load_mirnas, gene=args$gene)
+mirnas = lapply(cohorts, load_mirnas, gene=args$gene)
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -65,7 +77,7 @@ cpg = tryCatch(error = function(e) NULL, # in case no meth data
     tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
-dset = narray::stack(list(exons, cpg), along=2)
+dset = narray::stack(list(exons, cpg, mirnas), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 

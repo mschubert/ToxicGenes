@@ -203,6 +203,59 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
     )
 }
 
+#' 2D GAM plot showing gradient on a third variable
+#'
+#' @param bins      Number of bins to partition data in x and y axis (default: 20)
+#' @param se_alpha  Alpha of tiles corresponds to confidence (default: FALSE)
+#' @param se_size   Size of tiles corresponds to confidence (default: FALSE)
+#' @param cap_z     Only allow gradient as extreme as data (default: TRUE)
+#' @param by        Variable to condition on (prediction will be on 1)
+stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
+        position = "identity", na.rm = FALSE, show.legend = NA,
+        inherit.aes = TRUE, bins = 20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE, ...) {
+    gam2d = ggproto("gam2d", Stat, # also: sd/se as alpha?; pts<=density?
+        compute_group = function(data, scales, bins=20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE) {
+            rx = range(data$x, na.rm=TRUE)
+            ry = range(data$y, na.rm=TRUE)
+            df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
+                             y = seq(ry[1], ry[2], length.out=bins))
+
+            if ("by" %in% colnames(data)) {
+                lsurf = mgcv::gam(fill ~ s(x, y, by=by), data=data, select=TRUE)
+                df$by = 1
+            } else {
+                lsurf = mgcv::gam(fill ~ s(x, y), data=data, select=TRUE)
+            }
+            pred = predict(lsurf, newdata=df, se=TRUE)
+            df$fill = c(pred$fit)
+            cor_factor = pmax(0.1, 1 - abs(c(pred$se.fit)/df$fill))
+
+            df$width = rep(diff(rx) / (bins - 1), bins)
+            df$height = rep(diff(ry) / (bins - 1), each=bins)
+
+            if (cap_z) {
+                df$fill = pmax(df$fill, min(data$fill, na.rm=TRUE))
+                df$fill = pmin(df$fill, max(data$fill, na.rm=TRUE))
+            }
+            if (se_alpha)
+                df$alpha = cor_factor
+            if (se_size) {
+                df$width = df$width * cor_factor
+                df$height = df$height * cor_factor
+            }
+            df
+        },
+        required_aes = c("x", "y", "fill", "by") #TODO: by as optional aes
+    )
+
+    layer(
+        stat = gam2d, data = data, mapping = mapping, geom = geom,
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+        params = list(bins = bins, se_alpha=se_alpha, se_size=se_size, cap_z=cap_z,
+                      na.rm = na.rm, ...)
+    )
+}
+
 #' Quantify methylation differences
 #'
 #' @param ct  Merged CCLE and TCGA data.frame

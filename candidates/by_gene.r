@@ -73,7 +73,7 @@ dset = cbind(td, dset)
 plot_l2d = function(dset, variable, opt="magma", et=0.15,
                     from=min(dset[[variable]], na.rm=TRUE), to=max(dset[[variable]], na.rm=TRUE)) {
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
-        util$stat_loess2d(aes_string(fill=variable), se_size=TRUE) +
+        util$stat_gam2d(aes_string(fill=variable, by="purity"), se_size=TRUE) +
         geom_density2d(bins=20, color="chartreuse4") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed") +
         facet_grid(p53_mut ~ cohort, scales="free") +

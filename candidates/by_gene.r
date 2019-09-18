@@ -68,7 +68,7 @@ load_mirnas = function(cohort, gene) {
         filter(values == gene)
 
     #TODO: check if -[1-3] is the same miRNA or not (keeping it in for now)
-    re = mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,]
+    re = mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,,drop=FALSE]
     rownames(re) = make.names(rownames(re))
     re
 }

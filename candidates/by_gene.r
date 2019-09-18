@@ -4,14 +4,15 @@ library(patchwork)
 library(plyranges)
 theme_set(cowplot::theme_cowplot())
 sys = import('sys')
+plt = import('plot')
 tcga = import('data/tcga')
 util = import('./util')
 
 #' Handle error as warning and return NULL
-muffle = function(e) {
-    warning(e, immediate.=TRUE)
-    NULL
-}
+muffle = function(e) { warning(e, immediate.=TRUE); NULL }
+
+#' Get number of cases in matrix
+nc = function(mat) { re = ncol(mat); if (is.null(re)) 0 else re }
 
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
@@ -114,12 +115,15 @@ pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity"))
 print(plot_l2d(dset, "expr", from=0))
 
+print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))
     print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
 
+print(plt$text(sprintf("miRNA expression (%i)", nc(mirna)), size=20))
 for (v in colnames(mirna))
     print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
 
+print(plt$text(sprintf("Methylation (%i CpG)", nc(cpg)), size=20))
 print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))

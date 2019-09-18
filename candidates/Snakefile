@@ -24,7 +24,8 @@ bygene = ['CDKN1A', 'SNRPA', 'RBM12', 'RBM14', 'SNRPA', "HNRNPL", "HES1",
           "TNFRSF13B", "RPL23P8", "RPL23AP7", "HSP90AB2P", "H3F3C", "GTF2H2C",
           "CPSF6", "CEBPE", "HLA−DRB6", "PTEN", "RPL23AP7", "YBX2", "FOS",
           "C4orf19", "TRIB2", "C3orf18", "ZBP1", "FFAR4", "DUSP10", "BEND3",
-          "MEX3B", "FASLG", "SNRNP70", "SFPQ", "LAG3", "VENTX", "BCL2L11"]
+          "MEX3B", "FASLG", "SNRNP70", "SFPQ", "LAG3", "VENTX", "BCL2L11",
+          "SLC45A3"]
 
 rule all:
     input:

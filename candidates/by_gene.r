@@ -31,6 +31,16 @@ td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
 
+### cell types ###
+immune_df = tcga$immune() %>%
+    filter(cohort %in% cohorts) %>%
+    select(barcode, `Leukocyte Fraction`, `Stromal Fraction`,
+           `Intratumor Heterogeneity`, `Proliferation`, `Wound Healing`,
+           `TIL Regional Fraction`, `Lymphocytes`, `Macrophages`)
+immune = data.matrix(immune_df[-1])
+rownames(immune) = immune_df$barcode
+colnames(immune) = make.names(colnames(immune))
+
 ### rna isoforms ###
 load_isoform = function(cohort, gene) {
 }
@@ -90,7 +100,7 @@ cpg = tryCatch(error = muffle, # in case no meth data
         tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
-dset = narray::stack(list(exons, cpg, mirna), along=2)
+dset = narray::stack(list(immune, exons, cpg, mirna), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
@@ -114,6 +124,10 @@ plot_l2d = function(dset, variable, opt="magma", et=0.15,
 pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity"))
 print(plot_l2d(dset, "expr", from=0))
+
+print(plt$text(sprintf("Immune subtypes (%i)", nc(immune)), size=20))
+for (v in colnames(immune))
+    print(plot_l2d(dset, v))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))

@@ -39,7 +39,7 @@ immune_df = tcga$immune() %>%
            `TIL Regional Fraction`, `Lymphocytes`, `Macrophages`)
 immune = data.matrix(immune_df[-1])
 rownames(immune) = immune_df$barcode
-colnames(immune) = make.names(colnames(immune))
+colnames(immune) = make.names(paste0(colnames(immune), "-01A"))
 
 ### rna isoforms ###
 load_isoform = function(cohort, gene) {

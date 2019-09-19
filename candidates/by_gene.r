@@ -31,16 +31,6 @@ td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
 
-### cell types ###
-immune_df = tcga$immune() %>%
-    filter(cohort %in% cohorts) %>%
-    select(barcode, `Leukocyte Fraction`, `Stromal Fraction`,
-           `Intratumor Heterogeneity`, `Proliferation`, `Wound Healing`,
-           `TIL Regional Fraction`, `Lymphocytes`, `Macrophages`)
-immune = data.matrix(immune_df[-1])
-rownames(immune) = immune_df$barcode
-colnames(immune) = make.names(paste0(colnames(immune), "-01A"))
-
 ### rna isoforms ###
 load_isoform = function(cohort, gene) {
 }
@@ -99,8 +89,16 @@ cpg = tryCatch(error = muffle, # in case no meth data
         narray::stack(along=2) %>%
         tcga$map_id("specimen") %>% t())
 
+### cell types ###
+immune_df = tcga$immune() %>%
+    filter(cohort %in% cohorts) %>%
+    select(-cohort, -`Immune Subtype`, -`TCGA Subtype`, -OS, -`OS Time`, -PFI, -`PFI Time`)
+immune = data.matrix(immune_df[-1])
+rownames(immune) = paste0(immune_df$barcode, "-01A")
+colnames(immune) = make.names(colnames(immune))
+
 ### assemble dataset ###
-dset = narray::stack(list(immune, exons, cpg, mirna), along=2)
+dset = narray::stack(list(exons, cpg, mirna, immune), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
@@ -125,10 +123,6 @@ pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity"))
 print(plot_l2d(dset, "expr", from=0))
 
-print(plt$text(sprintf("Immune subtypes (%i)", nc(immune)), size=20))
-for (v in colnames(immune))
-    print(plot_l2d(dset, v))
-
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))
     print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
@@ -142,4 +136,9 @@ print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))
     print(plot_l2d(dset, v, from=0, to=1))
+
+print(plt$text(sprintf("Immune subtypes (%i)", nc(immune)), size=20))
+for (v in colnames(immune))
+    print(plot_l2d(dset, v))
+
 dev.off()

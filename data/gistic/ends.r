@@ -5,8 +5,8 @@ events = readr::read_tsv("./TCGA.pancan12.130815.zigg_events.160923.txt")
 
 real_ev = events %>%
     filter(amplitude >= 0.1,
-           ! (arm_length > 0.95 & arm_length < 1.05),
-           ! (arm_length > 1.95))
+           arm_length < 1.95,
+           arm_length < 0.95 | arm_length > 1.05)
 
 plot_chr = function(chrom) {
     message(chrom)

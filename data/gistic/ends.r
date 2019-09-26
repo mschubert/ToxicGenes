@@ -13,7 +13,7 @@ plot_chr = function(chrom) {
     chr = real_ev %>%
         filter(chr == chrom)
 
-    pos = sample(1e7:(max(chr$base_end)-1e7), 1e4, replace=TRUE)
+    pos = sample(2*1e7:(max(chr$base_end)-2*1e7), 1e4, replace=TRUE)
 
     pos2left = function(p) { #todo: filter out centromere spanning?
         cur = chr %>%
@@ -23,15 +23,15 @@ plot_chr = function(chrom) {
     resmp = lapply(pos, pos2left) %>%
         dplyr::bind_rows()
     p = resmp %>%
-        tidyr::gather("side", "end") %>%
-        ggplot(aes(x=end)) +
-            geom_histogram(bins=100) +
+        tidyr::gather("side", "len") %>%
+        filter(len < 1e7) %>%
+        ggplot(aes(x=len)) +
+            geom_histogram(aes(fill=side), bins=100, alpha=0.3, position="identity") +
     #        stat_smooth(method=nls, formula=..count.. ~ 1/x) +
-            facet_wrap(~ side) +
             ggtitle(sprintf("chr%s random positions", chrom))
 }
 
-pdf("ends.pdf", 12, 8)
+pdf("ends.pdf", 10, 8)
 for (chr in c(1:22,'X'))
     print(plot_chr(chr))
 dev.off()

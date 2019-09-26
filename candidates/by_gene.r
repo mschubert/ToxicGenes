@@ -4,8 +4,15 @@ library(patchwork)
 library(plyranges)
 theme_set(cowplot::theme_cowplot())
 sys = import('sys')
+plt = import('plot')
 tcga = import('data/tcga')
 util = import('./util')
+
+#' Handle error as warning and return NULL
+muffle = function(e) { warning(e, immediate.=TRUE); NULL }
+
+#' Get number of cases in matrix
+nc = function(mat) { re = ncol(mat); if (is.null(re)) 0 else re }
 
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
@@ -24,6 +31,16 @@ td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
 
+### cell types ###
+immune_df = tcga$immune() %>%
+    filter(cohort %in% cohorts) %>%
+    select(barcode, `Leukocyte Fraction`, `Stromal Fraction`,
+           `Intratumor Heterogeneity`, `Proliferation`, `Wound Healing`,
+           `TIL Regional Fraction`, `Lymphocytes`, `Macrophages`)
+immune = data.matrix(immune_df[-1])
+rownames(immune) = immune_df$barcode
+colnames(immune) = make.names(colnames(immune))
+
 ### rna isoforms ###
 load_isoform = function(cohort, gene) {
 }
@@ -39,7 +56,7 @@ load_exon = function(cohort, gene) {
         filter(external_gene_name == gene)
     mat = emat[names(idx),]
 }
-exons = tryCatch(error = function(e) NULL, { # in case no exon data
+exons = tryCatch(error = muffle, { # in case no exon data
     re = lapply(cohorts, load_exon, gene=args$gene) %>%
         narray::stack(along=2) %>%
         tcga$map_id("specimen") %>% t()
@@ -49,7 +66,8 @@ exons = tryCatch(error = function(e) NULL, { # in case no exon data
 
 ### miRNAs ###
 load_mirnas = function(cohort, gene) {
-    mirnas = tcga$mirna_seq(cohort) %>%
+    mirnas = tcga$mirna_seq(cohort)
+    mirnas = mirnas[,!duplicated(colnames(mirnas))] %>%
         DESeq2::DESeqDataSetFromMatrix(colData=data.frame(sample=colnames(.)), design=~ 1) %>%
         DESeq2::estimateSizeFactors() %>%
         DESeq2::counts(normalized=TRUE)
@@ -60,9 +78,14 @@ load_mirnas = function(cohort, gene) {
         filter(values == gene)
 
     #TODO: check if -[1-3] is the same miRNA or not (keeping it in for now)
-    mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,]
+    re = mirnas[sub("-[0-9]$" , "", rownames(mirnas)) %in% binding$ind,,drop=FALSE]
+    rownames(re) = make.names(rownames(re))
+    re
 }
-mirnas = lapply(cohorts, load_mirnas, gene=args$gene)
+mirna = tryCatch(error = muffle,
+    lapply(cohorts, load_mirnas, gene=args$gene) %>%
+        narray::stack(along=2) %>%
+        tcga$map_id("specimen") %>% t())
 
 ### cpg methylation ###
 load_cpg = function(cohort, gene) {
@@ -71,13 +94,13 @@ load_cpg = function(cohort, gene) {
         filter(Gene_Symbol == gene)
     mat = SummarizedExperiment::assay(cpgs)[names(idx),]
 }
-cpg = tryCatch(error = function(e) NULL, # in case no meth data
+cpg = tryCatch(error = muffle, # in case no meth data
     lapply(cohorts, load_cpg, gene=args$gene) %>%
-    narray::stack(along=2) %>%
-    tcga$map_id("specimen") %>% t())
+        narray::stack(along=2) %>%
+        tcga$map_id("specimen") %>% t())
 
 ### assemble dataset ###
-dset = narray::stack(list(exons, cpg, mirnas), along=2)
+dset = narray::stack(list(immune, exons, cpg, mirna), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
@@ -102,9 +125,19 @@ pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity"))
 print(plot_l2d(dset, "expr", from=0))
 
+print(plt$text(sprintf("Immune subtypes (%i)", nc(immune)), size=20))
+for (v in colnames(immune))
+    print(plot_l2d(dset, v))
+
+print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))
     print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
 
+print(plt$text(sprintf("miRNA expression (%i)", nc(mirna)), size=20))
+for (v in colnames(mirna))
+    print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
+
+print(plt$text(sprintf("Methylation (%i CpG)", nc(cpg)), size=20))
 print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))

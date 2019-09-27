@@ -18,20 +18,19 @@ plot_chr = function(chrom) {
     pos2left = function(p) { #todo: filter out centromere spanning?
         cur = chr %>%
             filter(base_start < p & base_end > p)
-        re = data.frame(left=p - cur$base_start, right = cur$base_end - p)
+        re = data.frame(len = cur$base_end - cur$base_start)
     }
     resmp = lapply(pos, pos2left) %>%
         dplyr::bind_rows()
     p = resmp %>%
-        tidyr::gather("side", "len") %>%
         filter(len < 1e7) %>%
         ggplot(aes(x=len)) +
-            geom_histogram(aes(fill=side), bins=100, alpha=0.3, position="identity") +
+            geom_histogram(bins=100) +
     #        stat_smooth(method=nls, formula=..count.. ~ 1/x) +
-            ggtitle(sprintf("chr%s random positions", chrom))
+            ggtitle(sprintf("chr%s random positions lengths", chrom))
 }
 
-pdf("ends.pdf", 10, 8)
+pdf("pos_length.pdf", 10, 8)
 for (chr in c(1:22,'X'))
     print(plot_chr(chr))
 dev.off()

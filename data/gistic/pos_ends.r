@@ -17,14 +17,14 @@ plot_chr = function(chrom) {
 
     pos2left = function(p) { #todo: filter out centromere spanning?
         cur = chr %>%
-            filter(base_start < p & base_end > p)
+            filter(base_start < p & base_end > p,
+                   base_end - base_start <= 1e7)
         re = data.frame(left=p - cur$base_start, right = cur$base_end - p)
     }
     resmp = lapply(pos, pos2left) %>%
         dplyr::bind_rows()
     p = resmp %>%
         tidyr::gather("side", "len") %>%
-        filter(len < 1e7) %>%
         ggplot(aes(x=len)) +
             geom_histogram(aes(fill=side), bins=100, alpha=0.3, position="identity") +
     #        stat_smooth(method=nls, formula=..count.. ~ 1/x) +

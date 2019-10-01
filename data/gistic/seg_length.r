@@ -12,8 +12,7 @@ plot_chr = function(chrom) {
     message(chrom)
     chr = real_ev %>%
         mutate(len = base_end - base_start) %>%
-        filter(chr == chrom,
-               len <= 1e8)
+            filter(chr == chrom)
 
     p = chr %>%
         ggplot(aes(x=len)) +

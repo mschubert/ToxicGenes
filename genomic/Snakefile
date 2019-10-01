@@ -1,0 +1,7 @@
+rule exons:
+    input:
+        rscript = "exons.r"
+    output:
+        outfile = "exons.rds"
+    shell:
+        "Rscript {input.rscript} --outfile {output.outfile}"

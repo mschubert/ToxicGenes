@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 library(GenomicRanges)
 library(plyranges)
 seq = import('seq')
@@ -35,7 +36,7 @@ cna_probes = events %>% filter(event_type == args$cna) %>%
     makeGRangesFromDataFrame(start.field="base_start", end.field="base_end")
 probes_overlap = countOverlaps(probes, cna_probes)
 n_probes = sum(probes_overlap) / length(probes)
-probes$z = scale(probes_overlap)[,1] # max 2.38, sd already << binom approx
+probes$z = probes_overlap #scale(probes_overlap)[,1] # max 2.38, sd already << binom approx
 
 top = probes %>%
     seq$intersect(exons) %>%
@@ -43,6 +44,29 @@ top = probes %>%
     summarize(z_aod = mean(z)) %>%
     arrange(-z_aod)
 
-pdf(args$plotfile, 12, 10)
-#print(p)
+plot_gene = function(gene) {
+    ex = as.data.frame(exons) %>% filter(external_gene_name == gene)
+    p1 = ggplot(ex) +
+        geom_segment(aes(x=start, xend=end), y=0.5, yend=0.5, size=10) +
+        xlab(paste("chr", ex$seqnames[1]))
+
+    prb = as.data.frame(probes) %>%
+        filter(as.character(seqnames) == as.character(ex$seqnames[1]),
+               start >= min(ex$start),
+               end <= max(ex$end))
+    p2 = ggplot(prb) +
+        geom_hline(yintercept=n_probes, color="black", linetype="dashed") +
+        geom_line(aes(x=start, y=z), color="blue", size=2) +
+        ggtitle(gene) +
+        xlab("") +
+        ylab("obs vs. expected")
+
+    p2 / p1
+}
+top_genes = head(unique(top$external_gene_name), as.integer(args$num))
+plots = lapply(top_genes, plot_gene)
+
+pdf(args$plotfile, 12, 4)
+for (p in plots)
+    print(p)
 dev.off()

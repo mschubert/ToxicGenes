@@ -57,6 +57,7 @@ plot_gene = function(gene) {
     p2 = ggplot(prb) +
         geom_hline(yintercept=n_probes, color="black", linetype="dashed") +
         geom_line(aes(x=start, y=z), color="blue", size=2) +
+        geom_point(aes(x=start, y=z), size=2.2) +
         ggtitle(gene) +
         xlab("") +
         ylab("obs vs. expected")

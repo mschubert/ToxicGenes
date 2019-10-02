@@ -18,7 +18,7 @@ exons = readRDS(args$annot)
 
 events = readr::read_tsv("../data/gistic/TCGA.pancan12.130815.zigg_events.160923.txt")
 if (args$tissue != "pan")
-    events = events %>% filter(tcga$barcode2study(sample) == "OV")
+    events = events %>% filter(tcga$barcode2study(sample) == args$tissue)
 probes = readr::read_tsv("../data/gistic/genome.info.6.0_hg19.na31_minus_frequent_nan_probes_sorted_2.1 2.txt",
                          col_names=FALSE) %>%
     dplyr::rename(id=X1, chr=X2, start=X3) %>%
@@ -32,10 +32,9 @@ arms = events %>%
         filter(base_start == min(base_start) | base_end == max(base_end)) %>%
     ungroup()
 
-cna_probes = events %>% filter(event_type == args$cna) %>%
+cnas = events %>% filter(event_type == args$cna) %>%
     makeGRangesFromDataFrame(start.field="base_start", end.field="base_end")
-probes_overlap = countOverlaps(probes, cna_probes)
-n_probes = sum(probes_overlap) / length(probes)
+probes_overlap = countOverlaps(probes, cnas) # check: DOA heatmap position vs samples (& cluster)
 probes$z = probes_overlap #scale(probes_overlap)[,1] # max 2.38, sd already << binom approx
 
 top = probes %>%
@@ -55,7 +54,7 @@ plot_gene = function(gene) {
                start >= min(ex$start),
                end <= max(ex$end))
     p2 = ggplot(prb) +
-        geom_hline(yintercept=n_probes, color="black", linetype="dashed") +
+        geom_hline(yintercept=mean(probes$z), color="black", linetype="dashed") +
         geom_line(aes(x=start, y=z), color="blue", size=2) +
         geom_point(aes(x=start, y=z), size=2.2) +
         ggtitle(gene) +

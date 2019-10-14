@@ -1,0 +1,26 @@
+configfile: "../config.yaml"
+
+rule all:
+    input:
+        expand("{tissue}_{cna}.pdf", tissue=config['cor_tissues'], cna=['aod', 'doa'])
+
+rule cna:
+    input:
+        rscript = "cna_enrichment.r",
+        exons = "exons.rds"
+    output:
+        plotfile = "{tissue}_{cna}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --annot {input.exons}"
+            " --tissue {wildcards.tissue}"
+            " --cna {wildcards.cna}"
+            " --plotfile {output.plotfile}"
+
+rule exons:
+    input:
+        rscript = "exons.r"
+    output:
+        outfile = "exons.rds"
+    shell:
+        "Rscript {input.rscript} --outfile {output.outfile}"

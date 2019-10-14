@@ -99,6 +99,7 @@ nosetests.xml
 # general data and DATA folder
 *~
 *.pdf
+*.png
 *.zip
 *.gz
 *.gpg

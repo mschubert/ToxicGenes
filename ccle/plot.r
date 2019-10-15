@@ -4,11 +4,13 @@ plt = import('plot')
 sys = import('sys')
 
 do_plot = function(data, title) {
-    ylab = "Adjusted p-value (FDR)"
-    if (sum(data$adj.p < 1e-300, na.rm=TRUE) > 5) {
-        data$adj.p = 10^-abs(pmin(data$statistic, 300))
-        ylab = "Pseudo p-value (values too close to zero)"
-    }
+    fps = !is.na(data$estimate) & data$estimate < -5
+    data$name[fps] = sprintf("%s:%i", data$name, as.integer(data$estimate))[fps]
+    data$estimate[fps] = -5
+
+    fps = !is.na(data$estimate) & data$estimate > 10
+    data$name[fps] = sprintf("%s:%i", data$name, as.integer(data$estimate))[fps]
+    data$estimate[fps] = 10
 
     p1 = tryCatch({ 
         p = data %>%
@@ -16,10 +18,8 @@ do_plot = function(data, title) {
             plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
             plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
             labs(title = title,
-                 subtitle = "compensated",
-                 y = ylab)
-        ggplot_build(p)
-        p
+                 subtitle = "compensated")
+        plt$try(p)
     }, error = function(e) plt$text(conditionMessage(e)))
         
     p2 = tryCatch({
@@ -29,8 +29,7 @@ do_plot = function(data, title) {
             plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
             labs(subtitle="hyper-deregulated") +
             theme(axis.title.y = element_blank())
-        ggplot_build(p)
-        p
+        plt$try(p)
     }, error = function(e) plt$text(conditionMessage(e)))
 
     p1 + p2 + plot_layout(nrow=1)

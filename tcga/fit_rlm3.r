@@ -4,25 +4,9 @@ tcga = import('data/tcga')
 idmap = import('process/idmap')
 gset = import('data/genesets')
 
-models = function(type, covar) {
-    fmls = list(
-        naive = list(
-            "TRUE" = expr ~ covar + cancer_copies,
-            "FALSE" = expr ~ cancer_copies
-        ),
-        pur = list (
-            "TRUE" = expr ~ covar + purity + cancer_copies,
-            "FALSE" = expr ~ purity + cancer_copies
-        ),
-        puradj = list( # 0 + cancer + stroma is singular?!
-            "TRUE" = expr ~ covar + purity + cancer_copies,
-            "FALSE" = expr ~ purity + cancer_copies
-        )
-    )
-    fmls[[type]][[as.character(covar)]]
-}
+do_fit = function(genes, emat, copies, purity, covar=0, et=0.15, type="pur") {
+    has_covar = length(unique(cdata$tissue)) != 1
 
-do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
     df = data.frame(gene = rep(genes, each=ncol(emat)),
                     expr = c(emat[genes,,drop=FALSE]),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),
@@ -34,9 +18,18 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
                stroma = 1 - purity)
 
     tryCatch({
-        mobj = MASS::rlm(fml, data=df, maxit=100)
-
         if (length(unique(na.omit(covar))) > 1) {
+            fml = switch(type,
+                naive = expr ~ covar + cancer_copies,
+                pur = expr ~ covar + purity + cancer_copies,
+                puradj = expr ~ covar + purity + cancer_copies
+            )
+            fml_mean = switch(type,
+                naive = expr ~ covar,
+                pur = expr ~ covar + purity,
+                puradj = expr ~ covar + purity
+            )
+            mobj = MASS::rlm(fml, data=df, maxit=100)
             ucovar = unique(df$covar)
             # should I predict purity=1 here or whatever purity there is in a sample?
             # does it matter? becausse we're regressing out purity again anyway
@@ -44,6 +37,17 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
             expr_per_copy = data.frame(covar=ucovar, expr_per_copy=pred/2)
             df = inner_join(df, expr_per_copy, by="covar")
         } else {
+            fml = switch(type,
+                naive = expr ~ cancer_copies,
+                pur = expr ~ purity + cancer_copies,
+                puradj = expr ~ purity + cancer_copies
+            )
+            fml_mean = switch(type,
+                naive = expr ~ 1,
+                pur = expr ~ purity,
+                puradj = expr ~ purity
+            )
+            mobj = MASS::rlm(fml, data=df, maxit=100)
             # should I predict purity=1 here or whatever purity there is in a sample?
             # does it matter? becausse we're regressing out purity again anyway
             pred = predict(mobj, newdata=data.frame(purity=1, cancer_copies=2))
@@ -55,12 +59,14 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
 
         df$expr = with(df, expr - cancer_copies * expr_per_copy)
         mobj2 = MASS::rlm(fml, data=df, maxit=100)
-        res = broom::tidy(mobj2) %>% #TODO: rsq?
+        mmean = MASS::rlm(fml_mean, data=df, maxit=100)
+        res = broom::tidy(mobj2) %>%
             filter(term == "cancer_copies") %>%
             select(-term) %>%
             mutate(estimate = 2 * estimate / mean(pred), # pct_comp
                    n_aneup = sum(abs(df$cancer_copies-2) > et),
                    n_genes = length(genes),
+                   rsq = 1 - sum(mobj2$w * mobj2$resid^2) / sum(mmean$w * mmean$resid^2),
                    p.value = sfsmisc::f.robftest(mobj2, var="cancer_copies")$p.value)
 
     }, error = function(e) {
@@ -127,11 +133,10 @@ sys$run({
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
-        has_covar = length(unique(cdata$tissue)) != 1
         res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
-                const = list(fml=models(args$type, has_covar),
-                             emat=emat, copies=ff(copies), et=et,
-                             purity=purity$estimate, covar=cdata$tissue)) %>%
+                const = list(emat=emat, copies=ff(copies), et=et,
+                             purity=purity$estimate, covar=cdata$tissue,
+                             type=args$type)) %>%
             setNames(names(sets)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

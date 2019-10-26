@@ -8,14 +8,16 @@ args = sys$cmd$parse(
     opt('o', 'outfile', 'yaml', 'pan/top.stat_genes.yaml'))
 
 n = as.integer(args$num)
-meths = c("lm", "rlm", "rlm2")
+meths = c("lm", "rlm", "rlm3")
 
 dset = readRDS(args$infile) %>%
     filter(adj %in% c("none", "puradj"),
-           fit %in% c("lm", "rlm2")) %>%
-    mutate(estimate = ifelse(dset == "orf", 2^estimate - 1, estimate),
+           fit %in% c("lm", "rlm3")) %>%
+    mutate(rsq = ifelse(dset == "orf", 0.2, rsq), #TODO: better way?
+           estimate = ifelse(dset == "orf", 2^estimate - 1, estimate),
            estimate = pmax(estimate, -1)) %>%
-    mutate(score = (1-adj.p) * (rank(-statistic) / length(statistic)) * (-estimate))
+    mutate(score = (1-adj.p) * (rank(-statistic) / length(statistic)) *
+                   pmax(0,rsq) * (-estimate))
 
 select_top = . %>%
     group_by(name, dset) %>% # mean by fit (rlm, rank)

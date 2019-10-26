@@ -14,11 +14,12 @@ fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
 mem = { 'pan' : 4096, '*' : 2048 }
 cores = { 'pan' : 5, '*' : 0 }
+time = { 'pan' : 480, '*' : 360 }
 
 rule all:
     input:
         expand("{tissue}_{fit}/{sets}.pdf", tissue=config['ccle_tissues'],
-                fit=fits, sets=config['genesets'] + ['genes'])
+                fit=fits, sets=['genes']) #config['genesets'] + ['genes'])
 
 rule fit:
     input:
@@ -30,7 +31,7 @@ rule fit:
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
-        walltime = 240
+        walltime = lambda wc: [ time[wc.tissue] if wc.tissue in time.keys() else time['*'] ][0]
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

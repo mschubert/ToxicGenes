@@ -16,7 +16,7 @@ cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 rule all:
     input:
         expand("{type}/{tissue}_{fit}/{sets}.pdf", tissue=config['tcga_tissues'],
-                type=types, fit=fits, sets=config['genesets'] + ['genes'])
+                type=types, fit=fits, sets=['genes']) #config['genesets'] + ['genes'])
 
 rule fit:
     input:

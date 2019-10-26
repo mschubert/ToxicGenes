@@ -14,7 +14,7 @@ orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, args$sets)) %>
     mutate(adj = "none", fit = "lm", cna = "oe")
 
 ccle = tidyr::crossing(adj = "none",
-                       fit = c("rlm", "rlm2", "rank"),
+                       fit = c("rlm", "rlm3", "rank"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(fit, cna), function(fit, cna) {
         fname = sprintf("../ccle/%s_%s/%s.xlsx", args$tissue, fit, args$sets)
@@ -24,7 +24,7 @@ ccle = tidyr::crossing(adj = "none",
     tidyr::unnest()
 
 tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
-                       fit = c("rlm", "rlm2", "rank"),
+                       fit = c("rlm", "rlm3", "rank"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
         fname = sprintf("../tcga/%s/%s_%s/%s.xlsx", adj, args$tissue, fit, args$sets)
@@ -35,7 +35,7 @@ tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
 
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
-    select(name, dset, cna, fit, adj, estimate, statistic, adj.p) %>%
+    select(name, dset, cna, fit, adj, estimate, rsq, statistic, adj.p) %>%
     group_by(dset, cna, fit, adj) %>%
         mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
     ungroup() %>%

@@ -5,8 +5,6 @@ idmap = import('process/idmap')
 gset = import('data/genesets')
 
 do_fit = function(genes, emat, copies, purity, covar=0, et=0.15, type="pur") {
-    has_covar = length(unique(cdata$tissue)) != 1
-
     df = data.frame(gene = rep(genes, each=ncol(emat)),
                     expr = c(emat[genes,,drop=FALSE]),
                     cancer_copies = c((copies[genes,] - 2) / purity + 2),

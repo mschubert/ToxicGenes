@@ -13,7 +13,7 @@ meths = c("lm", "rlm", "rlm3")
 dset = readRDS(args$infile) %>%
     filter(adj %in% c("none", "puradj"),
            fit %in% c("lm", "rlm3")) %>%
-    mutate(rsq = ifelse(dset == "orf", 0.2, rsq), #TODO: better way?
+    mutate(rsq = ifelse(dset == "orf", 0.5, rsq), #TODO: better way? (value determines ORF weight)
            estimate = ifelse(dset == "orf", 2^estimate - 1, estimate),
            estimate = pmax(estimate, -1)) %>%
     mutate(score = (1-adj.p) * (rank(-statistic) / length(statistic)) *

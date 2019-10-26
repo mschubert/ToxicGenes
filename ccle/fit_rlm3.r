@@ -17,6 +17,7 @@ do_fit = function(genes, emat, copies, covar=1, et=0.15) {
     tryCatch({
         if (length(unique(na.omit(covar))) > 1) {
             fml = expr ~ covar + copies
+            fml_mean = expr ~ covar
             mobj = MASS::rlm(fml, data=df, maxit=100)
             ucovar = unique(df$covar)
             pred = predict(mobj, newdata=expand.grid(covar=ucovar, copies=2))
@@ -24,6 +25,7 @@ do_fit = function(genes, emat, copies, covar=1, et=0.15) {
             df = inner_join(df, expr_per_copy, by="covar")
         } else {
             fml = expr ~ copies
+            fml_mean = expr ~ 1
             mobj = MASS::rlm(fml, data=df, maxit=100)
             pred = predict(mobj, newdata=data.frame(copies=2))
             df$expr_per_copy = pred / 2
@@ -34,12 +36,14 @@ do_fit = function(genes, emat, copies, covar=1, et=0.15) {
 
         df$expr = with(df, expr - copies * expr_per_copy)
         mobj2 = MASS::rlm(fml, data=df, maxit=100)
-        res = broom::tidy(mobj2) %>% #TODO: rsq?
+        mmean = MASS::rlm(fml_mean, data=df, maxit=100)
+        res = broom::tidy(mobj2) %>%
             filter(term == "copies") %>%
             select(-term) %>%
             mutate(estimate = 2 * estimate / mean(pred), # pct_comp
                    n_aneup = sum(abs(df$copies-2) > et),
                    n_genes = length(genes),
+                   rsq = 1 - sum(mobj2$w * mobj2$resid^2) / sum(mmean$w * mmean$resid^2),
                    p.value = sfsmisc::f.robftest(mobj2, var="copies")$p.value)
 
     }, error = function(e) {

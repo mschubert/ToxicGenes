@@ -35,7 +35,7 @@ tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
 
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
-    select(name, dset, cna, fit, adj, estimate, rsq, statistic, adj.p) %>%
+    select(name, dset, cna, fit, adj, estimate, eup_reads, rsq, statistic, adj.p) %>%
     group_by(dset, cna, fit, adj) %>%
         mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
     ungroup() %>%

@@ -65,14 +65,16 @@ load_ccle = function(top) {
         ungroup()
 }
 
-summary_ccle = function(cd, et=0.15) {
+summary_ccle = function(cd, assocs, et=0.15) {
+    to_merge = assocs %>%
+        filter(dset=="ccle", fit=="rlm3", cna=="all") %>%
+        transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
     abl = cd %>%
-        group_by(gene) %>%
-        summarize(none = 0.5 * eup_reads,
-                  full = 0) %>%
-        left_join(assocs %>% filter(dset=="ccle", fit=="rlm3", cna=="all") %>%
-                  transmute(gene=factor(name, levels=top), observed=estimate)) %>%
-        mutate(observed = none * (1 + observed)) %>%
+        select(gene) %>%
+        left_join(to_merge) %>%
+        mutate(none = 0.5 * eup_reads,
+               full = 0,
+               observed = none * (1 + observed)) %>%
         tidyr::gather("type", "slope", -gene, -eup_reads) %>%
         mutate(intcp = eup_reads - 2*slope)
 }
@@ -141,14 +143,16 @@ load_tcga = function(cohort, top, et=0.15) {
 #'
 #' @param td  data.frame from load_tcga()
 #' @return    data.frame for lines of expected vs observed compensation
-summary_tcga = function(assocs, td, et=0.15) {
+summary_tcga = function(td, assocs, et=0.15) {
+    to_merge = assocs %>%
+        filter(dset=="tcga", fit=="rlm3", cna=="all", adj=="puradj") %>%
+        transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
     abl = td %>%
-        group_by(gene) %>%
-        summarize(none = 0.5 * eup_reads,
-                  full = 0) %>%
-        left_join(assocs %>% filter(dset=="tcga", fit=="rlm3", cna=="all", adj=="puradj") %>%
-                  transmute(gene=factor(name, levels=top), observed=estimate)) %>%
-        mutate(observed = none * (1 + observed)) %>%
+        select(gene) %>%
+        left_join(to_merge) %>%
+        mutate(none = 0.5 * eup_reads,
+               full = 0,
+               observed = none * (1 + observed)) %>%
         tidyr::gather("type", "slope", -gene, -eup_reads) %>%
         mutate(intcp = eup_reads - 2*slope)
 }

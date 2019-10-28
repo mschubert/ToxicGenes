@@ -15,7 +15,7 @@ subworkflow tcga:
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
-fits = ['rlm', 'rlm2']
+fits = ['rlm', 'rlm2', 'rlm3']
 types = ['naive', 'pur', 'puradj']
 select = ['top'] #, 'comp']
 sets = ['genes']
@@ -75,6 +75,7 @@ rule make_yaml:
 rule plot:
     input:
         rscript = "plot.r",
+        util = "util.r",
         dset = "merge/{tissue}/genes.rds",
         yaml = "{tissue}/{collec}.yaml"
     output:

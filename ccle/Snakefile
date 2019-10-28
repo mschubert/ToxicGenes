@@ -14,12 +14,12 @@ fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
 mem = { 'pan' : 4096, '*' : 2048 }
 cores = { 'pan' : 5, '*' : 0 }
-time = { 'pan' : 480, '*' : 360 }
+time = { 'pan' : 960, '*' : 360 }
 
 rule all:
     input:
         expand("{tissue}_{fit}/{sets}.pdf", tissue=config['ccle_tissues'],
-                fit=fits, sets=['genes']) #config['genesets'] + ['genes'])
+                fit=fits, sets=config['genesets'] + ['genes'])
 
 rule fit:
     input:

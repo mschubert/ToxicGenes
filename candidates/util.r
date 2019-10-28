@@ -68,14 +68,13 @@ load_ccle = function(top) {
 summary_ccle = function(cd, et=0.15) {
     abl = cd %>%
         group_by(gene) %>%
-        summarize(med_expr = median(expr[abs(copies-2) < et]),
-                  none = 0.5 * med_expr,
+        summarize(none = 0.5 * eup_reads,
                   full = 0) %>%
-        left_join(assocs %>% filter(dset=="ccle", fit=="rlm2", cna=="all") %>%
+        left_join(assocs %>% filter(dset=="ccle", fit=="rlm3", cna=="all") %>%
                   transmute(gene=factor(name, levels=top), observed=estimate)) %>%
         mutate(observed = none * (1 + observed)) %>%
-        tidyr::gather("type", "slope", -gene, -med_expr) %>%
-        mutate(intcp = med_expr - 2*slope)
+        tidyr::gather("type", "slope", -gene, -eup_reads) %>%
+        mutate(intcp = eup_reads - 2*slope)
 }
 
 #' Load TCGA data
@@ -145,14 +144,13 @@ load_tcga = function(cohort, top, et=0.15) {
 summary_tcga = function(assocs, td, et=0.15) {
     abl = td %>%
         group_by(gene) %>%
-        summarize(med_expr = median(expr[abs(cancer_copies-2) < et], na.rm=TRUE),
-                  none = 0.5 * med_expr,
+        summarize(none = 0.5 * eup_reads,
                   full = 0) %>%
-        left_join(assocs %>% filter(dset=="tcga", fit=="rlm2", cna=="all", adj=="puradj") %>%
+        left_join(assocs %>% filter(dset=="tcga", fit=="rlm3", cna=="all", adj=="puradj") %>%
                   transmute(gene=factor(name, levels=top), observed=estimate)) %>%
         mutate(observed = none * (1 + observed)) %>%
-        tidyr::gather("type", "slope", -gene, -med_expr) %>%
-        mutate(intcp = med_expr - 2*slope)
+        tidyr::gather("type", "slope", -gene, -eup_reads) %>%
+        mutate(intcp = eup_reads - 2*slope)
 }
 
 #' 2D loess plot showing gradient on a third variable

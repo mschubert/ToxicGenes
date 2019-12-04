@@ -65,6 +65,7 @@ do_fit = function(genes, emat, copies, purity, covar=0, et=0.15, type="pur") {
                    n_aneup = sum(abs(df$cancer_copies-2) > et),
                    n_genes = length(genes),
                    eup_reads = mean(pred),
+                   slope_diff = 2 * estimate,
                    rsq = 1 - sum(mobj2$w * mobj2$resid^2) / sum(mmean$w * mmean$resid^2),
                    p.value = sfsmisc::f.robftest(mobj2, var="cancer_copies")$p.value)
 

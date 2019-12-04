@@ -44,6 +44,7 @@ do_fit = function(genes, emat, copies, covar=1, et=0.15) {
                    n_aneup = sum(abs(df$copies-2) > et),
                    n_genes = length(genes),
                    eup_reads = mean(pred),
+                   slope_diff = 2 * estimate,
                    rsq = 1 - sum(mobj2$w * mobj2$resid^2) / sum(mmean$w * mmean$resid^2),
                    p.value = sfsmisc::f.robftest(mobj2, var="copies")$p.value)
 

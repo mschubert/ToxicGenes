@@ -42,15 +42,18 @@ dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
 
 saveRDS(dset, file=args$outfile)
 
-venn = function(title, df, comp=-0.5, fdr=0.01, r2=0.05) {
+venn = function(title, df, comp=-0.5, fdr=c(0.05,1e-3), r2=0.02) {
     df2 = df %>%
-        filter(estimate < comp, adj.p < fdr, dset=="orf" | rsq > r2) %>%
+        filter(estimate < comp,
+               (dset %in% c("orf","ccle") & adj.p < fdr[1]) |
+                    (dset == "tcga" & adj.p < fdr[2]),
+               dset=="orf" | rsq > r2) %>%
         select(name, dset) %>% distinct()
     df3 = unstack(df2)
     df3 = df3[sapply(df3, length) > 0]
     p1 = plt$venn(df3) +
-        ggtitle(sprintf("%s >= %i%% comp, %i%% FDR, %i%% R^2", title,
-                        round(-comp*100), round(fdr*100), round(r2*100)))
+        ggtitle(sprintf("%s >= %i%% comp, %i%%/%g%% FDR, %i%% R^2", title,
+                        round(-comp*100), round(fdr[1]*100), round(fdr[2]*100), round(r2*100)))
     df4 = df2 %>%
         group_by(name) %>%
         mutate(n = n()) %>%
@@ -69,8 +72,8 @@ venn = function(title, df, comp=-0.5, fdr=0.01, r2=0.05) {
 }
 pdf(args$plotfile)
 venn("amp+del", dset %>% filter(cna %in% c("oe", "all")))
-venn("amp+del", dset %>% filter(cna %in% c("oe", "all")), r2=0.2)
+venn("amp+del", dset %>% filter(cna %in% c("oe", "all")), r2=0.1)
 venn("amp", dset %>% filter(cna %in% c("oe", "amp")))
-venn("amp", dset %>% filter(cna %in% c("oe", "amp")), r2=0.2)
+venn("amp", dset %>% filter(cna %in% c("oe", "amp")), r2=0.1)
 venn("del", dset %>% filter(cna %in% c("del")))
 dev.off()

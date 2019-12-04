@@ -19,7 +19,7 @@ time = { 'pan' : 960, '*' : 360 }
 rule all:
     input:
         expand("{tissue}_{fit}/{sets}.pdf", tissue=config['ccle_tissues'],
-                fit=fits, sets=config['genesets'] + ['genes'])
+                fit=fits, sets=['genes'])
 
 rule fit:
     input:

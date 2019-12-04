@@ -28,8 +28,8 @@ select_top = . %>%
     arrange(-score)
 
 top_all = select_top(dset %>% filter(cna %in% c("oe", "all"))) %>% pull(name) %>% head(n*2)
-top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp"), ! name %in% top_all)) %>% pull(name)
-top_del = select_top(dset %>% filter(cna %in% c("oe", "del"), ! name %in% top_all)) %>% pull(name)
+top_amp = select_top(dset %>% filter(cna %in% c("oe", "amp"))) %>% pull(name)
+top_del = select_top(dset %>% filter(cna %in% c("oe", "del"))) %>% pull(name)
 
 obj = list(list(
     "top 12 (amp and del)" = top_all[seq_len(n)],

@@ -6,10 +6,6 @@ subworkflow data_ccle:
     workdir: "../data/ccle"
     snakefile: "../data/ccle/Snakefile"
 
-subworkflow genesets:
-    workdir: "../data/genesets"
-    snakefile: "../data/genesets/Snakefile"
-
 fits = [ g[4:-2] for g in glob("fit_*.r") ]
 
 mem = { 'pan' : 8192, '*' : 2048 }
@@ -18,16 +14,14 @@ time = { 'pan' : 960, '*' : 360 }
 
 rule all:
     input:
-        expand("{tissue}_{fit}/{sets}.pdf", tissue=config['ccle_tissues'],
-                fit=fits, sets=['genes'])
+        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=fits)
 
 rule fit:
     input:
         rscript = "fit_{fit}.r",
         infile = data_ccle("dset.rds"),
-        setfile = genesets("{set}.rds")
     output:
-        outfile = "{tissue}_{fit}/{set}.xlsx",
+        outfile = "{tissue}/{fit}.xlsx"
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
@@ -36,7 +30,6 @@ rule fit:
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
-            " --setfile {input.setfile}"
             " --tissue {wildcards.tissue}"
             " --cores {resources.cores}"
             " --memory {resources.mem}"
@@ -45,9 +38,9 @@ rule fit:
 rule plot:
     input:
         rscript = "plot.r",
-        infile = "{tissue}_{fit}/{set}.xlsx"
+        infile = "{tissue}/{fit}.xlsx"
     output:
-        plotfile = "{tissue}_{fit}/{set}.pdf"
+        plotfile = "{tissue}/{fit}.pdf"
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

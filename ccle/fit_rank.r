@@ -38,7 +38,6 @@ sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
-        opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('c', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
@@ -51,11 +50,7 @@ sys$run({
         dset$clines$tcga_code[dset$clines$tcga_code != args$tissue] = NA
 
     emat = dset$eset # already copy-normalized in dset
-    if (grepl("genes\\.xlsx", args$outfile))
-        sets = setNames(rownames(emat), rownames(emat))
-    else
-        sets = readRDS(args$setfile) %>%
-            gset$filter(min=4, valid=rownames(emat))
+    genes = setNames(rownames(emat), rownames(emat))
 
     w = clustermq::workers(n_jobs = as.integer(args$cores),
                            template = list(memory = as.integer(args$memory)))
@@ -67,10 +62,10 @@ sys$run({
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
-        res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
+        res = clustermq::Q(do_fit, genes=genes, workers=w, pkgs="dplyr",
                 const = list(emat=emat, copies=ff(dset$copies),
                              covar=dset$clines$tcga_code, et=et)) %>%
-            setNames(names(sets)) %>%
+            setNames(names(genes)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)

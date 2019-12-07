@@ -26,8 +26,8 @@ rule merge_one:
     input:
         rscript = "merge.r",
         orf = lambda wc: orf(wc.tissue + "/genes.xlsx"),
-        ccle = lambda wc: ccle(expand(wc.tissue + "_{fit}/genes.xlsx", fit=fits)),
-        tcga = lambda wc: tcga(expand("{type}/" + wc.tissue + "_{fit}/genes.xlsx", fit=fits, type=types))
+        ccle = lambda wc: ccle(expand(wc.tissue + "/{fit}.xlsx", fit=fits)),
+        tcga = lambda wc: tcga(expand(wc.tissue + "/{fit}_{type}.xlsx", fit=fits, type=types))
     output:
         outfile = "{tissue}.rds"
     shell:

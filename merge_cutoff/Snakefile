@@ -4,7 +4,7 @@ subworkflow merge:
     workdir: "../merge"
     snakefile: "../merge/Snakefile"
 
-fits = ['rlm2', 'rlm3']
+fits = ['rlm', 'rlm2', 'rlm3']
 
 rule all:
     input:

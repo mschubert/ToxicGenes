@@ -46,8 +46,10 @@ sys$run({
     dset = readRDS(args$dset) %>%
         filter(dset == "orf" | fit == args$fit)
 
-    if (args$fit == "rlm2")
-        dset$rsq = 1 # not implemented in rlm2 model, do not filter on it
+    if (args$fit == "rlm") # rlm can not estimate % compensation, do not filter
+        dset$estimate[dset$fit == "rlm"] = sign(dset$estimate[dset$fit == "rlm"])
+    if (args$fit %in% c("rlm", "rlm2"))
+        dset$rsq = 1 # not implemented in rlm/2 model, do not filter on it
 
     plots = list(
         venn("amp+del", dset %>% filter(cna %in% c("oe", "all"))),

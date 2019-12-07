@@ -1,0 +1,23 @@
+configfile: "../config.yaml"
+
+subworkflow merge:
+    workdir: "../merge"
+    snakefile: "../merge/Snakefile"
+
+fits = ['rlm', 'rlm2', 'rlm3']
+
+rule all:
+    input:
+        expand("{tissue}_{fit}.pdf", tissue=config['cor_tissues'], fit=fits)
+
+rule venn:
+    input:
+        rscript = "plot_venn.r",
+        dset = merge("{tissue}.rds")
+    output:
+        plotfile = "{tissue}_{fit}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --fit {wildcards.fit}"
+            " --plotfile {output.plotfile}"

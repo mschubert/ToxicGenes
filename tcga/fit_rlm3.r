@@ -80,7 +80,6 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
-        opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
         opt('j', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '4096'),
         opt('o', 'outfile', 'xlsx', 'LUAD/genes.xlsx'))
@@ -117,14 +116,9 @@ sys$run({
         DESeq2::estimateSizeFactors() %>% # total ploidy to scale lib size
         DESeq2::counts(normalized=TRUE)
 
-    if (grepl("genes\\.xlsx", args$outfile))
-        sets = setNames(rownames(emat), rownames(emat))
-    else
-        sets = readRDS(args$setfile) %>%
-            gset$filter(min=4, valid=rownames(emat))
+    genes = setNames(rownames(emat), rownames(emat))
 
-    w = clustermq::workers(n_jobs = min(as.integer(args$cores),
-                                        ceiling(length(sets)/20)),
+    w = clustermq::workers(n_jobs = as.integer(args$cores),
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(
@@ -133,11 +127,11 @@ sys$run({
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
-        res = clustermq::Q(do_fit, genes=sets, workers=w, pkgs="dplyr",
+        res = clustermq::Q(do_fit, genes=genes, workers=w, pkgs="dplyr",
                 const = list(emat=emat, copies=ff(copies), et=et,
                              purity=purity$estimate, covar=cdata$tissue,
                              type=args$type)) %>%
-            setNames(names(sets)) %>%
+            setNames(names(genes)) %>%
             bind_rows(.id="name") %>%
             mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
             arrange(adj.p, p.value)

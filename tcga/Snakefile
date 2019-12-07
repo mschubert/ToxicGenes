@@ -15,15 +15,14 @@ cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 
 rule all:
     input:
-        expand("{type}/{tissue}_{fit}/{sets}.pdf", tissue=config['tcga_tissues'],
-                type=types, fit=fits, sets=['genes'])
+        expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
+                type=types, fit=fits)
 
 rule fit:
     input:
-        rscript = "fit_{fit}.r",
-        sets = genesets("{sets}.rds")
+        rscript = "fit_{fit}.r"
     output:
-        outfile = "{type}/{tissue}_{fit}/{sets}.xlsx"
+        outfile = "{tissue}/{fit}_{type}.xlsx"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         cores = lambda wc: cores[wc.tissue] if wc.tissue in cores.keys() else cores["*"],
@@ -33,7 +32,6 @@ rule fit:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --type {wildcards.type}"
-            " --setfile {input.sets}"
             " --cores {resources.cores}"
             " --memory {resources.mem}"
             " --outfile {output.outfile}"
@@ -41,9 +39,9 @@ rule fit:
 rule plot:
     input:
         rscript = "../ccle/plot.r",
-        infile = "{type}/{tissue}_{fit}/{sets}.xlsx"
+        infile = "{tissue}/{fit}_{type}.xlsx"
     output:
-        plotfile = "{type}/{tissue}_{fit}/{sets}.pdf"
+        plotfile = "{tissue}/{fit}_{type}.pdf"
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"

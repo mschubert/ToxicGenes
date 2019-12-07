@@ -21,7 +21,7 @@ venn = function(title, df, comp=-0.5, fdr=c(0.05,1e-3), r2=0.02) {
         ungroup() %>%
         arrange(-n) %>%
         filter(n >= 2)
-    if (length(unique(df4$name)) > 150)
+    if (length(unique(df4$name)) > 200)
         df4 = df4 %>% filter(n >= 3)
     df4 = df4 %>%
         mutate(name = factor(name, levels=rev(sort(unique(name)))))

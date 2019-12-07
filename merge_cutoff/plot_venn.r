@@ -43,6 +43,9 @@ sys$run({
     dset = readRDS(args$dset) %>%
         filter(dset == "orf" | fit == args$fit)
 
+    if (args$fit == "rlm2")
+        dset$rsq = 1 # not implemented in rlm2 model, do not filter on it
+
     plots = list(
         venn("amp+del", dset %>% filter(cna %in% c("oe", "all"))),
         venn("amp+del", dset %>% filter(cna %in% c("oe", "all")), fdr=c(0.05,0.01), r2=0.1),

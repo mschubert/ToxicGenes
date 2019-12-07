@@ -1,0 +1,36 @@
+configfile: "../config.yaml"
+
+subworkflow orf:
+    workdir: "../orf"
+    snakefile: "../orf/Snakefile"
+
+subworkflow ccle:
+    workdir: "../ccle"
+    snakefile: "../ccle/Snakefile"
+
+subworkflow tcga:
+    workdir: "../tcga"
+    snakefile: "../tcga/Snakefile"
+
+import glob
+manual = [ x[:-5] for x in glob.glob("*.yaml") ]
+
+fits = ['rlm', 'rlm2', 'rlm3']
+types = ['naive', 'pur', 'puradj']
+
+rule all:
+    input:
+        expand("{tissue}.rds", tissue=config['cor_tissues'])
+
+rule merge_one:
+    input:
+        rscript = "merge.r",
+        orf = lambda wc: orf(wc.tissue + "/genes.xlsx"),
+        ccle = lambda wc: ccle(expand(wc.tissue + "_{fit}/genes.xlsx", fit=fits)),
+        tcga = lambda wc: tcga(expand("{type}/" + wc.tissue + "_{fit}/genes.xlsx", fit=fits, type=types))
+    output:
+        outfile = "{tissue}.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"

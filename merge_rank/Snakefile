@@ -1,0 +1,38 @@
+configfile: "../config.yaml"
+
+subworkflow merge:
+    workdir: "../merge"
+    snakefile: "../merge/Snakefile"
+
+fits = ['rlm', 'rlm2', 'rlm3']
+
+rule all:
+    input:
+        expand("rank_top/{tissue}_{fit}.xlsx", tissue=config['cor_tissues'], fit=fits),
+        expand("cor_dset/{tissue}_{fit}_{cna}.pdf",
+                tissue=config['cor_tissues'], fit=fits, cna=['all', 'amp', 'del'])
+
+rule rank:
+    input:
+        rscript = "rank_top.r",
+        infile = merge("{tissue}.rds")
+    output:
+        outfile = "rank_top/{tissue}_{fit}.xlsx"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --fit {wildcards.fit}"
+            " --outfile {output.outfile}"
+
+rule cor:
+    input:
+        rscript = "cor_dset.r",
+        dset = merge("{tissue}.rds")
+    output:
+        plotfile = "cor_dset/{tissue}_{fit}_{cna}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --cna {wildcards.cna}"
+            " --fit {wildcards.fit}"
+            " --plotfile {output.plotfile}"

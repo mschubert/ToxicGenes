@@ -16,7 +16,7 @@ ccle = tidyr::crossing(adj = "none",
                        fit = c("rlm", "rlm3", "rank"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(fit, cna), function(fit, cna) {
-        fname = sprintf("../ccle/%s_%s/%s.xlsx", args$tissue, fit, args$sets)
+        fname = sprintf("../ccle/%s/%s.xlsx", args$tissue, fit)
         message(fname)
         readxl::read_xlsx(fname, sheet = cna)
     })) %>%
@@ -26,7 +26,7 @@ tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
                        fit = c("rlm", "rlm3", "rank"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
-        fname = sprintf("../tcga/%s/%s_%s/%s.xlsx", adj, args$tissue, fit, args$sets)
+        fname = sprintf("../tcga/%s/%s_%s.xlsx", args$tissue, fit, adj)
         message(fname)
         readxl::read_xlsx(fname, sheet = cna)
     })) %>%

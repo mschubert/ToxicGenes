@@ -100,41 +100,25 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
 
 sys$run({
     args = sys$cmd$parse(
-        opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
-        opt('c', 'ccle', 'xlsx', '../ccle/pan_rlm2/genes.xlsx'),
-        opt('n', 'tcga_naive', 'xlsx', '../tcga/naive/pan_rlm2/genes.xlsx'),
-        opt('u', 'tcga_pur', 'xlsx', '../tcga/pur/pan_rlm2/genes.xlsx'),
-        opt('a', 'tcga_puradj', 'xlsx', '../tcga/puradj/pan_rlm2/genes.xlsx'),
-        opt('s', 'sets', 'genes|genesets', 'genes'),
-        opt('x', 'cna', 'amp|del|all', 'all'),
+        opt('d', 'dset', 'rds', '../merge/pan.rds'),
+        opt('c', 'cna', 'amp|del|all', 'all'),
+        opt('f', 'fit', 'rank|rlm{,2,3}', 'rlm3'),
         opt('m', 'stat_max', 'numeric', '20'),
-        opt('p', 'plotfile', 'pdf', 'pan_all/genes.pdf'))
+        opt('p', 'plotfile', 'pdf', 'cor_dset/pan_rlm2_amp.pdf'))
 
-    dset = list(
-        orf = readxl::read_xlsx(args$orf),
-        ccle = readxl::read_xlsx(args$ccle, args$subset),
-        tcga_naive = readxl::read_xlsx(args$tcga_naive, args$cna),
-        tcga_pur = readxl::read_xlsx(args$tcga_pur, args$cna),
-        tcga_puradj = readxl::read_xlsx(args$tcga_puradj, args$cna)
-    )
-    assocs = dset %>%
-        dplyr::bind_rows(.id="assocs") %>%
-        select(-n_aneup)
-
+    assocs = readRDS(args$dset) %>%
+        filter(dset == "orf" | (cna == args$cna & fit == args$fit)) %>%
+        mutate(dset = sub("_none", "", paste(dset, adj, sep="_")))
     cap = as.numeric(args$stat_max)
-    smat = narray::construct(statistic ~ name + assocs, data=assocs)
+    smat = narray::construct(statistic ~ name + dset, data=assocs)
 
-    type = tools::file_path_sans_ext(basename(args$orf))
-    if (type %in% c("genes")) # (consistent, inconsistent, orf, 1 ds)
-        label = c(20, 10, 20, 3)
-    else
-        label = c(10, 3, 3, 1)
-
-    plots = expand.grid(a1 = names(dset), a2 = names(dset), stringsAsFactors=FALSE) %>%
+    ds = unique(assocs$dset)
+    plots = expand.grid(a1 = ds, a2 = ds, stringsAsFactors=FALSE) %>%
         filter(a1 < a2,
                ! a2 %in% c("tcga_naive", "tcga_pur")) %>%
         tbl_df() %>%
-        mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat, label=label))
+        mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat,
+                                   label=c(20, 10, 20, 3)))
 
     theme_set(cowplot::theme_cowplot())
     pdf(args$plotfile, 10, 10)

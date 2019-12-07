@@ -20,7 +20,10 @@ venn = function(title, df, comp=-0.5, fdr=c(0.05,1e-3), r2=0.02) {
         mutate(n = n()) %>%
         ungroup() %>%
         arrange(-n) %>%
-        filter(n >= 2) %>%
+        filter(n >= 2)
+    if (length(unique(df4$name)) > 150)
+        df4 = df4 %>% filter(n >= 3)
+    df4 = df4 %>%
         mutate(name = factor(name, levels=rev(sort(unique(name)))))
     tsize = min(6, round(450 / length(levels(df4$name))))
     p2 = ggplot(df4, aes(x=factor(dset, levels=c("orf", "ccle", "tcga")), y=name)) +

@@ -10,7 +10,7 @@ test_set = function(dset, sets, set, cna) {
         broom::tidy() %>%
         filter(term == "in_setTRUE") %>%
         select(-term) %>%
-        mutate(size = length(set))
+        mutate(size = sum(in_set))
 }
 
 args = sys$cmd$parse(
@@ -28,16 +28,22 @@ sets = readRDS(args$sets) %>%
 
 result = expand.grid(cna=c("all", "amp", "del"), set=names(sets), stringsAsFactors=FALSE) %>%
     mutate(result = clustermq::Q_rows(., test_set, const=list(dset=dset, sets=sets), n_jobs=0)) %>%
+    tidyr::unnest(cols="result") %>%
     group_by(cna) %>%
     mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
     arrange(adj.p, p.value) %>%
     ungroup()
 
-p = result %>%
-    mutate(label = paste(cna, name, sep=":") %>%
+do_plot = . %>%
+    mutate(label = set) %>%
     plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
     plt$volcano(text.size=2.5, label_top=30, repel=TRUE)
 
+plots = result %>%
+    split(.$cna) %>%
+    lapply(do_plot)
+
 pdf(args$plotfile)
-print(p)
+for (i in seq_along(plots))
+    print(plots[[i]] + ggtitle(names(plots)[i]))
 dev.off()

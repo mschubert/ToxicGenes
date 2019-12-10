@@ -16,14 +16,14 @@ test_set = function(dset, sets, set, cna) {
 args = sys$cmd$parse(
     opt('d', 'dset', 'merged rds', '../merge/pan.rds'),
     opt('f', 'fit', 'rank|rlm{,2,3}', 'rlm3'),
-    opt('s', 'sets', 'rds', '../data/genesets/GO_Biological_Process_2018.rds'),
+    opt('s', 'setfile', 'rds', '../data/genesets/GO_Biological_Process_2018.rds'),
     opt('p', 'plotfile', 'pdf', 'GO_Biological_Process_2018.pdf'))
 
 dset = readRDS(args$dset) %>%
     filter(fit %in% c("lm", args$fit),
            dset != "tcga" | adj == "pur")
 
-sets = readRDS(args$sets) %>%
+sets = readRDS(args$setfile) %>%
     gset$filter(min=4, valid=dset$name)
 
 result = expand.grid(cna=c("all", "amp", "del"), set=names(sets), stringsAsFactors=FALSE) %>%
@@ -37,7 +37,7 @@ result = expand.grid(cna=c("all", "amp", "del"), set=names(sets), stringsAsFacto
 do_plot = . %>%
     mutate(label = set) %>%
     plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
-    plt$volcano(text.size=2.5, label_top=30, repel=TRUE)
+    plt$volcano(base.size=0.2, text.size=2.5, label_top=30, repel=TRUE)
 
 plots = result %>%
     split(.$cna) %>%

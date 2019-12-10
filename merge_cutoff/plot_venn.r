@@ -4,6 +4,8 @@ sys = import('sys')
 plt = import('plot')
 
 venn = function(title, df, comp=-0.5, fdr=c(0.05,1e-3), r2=0.02) {
+    missing_in_dset = anti_join(df %>% select(name, dset) %>% tidyr::complete(name, dset),
+                                df %>% select(name, dset))
     df2 = df %>%
         filter(estimate < comp,
                (dset %in% c("orf","ccle") & adj.p < fdr[1]) |
@@ -16,20 +18,25 @@ venn = function(title, df, comp=-0.5, fdr=c(0.05,1e-3), r2=0.02) {
         ggtitle(sprintf("%s >= %i%% comp, %i/%.2g%% FDR, %i%% R^2", title,
                         round(-comp*100), round(fdr[1]*100), fdr[2]*100, round(r2*100)))
     df4 = df2 %>%
+        full_join(missing_in_dset %>% mutate(label="?")) %>%
         group_by(name) %>%
-        mutate(n = n()) %>%
+        mutate(n = sum(is.na(label)),
+               n_missing = sum(label=="?", na.rm=TRUE),
+               n_both = paste0(n, n_missing)) %>%
         ungroup() %>%
         arrange(-n) %>%
-        filter(n >= 2)
+        filter(n >= 2) %>%
+        mutate(n_both = factor(ifelse(is.na(label), n_both, NA), levels=c("20", "30", "21")))
     if (length(unique(df4$name)) > 200)
         df4 = df4 %>% filter(n >= 3)
     df4 = df4 %>%
         mutate(name = factor(name, levels=rev(sort(unique(name)))))
     tsize = min(6, round(450 / length(levels(df4$name))))
     p2 = ggplot(df4, aes(x=factor(dset, levels=c("orf", "ccle", "tcga")), y=name)) +
-        geom_tile(aes(fill=factor(n)), color="white", size=0.5, show.legend=FALSE) +
+        geom_tile(aes(fill=n_both), color="white", size=0.5, show.legend=FALSE) +
+        geom_text(aes(label=label), size=tsize/4, color="darkgreen") +
         coord_fixed() +
-        scale_fill_manual(values=c("black", "red")) +
+        scale_fill_manual(values=c("black", "red", "darkgreen")) +
         theme(axis.title.x = element_blank(),
               axis.title.y = element_blank(),
               axis.text.x = element_text(size=tsize, angle=90, hjust=1, vjust=0.5),

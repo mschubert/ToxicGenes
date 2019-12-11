@@ -20,7 +20,9 @@ types = ['naive', 'pur', 'puradj']
 
 rule all:
     input:
-        expand("{tissue}.rds", tissue=config['cor_tissues'])
+        expand("{tissue}.rds", tissue=config['cor_tissues']),
+        expand("cor_dset/{tissue}_{fit}_{cna}.pdf",
+                tissue=config['cor_tissues'], fit=fits, cna=['all', 'amp', 'del']),
 
 rule merge_one:
     input:
@@ -34,3 +36,27 @@ rule merge_one:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
+
+rule cor:
+    input:
+        rscript = "cor_dset.r",
+        dset = "{tissue}.rds"
+    output:
+        plotfile = "cor_dset/{tissue}_{fit}_{cna}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --cna {wildcards.cna}"
+            " --fit {wildcards.fit}"
+            " --plotfile {output.plotfile}"
+
+rule overview:
+    input:
+        rscript = "{type}_overview.r",
+        dset = "pan.rds"
+    output:
+        plotfile = "{type}_overview.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --dset {input.dset}"
+            " --plotfile {output.plotfile}"

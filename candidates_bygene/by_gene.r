@@ -6,7 +6,7 @@ theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 plt = import('plot')
 tcga = import('data/tcga')
-util = import('./util')
+util = import('../candidates/util')
 
 #' Handle error as warning and return NULL
 muffle = function(e) { warning(e, immediate.=TRUE); NULL }

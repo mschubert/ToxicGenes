@@ -19,13 +19,6 @@ fits = ['rlm', 'rlm2', 'rlm3']
 types = ['naive', 'pur', 'puradj']
 select = ['top'] #, 'comp']
 sets = ['genes']
-bygene = ['CDKN1A', 'SNRPA', 'RBM12', 'RBM14', 'SNRPA', "HNRNPL", "HES1",
-          "DAZAP1", "BANP", "ERG", "PKNOX1", "A2M", "INPP5D", "POU2F1",
-          "TNFRSF13B", "RPL23P8", "RPL23AP7", "HSP90AB2P", "H3F3C", "GTF2H2C",
-          "CPSF6", "CEBPE", "HLA−DRB6", "PTEN", "RPL23AP7", "YBX2", "FOS",
-          "C4orf19", "TRIB2", "C3orf18", "ZBP1", "FFAR4", "DUSP10", "BEND3",
-          "MEX3B", "FASLG", "SNRNP70", "SFPQ", "LAG3", "VENTX", "BCL2L11",
-          "SLC45A3"]
 
 rule all:
     input:
@@ -35,27 +28,6 @@ rule all:
                 tissue=set(config['cor_tissues']) - set(['pan'])),
         expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
                 manual=manual),
-        expand("by_gene/{gene}.pdf", gene=bygene)
-
-rule merge:
-    input:
-        expand("merge/{tissue}/{sets}.rds", tissue=config['cor_tissues'], sets=sets)
-
-rule merge_one:
-    input:
-        rscript = "merge.r",
-        orf = lambda wc: orf(wc.tissue + "/" + wc.sets + ".xlsx"),
-        ccle = lambda wc: ccle(expand(wc.tissue + "_{fit}/" + wc.sets +
-            ".xlsx", fit=fits)),
-        tcga = lambda wc: tcga(expand("{type}/" + wc.tissue + "_{fit}/" +
-            wc.sets + ".xlsx", fit=fits, type=types))
-    output:
-        outfile = "merge/{tissue}/{sets}.rds"
-    shell:
-        "Rscript {input.rscript}"
-            " --sets {wildcards.sets}"
-            " --tissue {wildcards.tissue}"
-            " --outfile {output.outfile}"
 
 rule make_yaml:
     input:
@@ -123,18 +95,4 @@ rule plot_tissue_with_pan_yaml:
             " --dset {input.dset}"
             " --yaml {input.yaml}"
             " --tissue {wildcards.tissue}"
-            " --plotfile {output.plotfile}"
-
-rule by_gene:
-    input:
-        rscript = "by_gene.r"
-    output:
-        plotfile = "by_gene/{gene}.pdf"
-    resources:
-        mem = 40960,
-        walltime = 60
-    shell:
-        "Rscript {input.rscript}"
-            " --config ../config.yaml"
-            " --gene {wildcards.gene}"
             " --plotfile {output.plotfile}"

@@ -1,0 +1,41 @@
+configfile: "../config.yaml"
+
+subworkflow orf:
+    workdir: "../orf"
+    snakefile: "../orf/Snakefile"
+
+subworkflow ccle:
+    workdir: "../ccle"
+    snakefile: "../ccle/Snakefile"
+
+subworkflow tcga:
+    workdir: "../tcga"
+    snakefile: "../tcga/Snakefile"
+
+import glob
+manual = [ x[:-5] for x in glob.glob("*.yaml") ]
+
+bygene = ["CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", # all 3
+          "DAZAP1", "BANP", "PKNOX1", "PTBP1", "SFPQ",
+          "GTF2H2C", "HNRNPL", "HNRNPM", "FUS", "HSP90AB2P", # not in orf
+          "RPL23AP7", "RPL23P8", "RPS9", "RREB1", "UBTF", "ZNF143",
+          "CHD4", "DHX9", "KHDRBS1", "NSF", "SRSF1", "TRA2B", "ZFR",
+          "H3F3C", "HCFC1" ]
+
+rule all:
+    input:
+        expand("{gene}.pdf", gene=bygene)
+
+rule by_gene:
+    input:
+        rscript = "by_gene.r"
+    output:
+        plotfile = "{gene}.pdf"
+    resources:
+        mem = 40960,
+        walltime = 60
+    shell:
+        "Rscript {input.rscript}"
+            " --config ../config.yaml"
+            " --gene {wildcards.gene}"
+            " --plotfile {output.plotfile}"

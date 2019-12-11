@@ -19,8 +19,7 @@ bygene = ["CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", # all 3
           "DAZAP1", "BANP", "PKNOX1", "PTBP1", "SFPQ",
           "GTF2H2C", "HNRNPL", "HNRNPM", "FUS", "HSP90AB2P", # not in orf
           "RPL23AP7", "RPL23P8", "RPS9", "RREB1", "UBTF", "ZNF143",
-          "CHD4", "DHX9", "KHDRBS1", "NSF", "SRSF1", "TRA2B", "ZFR",
-          "H3F3C", "HCFC1" ]
+          "CHD4", "DHX9", "KHDRBS1", "NSF", "TRA2B", "ZFR", "H3F3C" ]
 
 rule all:
     input:

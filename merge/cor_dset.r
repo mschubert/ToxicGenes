@@ -11,14 +11,15 @@ sys = import('sys')
 #' @param cap    If values fall outside cap, plot them at the border
 #' @param wald   Wald statistic to consider minimum for change (otherwise grey)
 #' @param label  Number of points to label (consistent, inconsistent, orf, 1 ds)
-do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
+#' @param cap_n  How many outliers must be outside cap in order to extend it
+do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3), cap_n=5) {
     message(a1, " & ", a2)
     x1 = rlang::sym(a1)
     x2 = rlang::sym(a2)
-    colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a"),
-        c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset"))
+    colors = setNames(c("#a50f15", "#006d2c", "#045a8d", "#cccccc", "#8a8a8a", "#ffa81e"),
+        c("compensated", "hyper-dereg", "inconsistent", "no change", "only 1 dset", "immune"))
     cur = smat[,c(a1, a2)]
-    cap_at = function(x, m) sign(x) * pmin(abs(x), max(cap, -x[m][rank(x[m])==2]))
+    cap_at = function(x, m) sign(x) * pmin(abs(x), max(cap, -x[m][rank(x[m])==cap_n]))
     cur[,1] = cap_at(cur[,1], !is.na(cur[,2]))
     cur[,2] = cap_at(cur[,2], !is.na(cur[,1]))
 
@@ -28,6 +29,7 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
 
     plot_data = data %>%
         mutate(type = case_when(
+                    grepl("TR[ABG]V|IG.V", name) ~ "immune",
                     is.na(!! x1) | is.na(!! x2) ~ "only 1 dset",
                     abs(!! x1) < wald | abs(!! x2) < wald ~ "no change",
                     !! x1 < 0 & !! x2 < 0 ~ "compensated",
@@ -41,9 +43,10 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
         mutate(annot_score = abs(!! x1 / quantile(!! x1, 0.9, na.rm=TRUE))^0.5 +
                              abs(!! x2 / quantile(!! x2, 0.9, na.rm=TRUE))^0.5,
                label = case_when(
+                    type == "immune" ~ name,
+                    topORF ~ name,
                     is.na(!! x1) & rank(-abs(!! x2)) <= label[4] ~ name,
                     is.na(!! x2) & rank(-abs(!! x1)) <= label[4] ~ name,
-                    topORF ~ name,
                     sign(!! x1) * sign(!! x2) > 0 & rank(-annot_score) <= label[1] ~ name,
                     sign(!! x1) * sign(!! x2) < 0 & rank(-annot_score) <= label[2] ~ name,
                     TRUE ~ as.character(NA)
@@ -100,7 +103,7 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3)) {
 
 sys$run({
     args = sys$cmd$parse(
-        opt('d', 'dset', 'rds', '../merge/pan.rds'),
+        opt('d', 'dset', 'rds', 'pan.rds'),
         opt('c', 'cna', 'amp|del|all', 'all'),
         opt('f', 'fit', 'rank|rlm{,2,3}', 'rlm3'),
         opt('m', 'stat_max', 'numeric', '20'),

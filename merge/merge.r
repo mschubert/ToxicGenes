@@ -42,10 +42,10 @@ dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
 do_phist = function(dset, mod) {
     p = dset %>%
         filter(fit == mod) %>%
-        mutate(dset = paste(dset, cna, adj)) %>%
+        mutate(dset = paste(dset, adj)) %>%
         ggplot(aes(x=p.value)) +
             geom_histogram(bins=50) +
-            facet_wrap(~dset)
+            facet_grid(cna ~ dset)
 }
 plots = sapply(unique(dset$fit), do_phist, dset=dset, simplify=FALSE)
 pdf(args$plotfile)

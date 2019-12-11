@@ -36,6 +36,7 @@ rule merge_one:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --outfile {output.outfile}"
+            " --plotfile {output.outfile}"
 
 rule cor:
     input:

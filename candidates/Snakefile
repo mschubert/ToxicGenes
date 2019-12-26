@@ -12,35 +12,40 @@ subworkflow tcga:
     workdir: "../tcga"
     snakefile: "../tcga/Snakefile"
 
+subworkflow merge:
+    workdir: "../merge"
+    snakefile: "../merge/Snakefile"
+
+subworkflow merge_rank:
+    workdir: "../merge_rank"
+    snakefile: "../merge_rank/Snakefile"
+
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
 fits = ['rlm', 'rlm2', 'rlm3']
 types = ['naive', 'pur', 'puradj']
-select = ['top'] #, 'comp']
 sets = ['genes']
 
 rule all:
     input:
-        expand("{tissue}/{select}-{sets}.pdf", tissue=config['cor_tissues'],
-                sets=sets, select=select),
-        expand("{tissue}/pan_{select}-genes.pdf", select=select,
+        expand("{tissue}/top-genes.pdf", tissue=config['cor_tissues']),
+        expand("{tissue}/pan_top-genes.pdf",
                 tissue=set(config['cor_tissues']) - set(['pan'])),
         expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
                 manual=manual),
 
 rule make_yaml:
     input:
-        rscript = "select_{select}.r",
-        infile = "merge/{tissue}/{sets}.rds"
+        rscript = "yaml_top.r",
+        infile = merge_rank("rank_top/{tissue}_rlm3.xlsx")
     output:
-        outfile = "{tissue}/{select}-{sets}.yaml"
+        outfile = "{tissue}/top-genes.yaml"
     params:
         n = 12
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
-            " --select {wildcards.sets}"
             " --num {params.n}"
             " --outfile {output.outfile}"
 
@@ -48,7 +53,7 @@ rule plot:
     input:
         rscript = "plot.r",
         util = "util.r",
-        dset = "merge/{tissue}/genes.rds",
+        dset = merge("{tissue}.rds"),
         yaml = "{tissue}/{collec}.yaml"
     output:
         plotfile = "{tissue}/{collec}.pdf"
@@ -65,7 +70,7 @@ rule plot:
 rule plot_manual_sets:
     input:
         rscript = "plot.r",
-        dset = "merge/{tissue}/genes.rds",
+        dset = merge("{tissue}.rds"),
         yaml = "{collec}.yaml"
     output:
         plotfile = "{tissue}/{collec}.pdf"
@@ -81,7 +86,7 @@ rule plot_manual_sets:
 rule plot_tissue_with_pan_yaml:
     input:
         rscript = "plot.r",
-        dset = "merge/{tissue}/genes.rds",
+        dset = merge("{tissue}.rds"),
         yaml = "pan/{collec}.yaml"
     output:
         plotfile = "{tissue}/pan_{collec}.pdf"

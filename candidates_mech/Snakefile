@@ -13,13 +13,15 @@ subworkflow tcga:
     snakefile: "../tcga/Snakefile"
 
 import glob
-manual = [ x[:-5] for x in glob.glob("*.yaml") ]
+manual = [ x[:-5] for x in glob.glob("../candidates/*.yaml") ]
 
-bygene = ["CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", # all 3
-          "DAZAP1", "BANP", "PKNOX1", "PTBP1", "SFPQ",
-          "GTF2H2C", "HNRNPL", "HNRNPM", "FUS", "HSP90AB2P", # not in orf
-          "RPL23AP7", "RPL23P8", "RPS9", "RREB1", "UBTF", "ZNF143",
-          "CHD4", "DHX9", "KHDRBS1", "NSF", "TRA2B", "ZFR", "H3F3C" ]
+bygene = [ "CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", "HNRNPL", # all 3
+           "DAZAP1", "BANP", "PKNOX1", "PTBP1", "SFPQ", "ATXN1", "ZBTB14",
+           "CHD14", "DHX9", "FAM86FP", "FUBP1", "FUS", "GTF2H2C", "H3F3C", # cutoff
+           "HNRNPM", "HSP90AB2P", "ITGA10", "KHDRBS1", "LRRC37A2", "MNT",
+           "NSF", "PA2G4P4", "PPP1R10", "PRDM10", "RASAL2-AS1", "RPL23AP7",
+           "RPL23AP8", "RPS9", "RREB1", "SAFB", "SEP", "SRSD1", "TRA2B",
+           "TRANK1", "UBC", "UBTF", "ZFR", "ZHX2", "ZNF143" ]
 
 rule all:
     input:

@@ -150,11 +150,15 @@ for (i in seq_along(genes)) {
     ###
     ex_legend = cowplot::get_legend(overview[[1]]) # only way to get the legend to work
     ov = lapply(seq_len(12), function(i) {
-        p = overview[[i]]
-        if (class(try(ggplot_build(p))) == "try-error")
+        if (i > length(overview))
             plot_spacer()
-        else
-            p + guides(color=FALSE, fill=FALSE, shape=FALSE)
+        else {
+            p = overview[[i]]
+            if (class(try(ggplot_build(p))) == "try-error")
+                plot_spacer()
+            else
+                p + guides(color=FALSE, fill=FALSE, shape=FALSE)
+        }
     })
     pdf("/dev/null")
     pg1 = patchworkGrob(

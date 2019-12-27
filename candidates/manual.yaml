@@ -1,17 +1,51 @@
+# selection of genes that are interesting (e.g. because they pass the cutoff
+# in the merge_cutoff analysis) but are not among the automatic top hits
 genes:
-    - PTEN
-    - BAX
-    - HNRNPL
-    - RPL23P8
-    - RPL23AP7
-    - HSP90AB2P
-    - H3F3C
-    - HLA-DRB6
+  top_cutoff:
+    - CDKN1A
+    - ATXN1
+    - BANP
+    - HES1
+    - IRF2
+    - PKNOX1
+    - SFPQ
+    - ZBTB14
+  not_in_orf:
+    - CHD4
+    - DHX9
+    - FAM86FP
+    - FUBP1
+    - FUS
     - GTF2H2C
-    - CPSF6
-    - BRD4
-    - CEBPE
-
+    - H3F3C
+    - HNRNPM
+    - HSP90AB2P
+    - ITGA10
+    - KHDRBS1
+    - LRRC37A2
+  not_in_orf_2:
+    - MNT
+    - NSF
+    - PA2G4P4
+    - PPP1R10
+    - PRDM10
+    - RASAL2-AS1
+    - RPL23AP7
+    - RPL23P8
+    - RPS9
+    - RREB1
+    - SAFB
+    - SELP
+  not_in_orf_3:
+    - SRSF1
+    - TRA2B
+    - TRANK1
+    - UBC
+    - UBTF
+    - ZFR
+    - ZHX2
+    - ZNF143
 methods:
     - lm
     - rlm
+    - rlm3

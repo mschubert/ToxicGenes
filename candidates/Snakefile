@@ -75,7 +75,8 @@ rule plot_manual_sets:
     output:
         plotfile = "{tissue}/{collec}.pdf"
     resources:
-        mem = 8192
+        mem = 8192,
+        walltime = 120
     shell:
         "Rscript {input.rscript}"
             " --dset {input.dset}"

@@ -10,7 +10,7 @@ n = as.integer(args$num)
 
 sheets = readxl::excel_sheets(args$infile)
 top = sapply(sheets, simplify=FALSE, function(s) {
-    ranks = readxl::read_excel(args$infile)
+    ranks = readxl::read_excel(args$infile, s)
 })
 
 res = list(

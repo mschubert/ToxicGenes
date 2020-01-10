@@ -149,7 +149,7 @@ for (i in seq_along(genes)) {
     ### actually plot
     ###
     ex_legend = cowplot::get_legend(overview[[1]]) # only way to get the legend to work
-    ov = lapply(seq_len(12), function(i) {
+    ov = lapply(seq_len(12+i-1), function(i) {
         if (i > length(overview))
             plot_spacer()
         else {

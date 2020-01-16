@@ -62,7 +62,13 @@ sys$run({
         venn("amp+del", dset %>% filter(cna %in% c("oe", "all"))),
         venn("amp+del", dset %>% filter(cna %in% c("oe", "all")), fdr=c(0.05,0.01), r2=0.1),
         venn("amp", dset %>% filter(cna %in% c("oe", "amp"))),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.6),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.7),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.8),
         venn("amp", dset %>% filter(cna %in% c("oe", "amp")), fdr=c(0.05,0.01), r2=0.1),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.6, fdr=c(0.05,0.01), r2=0.1),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.7, fdr=c(0.05,0.01), r2=0.1),
+        venn("amp", dset %>% filter(cna %in% c("oe", "amp")), comp=-0.8, fdr=c(0.05,0.01), r2=0.1),
         venn("del", dset %>% filter(cna %in% c("del")))
     )
     pdf(args$plotfile)

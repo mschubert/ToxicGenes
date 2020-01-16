@@ -103,10 +103,13 @@ load_tcga = function(cohort, top, et=0.15) {
     }
     tcga_expr = load_expr(cohort, top) # only primary because purity() only
     tcga_cns = load_copies(cohort, top) # has those samples
-    tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
+    if (cohort == "pan")
+        tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
+    else
+        tcga_meth = tcga$meth(cohort, cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
     tcga_meth = tcga_meth %>%
         reshape2::melt() %>%
-        transmute(cohort = tcga$barcode2study(Var2), sample = Var2, gene = Var1, meth = value)
+        transmute(sample = Var2, gene = Var1, meth = value)
     tcga_mut = tcga$mutations() %>%
         transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
     names(dimnames(tcga_expr)) = c("gene", "sample")
@@ -119,6 +122,7 @@ load_tcga = function(cohort, top, et=0.15) {
     }
 
     td = reshape2::melt(tcga_expr, value.name="expr") %>%
+        mutate(cohort = tcga$barcode2study(sample)) %>%
         inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
         inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
         mutate(cancer_copies = (copies - 2) / purity + 2) %>%

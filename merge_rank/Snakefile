@@ -64,6 +64,7 @@ rule bionet:
         plotfile = "bionet/{tissue}/{fit}.pdf"
     shell:
         "Rscript {input.rscript}"
+            " --tissue {wildcards.tissue}"
             " --fit {wildcards.fit}"
             " --ranks {input.ranks}"
             " --plotfile {output.plotfile}"

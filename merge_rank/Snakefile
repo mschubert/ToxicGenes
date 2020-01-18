@@ -15,7 +15,9 @@ rule all:
 #        "rank_overview.pdf",
         expand("rank_top/{tissue}_{fit}.xlsx", tissue=config['cor_tissues'], fit=fits),
         expand("gset_rlm3/{tissue}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'])
+                tissue=config['cor_tissues'], gset=config['genesets']),
+        expand("bionet/{tissue}/{fit}.pdf",
+                tissue=config['cor_tissues'], fit=['rlm2', 'rlm3'])
 
 rule rank:
     input:
@@ -52,4 +54,16 @@ rule genesets:
             " --dset {input.dset}"
             " --fit {wildcards.fit}"
             " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"
+
+rule bionet:
+    input:
+        rscript = "bionet.r",
+        ranks = "rank_top/{tissue}_{fit}.xlsx"
+    output:
+        plotfile = "bionet/{tissue}/{fit}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --fit {wildcards.fit}"
+            " --ranks {input.ranks}"
             " --plotfile {output.plotfile}"

@@ -234,14 +234,16 @@ stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
             }
             pred = predict(lsurf, newdata=df, se=TRUE)
             df$fill = c(pred$fit)
-            cor_factor = pmax(0.1, 1 - abs(c(pred$se.fit)/df$fill))
+            eff_max = quantile(data$fill, 0.98, na.rm=TRUE)
+            eff_min = quantile(data$fill, 0.02, na.rm=TRUE)
+            cor_factor = pmax(0.1, 1 - 2*(c(pred$se.fit)/(eff_max-eff_min)))
 
             df$width = rep(diff(rx) / (bins - 1), bins)
             df$height = rep(diff(ry) / (bins - 1), each=bins)
 
             if (cap_z) {
-                df$fill = pmax(df$fill, min(data$fill, na.rm=TRUE))
-                df$fill = pmin(df$fill, max(data$fill, na.rm=TRUE))
+                df$fill = pmin(df$fill, eff_max)
+                df$fill = pmax(df$fill, eff_min)
             }
             if (se_alpha)
                 df$alpha = cor_factor

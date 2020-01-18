@@ -103,14 +103,18 @@ tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset)
 
 ### plot ###
-plot_l2d = function(dset, variable, opt="magma", et=0.15,
-                    from=min(dset[[variable]], na.rm=TRUE), to=max(dset[[variable]], na.rm=TRUE)) {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
+    if (all(na.omit(dset[[variable]]) >= 0))
+        fill = scale_fill_viridis_c(option="magma", direction=-1, limits=c(from, to))
+    else
+        fill = scale_fill_gradientn(colours=rev(RColorBrewer::brewer.pal(11,"RdBu")),
+                                limits=c(from, to))
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_gam2d(aes_string(fill=variable, by="purity"), se_size=TRUE) +
         geom_density2d(bins=20, color="chartreuse4") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed") +
         facet_grid(p53_mut ~ cohort, scales="free") +
-        scale_fill_viridis_c(option=opt, direction=-1, limits=c(from, to)) +
+        fill +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
@@ -120,19 +124,20 @@ plot_l2d = function(dset, variable, opt="magma", et=0.15,
 }
 
 pdf(args$plotfile, 24, 8)
-print(plot_l2d(dset, "purity"))
+print(plot_l2d(dset, "purity"), from=0, to=1)
 print(plot_l2d(dset, "expr", from=0))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))
-    print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
+    print(plot_l2d(dset, v, from=0))
 
 print(plt$text(sprintf("miRNA expression (%i)", nc(mirna)), size=20))
 for (v in colnames(mirna))
-    print(plot_l2d(dset, v, from=0, to=max(exons, na.rm=TRUE)))
+    print(plot_l2d(dset, v, from=0))
 
 print(plt$text(sprintf("Methylation (%i CpG)", nc(cpg)), size=20))
-print(plot_l2d(dset, "meth_eup_scaled"))
+if (sum(!is.na(dset$meth_eup_scaled)) > 0)
+    print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))
     print(plot_l2d(dset, v, from=0, to=1))

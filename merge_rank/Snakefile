@@ -17,7 +17,7 @@ rule all:
         expand("gset_rlm3/{tissue}/{gset}.pdf",
                 tissue=config['cor_tissues'], gset=config['genesets']),
         expand("bionet/{tissue}/{fit}.pdf",
-                tissue=config['cor_tissues'], fit=['rlm2', 'rlm3'])
+                tissue=config['cor_tissues'], fit=['rlm3'])
 
 rule rank:
     input:

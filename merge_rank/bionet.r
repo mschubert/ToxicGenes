@@ -44,6 +44,11 @@ sys$run({
         opt('r', 'ranks', 'xlsx', 'rank_top/pan_rlm3.xlsx'),
         opt('p', 'plotfile', 'pdf', 'bionet/pan/rlm3.pdf'))
 
+    if (grepl("pan|BRCA|OV|SKCM", args$ranks))
+        fdr = 0.25
+    else
+        fdr = 0.3
+
     read_stats = function(sheet, ranks=args$ranks) {
         tab = readxl::read_xlsx(ranks, sheet=sheet) %>%
             mutate(pseudo_p = 10^(-score))
@@ -56,7 +61,7 @@ sys$run({
         activate(edges) %>%
         select(-dip_url, -sources, -references) # ggraph issue #214
 
-    res = lapply(top, function(t) bionet(net, t, thresh=0.25, var="pseudo_p"))
+    res = lapply(top, function(t) bionet(net, t, thresh=fdr, var="pseudo_p"))
 
     pdf(args$plotfile)
     for (i in seq_along(res))

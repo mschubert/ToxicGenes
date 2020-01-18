@@ -46,7 +46,7 @@ plot_net = function(net, node_aes, ...) {
 plot_col = function(net, var) {
     vs = rlang::sym(var)
     measures = net %N>%
-        mutate(degree = centrality_degree()) %>%
+        mutate(degree = centrality_degree(mode="all")) %>%
         arrange(- !! vs) %>%
         as_tibble() %>%
         head(20) %>%
@@ -91,15 +91,16 @@ sys$run({
 
     net = OmnipathR::import_AllInteractions() %>%
         OmnipathR::interaction_graph() %>%
-        as_tbl_graph(directed=FALSE) %E>%
-        select(-dip_url, -sources, -references) %N>% # ggraph issue #214
+        igraph::as.undirected(mode="collapse") %>%
+        igraph::simplify(remove.multiple=TRUE, remove.loops=TRUE) %>%
+        as_tbl_graph(directed=FALSE) %N>%
         left_join(genomic)
 
     res = lapply(top, function(t) bionet(net, t, thresh=fdr, var="pseudo_p"))
 
     pdf(args$plotfile, 8, 7)
     for (i in seq_along(res)) {
-        p1 = plot_net(res[[i]] %N>% mutate(degree = centrality_degree()),
+        p1 = plot_net(res[[i]] %N>% mutate(degree = centrality_degree(mode="all")),
                       aes(size=score, alpha=degree, color=log10_ks_p))
         p2 = plot_col(res[[i]], "score")
         p3 = plot_col(res[[i]], "degree")

@@ -44,9 +44,11 @@ sys$run({
         opt('r', 'ranks', 'xlsx', 'rank_top/pan_rlm3.xlsx'),
         opt('p', 'plotfile', 'pdf', 'bionet/pan/rlm3.pdf'))
 
-    if (grepl("pan|BRCA|OV|SKCM", args$ranks))
+    if (grepl("BRCA", args$ranks)) {
+        fdr = 0.23
+    } else if (grepl("pan|BRCA|OV|SKCM", args$ranks)) {
         fdr = 0.25
-    else
+    } else
         fdr = 0.3
 
     read_stats = function(sheet, ranks=args$ranks) {

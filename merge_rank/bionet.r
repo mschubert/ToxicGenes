@@ -13,7 +13,7 @@ idmap = import('process/idmap')
 #' @param thresh  p-value/fdr cutoff
 #' @return  tidygraph object
 bionet = function(g, assocs, thresh=0.05, var="adj.p") {
-    g = g %>% activate(nodes) %>% left_join(assocs)
+    g = g %N>% left_join(assocs)
     scores = setNames(pull(g, !! rlang::sym(var)), pull(g, name))
     scores[is.na(scores)] = 1
     scores = pmax(-log10(scores) + log10(thresh), 0)
@@ -85,11 +85,9 @@ sys$run({
     cnv = setNames(c(1, -1), c("amp", "del"))
     genomic = readr::read_tsv(args$briscut) %>%
         transmute(cohort=type, name=Gene, log10_ks_p=pmin(log10_ks_p, 10) * cnv[direction])
-    if (args$tissue == "pan") {
-        genomic = genomic %>% group_by(name) %>% summarize(log10_ks_p = mean(log10_ks_p))
-    } else {
+    if (args$tissue != "pan")
         genomic = genomic %>% filter(cohort == args$tissue)
-    }
+    genomic = genomic %>% group_by(name) %>% summarize(log10_ks_p = mean(log10_ks_p))
 
     net = OmnipathR::import_AllInteractions() %>%
         OmnipathR::interaction_graph() %>%

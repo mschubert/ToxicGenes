@@ -12,7 +12,7 @@ orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, "genes")) %>%
     mutate(adj = "none", fit = "lm", cna = "oe")
 
 ccle = tidyr::crossing(adj = "none",
-                       fit = c("rlm", "rlm2", "rlm3", "rank"),
+                       fit = c("rlm", "rlm2", "rlm3", "rank", "lm3"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(fit, cna), function(fit, cna) {
         fname = sprintf("../ccle/%s/%s.xlsx", args$tissue, fit)
@@ -22,7 +22,7 @@ ccle = tidyr::crossing(adj = "none",
     tidyr::unnest("data")
 
 tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
-                       fit = c("rlm", "rlm2", "rlm3", "rank"),
+                       fit = c("rlm", "rlm2", "rlm3", "rank", "lm3"),
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
         fname = sprintf("../tcga/%s/%s_%s.xlsx", args$tissue, fit, adj)

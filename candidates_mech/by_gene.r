@@ -111,8 +111,8 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
                                 limits=c(from, to))
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_gam2d(aes_string(fill=variable, by="purity"), se_size=TRUE) +
-        geom_density2d(bins=20, color="chartreuse4") +
-        geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed") +
+        geom_density2d(bins=20, color="chartreuse4", size=1.5) +
+        geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed", size=2) +
         facet_grid(p53_mut ~ cohort, scales="free") +
         fill +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,

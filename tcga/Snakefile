@@ -7,7 +7,6 @@ subworkflow genesets:
     snakefile: "../data/genesets/Snakefile"
 
 fits = [ g[4:-2] for g in glob("fit_*.r") ]
-#fits = [ 'rlm', 'rank' ]
 types = [ "naive", "pur", "puradj" ]
 
 mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }

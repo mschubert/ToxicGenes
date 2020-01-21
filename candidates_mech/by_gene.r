@@ -85,15 +85,16 @@ load_cpg = function(cohort, gene) {
         filter(Gene_Symbol == gene)
     mat = SummarizedExperiment::assay(cpgs)[names(idx),]
 }
-cpg = tryCatch(error = muffle, # in case no meth data
-    lapply(cohorts, load_cpg, gene=args$gene) %>%
+cpg = tryCatch(error = muffle, { # in case no meth data
+    re = lapply(cohorts, load_cpg, gene=args$gene) %>%
         narray::stack(along=2) %>%
         tcga$filter(primary=TRUE, cancer=TRUE) %>%
-        tcga$map_id("specimen") %>% t())
-cpg = narray::map(cpg, along=1, subsets=tcga$barcode2study(rownames(cpg)),
+        tcga$map_id("specimen") %>% t()
+    re = narray::map(re, along=1, subsets=tcga$barcode2study(rownames(re)),
     function(x) if (!all(is.na(x)) && sd(x, na.rm=TRUE)>0.05) x
         else rep(NA, length(x)))
-cpg = cpg[,narray::map(cpg, along=1, function(x) !all(is.na(x)))]
+    re = re[,narray::map(re, along=1, function(x) !all(is.na(x)))]
+})
 
 promoter_wanding = tcga$cpg_gene() %>%
     transmute(cg = names(.))

@@ -4,6 +4,7 @@ library(patchwork)
 library(plyranges)
 theme_set(cowplot::theme_cowplot())
 sys = import('sys')
+seq = import('seq')
 plt = import('plot')
 tcga = import('data/tcga')
 util = import('../candidates/util')
@@ -89,6 +90,30 @@ cpg = tryCatch(error = muffle, # in case no meth data
         narray::stack(along=2) %>%
         tcga$map_id("specimen") %>% t())
 
+promoter_wanding = tcga$cpg_gene() %>%
+    transmute(cg = names(.))
+transcript_annots = seq$gene_table() %>%
+    filter(external_gene_name == args$gene) %>%
+    mutate(chromosome_name = paste0("chr", chromosome_name),
+           strand = setNames(c("+","-"),c(1,-1))[strand]) %>%
+    GenomicRanges::makeGRangesFromDataFrame()
+cgs = list(
+    core = transcript_annots %>% anchor_5p() %>% mutate(width=400) %>% shift_upstream(200) %>%
+        join_overlap_intersect(promoter_wanding),
+    ext = transcript_annots %>% anchor_5p() %>% mutate(width=3000) %>% shift_upstream(1500) %>%
+        join_overlap_intersect(promoter_wanding),
+    body = transcript_annots %>% filter(width > 1500) %>% anchor_3p() %>% stretch(-1500) %>%
+        join_overlap_intersect(promoter_wanding)
+)
+summarize_cgs = function(gr_ids) {
+    cgs = intersect(colnames(cpg), gr_ids$cg)
+    if (length(cgs) > 0)
+        narray::map(cpg[,cgs], along=2, function(x) mean(x, na.rm=TRUE))
+}
+cgs2 = lapply(cgs, summarize_cgs) %>% do.call(cbind, .)
+if (!is.null(cgs2) && ncol(cgs2) > 0)
+    cpg = cbind(cgs2, cpg)
+
 ### cell types ###
 immune_df = tcga$immune() %>%
     filter(cohort %in% cohorts) %>%
@@ -111,8 +136,8 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
                                 limits=c(from, to))
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_gam2d(aes_string(fill=variable, by="purity"), se_size=TRUE) +
-        geom_density2d(bins=20, color="chartreuse4", size=1.5) +
-        geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dashed", size=2) +
+        geom_density2d(bins=20, color="chartreuse4", size=0.7) +
+        geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +
         fill +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,

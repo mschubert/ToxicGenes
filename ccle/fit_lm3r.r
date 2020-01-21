@@ -77,7 +77,7 @@ sys$run({
     emat = dset$eset # already copy-normalized in dset
     genes = setNames(rownames(emat), rownames(emat))
 
-    w = clustermq::workers(n_jobs = 20, #as.integer(args$cores),
+    w = clustermq::workers(n_jobs = 50, #as.integer(args$cores),
                            template = list(memory = as.integer(args$memory)))
 
     ffuns = list(

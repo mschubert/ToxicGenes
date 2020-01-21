@@ -111,9 +111,9 @@ cgs = list(
         join_overlap_intersect(promoter_wanding)
 )
 summarize_cgs = function(gr_ids) {
-    cgs = intersect(colnames(cpg), gr_ids$cg)
-    if (length(cgs) > 0)
-        narray::map(cpg[,cgs], along=2, function(x) mean(x, na.rm=TRUE))
+    cg = intersect(colnames(cpg), gr_ids$cg)
+    if (length(cg) > 0)
+        narray::map(cpg[,cg,drop=FALSE], along=2, function(x) mean(x, na.rm=TRUE))
 }
 cgs2 = lapply(cgs, summarize_cgs) %>% do.call(cbind, .)
 if (!is.null(cgs2) && ncol(cgs2) > 0)

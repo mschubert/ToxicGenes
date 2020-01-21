@@ -4,11 +4,9 @@ subworkflow merge:
     workdir: "../merge"
     snakefile: "../merge/Snakefile"
 
-fits = ['rlm', 'rlm2', 'rlm3', 'lm3']
-
 rule all:
     input:
-        expand("{tissue}_{fit}.pdf", tissue=config['cor_tissues'], fit=fits)
+        expand("{tissue}_{fit}.pdf", tissue=config['cor_tissues'], fit=config['fits'])
 
 rule venn:
     input:

@@ -50,4 +50,19 @@ cor_tissues:
     - LUAD
     - PRAD
 
+# all the fits that should be calculated
+fits:
+    - rlm
+    - rlm2
+    - rlm3
+    - lm3
+    - lm3r
+
+# which fits are plotted in top hit comparisons
+fit_compare:
+    - rlm2
+    - rlm3
+    - lm3
+    - lm3r
+
 euploid_tol: 0.15

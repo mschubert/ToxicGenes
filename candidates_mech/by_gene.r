@@ -88,14 +88,19 @@ load_cpg = function(cohort, gene) {
 cpg = tryCatch(error = muffle, # in case no meth data
     lapply(cohorts, load_cpg, gene=args$gene) %>%
         narray::stack(along=2) %>%
+        tcga$filter(primary=TRUE, cancer=TRUE) %>%
         tcga$map_id("specimen") %>% t())
+cpg = narray::map(cpg, along=1, subsets=tcga$barcode2study(rownames(cpg)),
+    function(x) if (!all(is.na(x)) && sd(x, na.rm=TRUE)>0.05) x
+        else rep(NA, length(x)))
+cpg = cpg[,narray::map(cpg, along=1, function(x) !all(is.na(x)))]
 
 promoter_wanding = tcga$cpg_gene() %>%
     transmute(cg = names(.))
 transcript_annots = seq$gene_table() %>%
     filter(external_gene_name == args$gene) %>%
     mutate(chromosome_name = paste0("chr", chromosome_name),
-           strand = setNames(c("+","-"),c(1,-1))[strand]) %>%
+           strand = setNames(c("+","-"),c(1,-1))[as.character(strand)]) %>%
     GenomicRanges::makeGRangesFromDataFrame()
 cgs = list(
     core = transcript_annots %>% anchor_5p() %>% mutate(width=400) %>% shift_upstream(200) %>%

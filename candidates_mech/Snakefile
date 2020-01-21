@@ -21,7 +21,8 @@ bygene = [ "CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", "HNRNPL", # all
            "HNRNPM", "HSP90AB2P", "ITGA10", "KHDRBS1", "LRRC37A2", "MNT",
            "NSF", "PA2G4P4", "PPP1R10", "PRDM10", "RPL23AP7", "FAM86FP",
            "RPS9", "RREB1", "SAFB", "TRA2B", "SELP", "CHD4", "RPL23P8",
-           "TRANK1", "UBC", "UBTF", "ZFR", "ZHX2", "ZNF143", "ZBTB14" ]
+           "TRANK1", "UBC", "UBTF", "ZFR", "ZHX2", "ZNF143", "ZBTB14", # not in orf
+           "OVOL2", "KLF5" ] # lm3 addition
 
 rule all:
     input:

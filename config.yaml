@@ -48,6 +48,7 @@ cor_tissues:
     - OV
     - SKCM
     - LUAD
+    - LUSC
     - PRAD
 
 # all the fits that should be calculated

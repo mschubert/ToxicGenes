@@ -70,7 +70,7 @@ rule sets:
         outfile = "{tissue}/{gset}.xlsx",
         plotfile = "{tissue}/{gset}.pdf"
     wildcard_constraints:
-        tissue = "[A-Z]+"
+        tissue = "[a-zA-Z0-9]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

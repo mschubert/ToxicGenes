@@ -6,15 +6,13 @@ subworkflow data_ccle:
     workdir: "../data/ccle"
     snakefile: "../data/ccle/Snakefile"
 
-fits = [ g[4:-2] for g in glob("fit_*.r") ]
-
 mem = { 'pan' : 8192, '*' : 2048 }
 cores = { 'pan' : 5, '*' : 0 }
 time = { 'pan' : 960, '*' : 360 }
 
 rule all:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=fits)
+        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits'])
 
 rule fit:
     input:

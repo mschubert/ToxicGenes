@@ -6,7 +6,6 @@ subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
 
-fits = [ g[4:-2] for g in glob("fit_*.r") ]
 types = [ "naive", "pur", "puradj" ]
 
 mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
@@ -15,7 +14,7 @@ cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 rule all:
     input:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=types, fit=fits)
+                type=types, fit=config['fits'])
 
 rule fit:
     input:

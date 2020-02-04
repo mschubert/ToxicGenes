@@ -7,4 +7,4 @@ rsync -auvr --prune-empty-dirs \
     --include "*.pdf" \
     --include "*.xlsx" \
     --exclude="*" \
-    $(dirname $0) ~/Documents/Work/ORFdosage
+    $(dirname $0) ~/Documents/Results/ORFdosage

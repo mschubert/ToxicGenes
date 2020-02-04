@@ -33,6 +33,25 @@ p = ggplot(cnas) +
     ggtitle(args$tissue) +
     theme(axis.text.y = element_blank())
 
+cnas2 = cnas %>% filter(arm_length < 0.5)
+p2 = ggplot(cnas2) +
+    geom_segment(aes(x=base_start, xend=base_end, y=sample, yend=sample)) +
+    facet_grid(event_type ~ chr, space="free", scales="free") +
+    ggtitle(paste(args$tissue, "- only events < 0.5 chr arms")) +
+    theme(axis.text.y = element_blank())
+
+cnas3 = cnas %>%
+    group_by(sample, chr) %>%
+        filter(sum(arm_length) < 0.5) %>%
+    ungroup()
+p3 = ggplot(cnas3) +
+    geom_segment(aes(x=base_start, xend=base_end, y=sample, yend=sample)) +
+    facet_grid(event_type ~ chr, space="free", scales="free") +
+    ggtitle(paste(args$tissue, "- only chr covered by events < 0.5 arms")) +
+    theme(axis.text.y = element_blank())
+
 pdf(args$plotfile, 18, 14)
 print(p)
+print(p2)
+print(p3)
 dev.off()

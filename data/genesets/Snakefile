@@ -35,7 +35,7 @@ rule manual:
 
 rule haploinsuff:
     output:
-        "pnas.1900437116.sd01.xlsx"
+        "pnas.1900437116.sd01.xlsx" # https://doi.org/10.1073/pnas.1900437116
     shell:
         "wget -N https://www.pnas.org/highwire/filestream/866105/"
             "field_highwire_adjunct_files/1/{output}"

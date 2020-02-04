@@ -27,6 +27,12 @@ fits = ['rlm', 'rlm2', 'rlm3', 'lm3']
 types = ['naive', 'pur', 'puradj']
 sets = ['genes']
 
+yaml_src = {
+    "top" : lambda wc: merge_rank("rank_top/" + wc.tissue + "_rlm3.xlsx"),
+#    "cutoff-all" : ,
+#    "cutoff-amp" : ,
+}
+
 rule all:
     input:
         expand("{tissue}/top-genes.pdf", tissue=config['cor_tissues']),

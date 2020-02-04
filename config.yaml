@@ -56,7 +56,7 @@ fits:
     - rlm2
     - rlm3
     - lm3
-    - lm3r
+#    - lm3r
 
 # which fits are plotted in top hit comparisons
 fit_compare:

@@ -1,4 +1,4 @@
-library(cowplot)
+library(ggplot2)
 io = import('io')
 sys = import('sys')
 
@@ -53,31 +53,23 @@ plot_overview = function(data, title, label_top=20) {
 if (is.null(module_name())) {
     args = sys$cmd$parse(
         opt('t', 'tissues', 'txt', '../data/orf/tissues.txt'),
-        opt('l', 'orflib', 'txt', '../data/orf/20101003_ORF-size-plasmid.txt'),
-        opt('s', 'orfscreen', 'xlsx', '../data/orf/ORF_DMSO-ETP_2019-07.xlsx'),
+        opt('l', 'orflib', 'txt', '../data/orf/ORF_DMSO_2019-02.txt'),
         opt('o', 'outfile', 'rds', 'overview.rds'),
         opt('p', 'plotfile', 'pdf', 'overview_naive.pdf'))
 
     tissues = io$read_table(args$tissues, header=TRUE)
 
-    # 'Construct IDs', 'INSERT LENGTH'
-    orflib = io$read_table(args$orflib, header=TRUE)
-
-    expr = readxl::read_xlsx(args$orfscreen) %>%
+    expr = io$read_table(args$orflib, header=TRUE) %>%
         tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
         mutate(condition = sub("( ORF)?[_-]DMSO", " DMSO", condition),
-               condition = sub("( ORF)?[_-]ETP", " ETP", condition),
                condition = sub("LFC$", "LFC DMSO/ETP", condition),
                cells = sub(" .*$", "", condition),
                cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
                cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
                condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%
         tidyr::spread(condition, value) %>%
-        left_join(orflib %>% select(`Construct IDs`, `INSERT LENGTH`)) %>%
         group_by(cells) %>%
-        mutate(`LFC DMSO/ETP` = DMSO - ETP, # otherwise missing WM266-4
-               z_LFC = loess_z(DMSO, `LFC DMSO/ETP`),
-               z_INS = loess_z(ETP, `INSERT LENGTH`)) %>% #FIXME: field names
+        mutate(z_LFC = loess_z(DMSO, `LFC DMSO/ETP`)) %>%
         ungroup() %>%
         left_join(tissues %>% select(-comment))
 

@@ -23,8 +23,9 @@ rule overview_naive:
     shell:
         "Rscript {input.rscript}"
             " --tissues {input.tissues}"
-            " --orflib {input.orflib}"
-            " --orfscreen {input.orfscreen}"
+#            " --orflib {input.orflib}"
+#            " --orfscreen {input.orfscreen}"
+            " --orflib {input.orfscreen}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 

@@ -14,7 +14,9 @@ cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 rule all:
     input:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=types, fit=config['fits'])
+                type=types, fit=config['fits']),
+        expand("{tissue}/{fit}_{type}/{gset}.pdf", tissue=config['cor_tissues'],
+                type=types, gset=config['genesets'], fit=['rlm3', 'lm3'])
 
 rule fit:
     input:
@@ -41,7 +43,22 @@ rule plot:
     output:
         plotfile = "{tissue}/{fit}_{type}.pdf"
     group: "fit_and_plot"
+    wildcard_constraints:
+        type = "[a-z]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
+            " --plotfile {output.plotfile}"
+
+rule gset:
+    input:
+        rscript = "gset.r",
+        infile = "{tissue}/{fit}_{type}.xlsx",
+        setfile = genesets("{gset}.rds")
+    output:
+        plotfile = "{tissue}/{fit}_{type}/{gset}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --setfile {input.setfile}"
             " --plotfile {output.plotfile}"

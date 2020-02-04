@@ -68,6 +68,8 @@ rule sets:
     output:
         outfile = "{tissue}/{gset}.xlsx",
         plotfile = "{tissue}/{gset}.pdf"
+    wildcard_constraints:
+        tissue = "[A-Z]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

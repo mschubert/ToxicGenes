@@ -24,6 +24,7 @@ ccle_tissues:
     - pan
     - BRCA
     - LUAD
+    - LUSC
     - SCLC
     - SKCM
     - COADREAD

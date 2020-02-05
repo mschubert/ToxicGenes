@@ -79,6 +79,7 @@ rule plot_manual_sets:
         dset = merge("{tissue}.rds"),
         yaml = "{collec}.yaml"
     output:
+        outfile = "{tissue}/{collec}.xlsx",
         plotfile = "{tissue}/{collec}.pdf"
     resources:
         mem = 8192,
@@ -88,6 +89,7 @@ rule plot_manual_sets:
             " --dset {input.dset}"
             " --yaml {input.yaml}"
             " --tissue {wildcards.tissue}"
+            " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
 rule plot_tissue_with_pan_yaml:

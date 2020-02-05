@@ -11,6 +11,7 @@ args = sys$cmd$parse(
     opt('d', 'dset', 'rds', 'merge/LUAD/genes.rds'),
     opt('y', 'yaml', 'yaml', 'LUAD/top-genes.yaml'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'LUAD'),
+    opt('o', 'outfile', 'xlsx', '/dev/null'),
     opt('p', 'plotfile', 'pdf', 'LUAD/top-genes.pdf'))
 
 select = yaml::read_yaml(args$yaml)
@@ -144,6 +145,11 @@ for (i in seq_along(genes)) {
                subs = factor(subs, levels=c("low", "high", "del", "eu", "amp")),
                dset = factor(dset, levels=c("tcga", "ccle")))
     pmeth = lapply(top, util$plot_meth_quant, ct=ct)
+
+    ###
+    ### save data underlying plots
+    ###
+    writexl::write_xlsx(list(orf=orfdata, ccle=cd, tcga=td, meth=ct), args$outfile)
 
     ###
     ### actually plot

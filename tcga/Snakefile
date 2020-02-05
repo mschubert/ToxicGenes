@@ -52,7 +52,7 @@ rule plot:
 
 rule gset:
     input:
-        rscript = "gset.r",
+        rscript = "../ccle/gset.r",
         infile = "{tissue}/{fit}_{type}.xlsx",
         setfile = genesets("{gset}.rds")
     output:

@@ -43,7 +43,7 @@ load_ccle = function(top) {
     names(dimnames(ccledata$meth)) = c("gene", "CCLE_ID")
     p53mut = ccledata$mut %>%
         filter(gene == "TP53") %>%
-        transmute(CCLE_ID=cline, p53_mut=type) %>%
+        transmute(Name=cline, p53_mut=type) %>%
         na.omit()
     cd = ccledata$clines %>%
         select(CCLE_ID, Name, Site_Primary, cohort=tcga_code) %>%

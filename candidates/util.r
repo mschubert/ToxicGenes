@@ -41,6 +41,10 @@ load_ccle = function(top) {
     names(dimnames(ccledata$copies)) = c("gene", "CCLE_ID")
     names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
     names(dimnames(ccledata$meth)) = c("gene", "CCLE_ID")
+    p53mut = ccledata$mut %>%
+        filter(gene == "TP53") %>%
+        transmute(CCLE_ID=cline, p53_mut=type) %>%
+        na.omit()
     cd = ccledata$clines %>%
         select(CCLE_ID, Name, Site_Primary, cohort=tcga_code) %>%
         left_join(ccledata$copies[intersect(top, rownames(ccledata$copies)),] %>%
@@ -50,6 +54,7 @@ load_ccle = function(top) {
         left_join(ccledata$meth[intersect(top, rownames(ccledata$meth)),] %>%
                   reshape2::melt(value.name="meth")) %>%
         left_join(ccledata$mut %>% dplyr::rename(Name=cline, mut=type)) %>%
+        left_join(p53mut) %>%
         mutate(expr = expr * copies/2, # undo normmatrix normalization
                gene = factor(gene, levels=top),
                mut = factor(mut),
@@ -67,7 +72,7 @@ load_ccle = function(top) {
 
 summary_ccle = function(cd, assocs, et=0.15) {
     to_merge = assocs %>%
-        filter(dset=="ccle", fit=="rlm3", cna=="all") %>%
+        filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
         transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
     abl = cd %>%
         select(gene) %>%
@@ -149,7 +154,7 @@ load_tcga = function(cohort, top, et=0.15) {
 #' @return    data.frame for lines of expected vs observed compensation
 summary_tcga = function(td, assocs, et=0.15) {
     to_merge = assocs %>%
-        filter(dset=="tcga", fit=="rlm3", cna=="all", adj=="puradj") %>%
+        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="puradj") %>%
         transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
     abl = td %>%
         select(gene) %>%

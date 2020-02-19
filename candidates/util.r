@@ -60,7 +60,8 @@ load_ccle = function(top) {
                mut = factor(mut),
                purity = 1) %>%
         group_by(gene) %>%
-            mutate(expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
+            mutate(expr_orig = expr, copies_orig = copies,
+                   expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
                    copies = pmax(pmin(copies, quantile(copies, 0.95)), quantile(copies, 0.05))) %>%
         ungroup() %>%
         group_by(gene) %>%

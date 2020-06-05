@@ -5,6 +5,28 @@ io = import('io')
 seq = import('seq')
 tcga = import('data/tcga')
 
+plot_compare = function(df, x, y) {
+    combined = df %>%
+        mutate(cohort = tcga$barcode2study(Sample))
+
+    stats = combined %>%
+        na.omit() %>%
+        filter(abs({{ x }}) > 0.5 | abs({{ y }}) > 0.5) %>%
+        mutate(dist_from_diagonal = abs({{ x }} - {{ y }})) %>%
+        group_by(cohort) %>%
+        summarize(x = min({{ x }}),
+                  y = max({{ y }}),
+                  frac_within = sum(dist_from_diagonal < 0.5) / length(dist_from_diagonal))
+
+    ggplot(combined, aes(x={{ x }}, y={{ y }})) +
+        geom_abline(slope=1, intercept=c(-0.5,0.5), size=0.5, color="red", linetype="dashed") +
+        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
+        scale_fill_distiller(palette="Spectral") +
+        geom_text(data=stats, color="red", vjust="inward", hjust="inward",
+                  aes(x=x, y=y, label=sprintf("%.0f%% aneup within", 100*frac_within))) +
+        facet_wrap(~ cohort, scales="free")
+}
+
 cohorts = c("BRCA", "CESC", "ESCA", "LGG", "LUAD", "LUSC", "PRAD", "STAD")
 
 fnames = c("./CESC.WES.Tangent_CBS_TumorsOnly.common_samples_for_IGV.hg19.catted.seg.txt",
@@ -55,37 +77,10 @@ wgs_genes = join_overlap_intersect(genes_hg19, wgs_segments) %>%
               ensembl_gene_id = ensembl_gene_id,
               wgs = Segment_Mean)
 
-#stats = combined %>%
-#    na.omit() %>%
-#    mutate(dist_from_diagonal = abs(snp - exome)) %>%
-#    group_by(cohort) %>%
-#    summarize(frac_within = sum(dist_from_diagonal < 0.5) / length(dist_from_diagonal))
-
 pdf("compare.pdf", 16, 10)
-#plot(both$snp, both$exome, alpha=0.1)
-inner_join(snp_genes, exome_genes) %>%
-    mutate(cohort = tcga$barcode2study(Sample)) %>%
-    ggplot(aes(x=snp, y=exome)) +
-        geom_abline(slope=1, intercept=c(-0.5,0.5), size=0.5, color="red", linetype="dashed") +
-        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
-        scale_fill_distiller(palette="Spectral") +
-        facet_wrap(~ cohort, scales="free")
-#gridExtra::grid.table(stats)
-
-inner_join(snp_genes, exome2_genes) %>%
-    mutate(cohort = tcga$barcode2study(Sample)) %>%
-    ggplot(aes(x=snp, y=exome2)) +
-        geom_abline(slope=1, intercept=c(-0.5,0.5), size=0.5, color="red", linetype="dashed") +
-        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
-        scale_fill_distiller(palette="Spectral") +
-        facet_wrap(~ cohort, scales="free")
-
-inner_join(snp_genes, wgs_genes) %>%
-    mutate(cohort = tcga$barcode2study(Sample)) %>%
-    ggplot(aes(x=snp, y=wgs)) +
-        geom_abline(slope=1, intercept=c(-0.5,0.5), size=0.5, color="red", linetype="dashed") +
-        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
-        scale_fill_distiller(palette="Spectral") +
-        facet_wrap(~ cohort, scales="free")
-
+print(plot_compare(inner_join(snp_genes, exome_genes), snp, exome))
+print(plot_compare(inner_join(snp_genes, exome2_genes), snp, exome2))
+print(plot_compare(inner_join(snp_genes, wgs_genes), snp, wgs))
+print(plot_compare(inner_join(wgs_genes, exome_genes), wgs, exome))
+print(plot_compare(inner_join(wgs_genes, exome2_genes), wgs, exome2))
 dev.off()

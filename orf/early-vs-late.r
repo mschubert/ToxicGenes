@@ -32,11 +32,16 @@ etp = readxl::read_xlsx("../data/orf/ORF_DMSO-ETP_2019-07.xlsx") %>%
            )) %>%
     tidyr::spread("condition", "value")
 
-both = inner_join(etp, size)
+ov = readRDS("overview.rds") %>%
+    select(`Construct IDs`, cline=cells, z_LFC)
+
+both = inner_join(etp, size) %>%
+    left_join(ov)
 #plot(both$`INSERT LENGTH`, both$`ORF LENGTH`)
 
 pdf("early-vs-late.pdf", 10, 8)
 print(plot_one(both, `ORF LENGTH`, early))
 print(plot_one(both, `ORF LENGTH`, late))
 print(plot_one(both, `ORF LENGTH`, `LFC DMSO/ETP`))
+print(plot_one(both, `ORF LENGTH`, z_LFC))
 dev.off()

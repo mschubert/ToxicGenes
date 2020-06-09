@@ -15,7 +15,7 @@ plot_one = function(df, x, y, nbin=50) {
 size = readr::read_tsv("../data/orf/20101003_ORF-size-plasmid.txt")
 info = size[c("X9", "X10")]
 info = info[rowSums(is.na(info)) < ncol(info),]
-size = size %>% select(-(WARNINGS:X10))
+size = size %>% select(-WARNINGS, -(X8:X10))
 
 etp = readxl::read_xlsx("../data/orf/ORF_DMSO-ETP_2019-07.xlsx") %>%
     tidyr::gather("condition", "value", -(1:4)) %>%
@@ -35,13 +35,17 @@ etp = readxl::read_xlsx("../data/orf/ORF_DMSO-ETP_2019-07.xlsx") %>%
 ov = readRDS("overview.rds") %>%
     select(`Construct IDs`, cline=cells, z_LFC)
 
+lib = size %>%
+    tidyr::gather("cline", "log rpm", -(`Construct Barcode`:`ORF LENGTH`))
+
 both = inner_join(etp, size) %>%
     left_join(ov)
 #plot(both$`INSERT LENGTH`, both$`ORF LENGTH`)
 
 pdf("early-vs-late.pdf", 10, 8)
-print(plot_one(both, `ORF LENGTH`, early))
-print(plot_one(both, `ORF LENGTH`, late))
-print(plot_one(both, `ORF LENGTH`, `LFC DMSO/ETP`))
-print(plot_one(both, `ORF LENGTH`, z_LFC))
+print(plot_one(lib, `ORF LENGTH`, `log rpm`) + ggtitle("Library representation"))
+print(plot_one(both, `ORF LENGTH`, early) + labs(y="log rpm", title="Early time point"))
+print(plot_one(both, `ORF LENGTH`, late) + labs(y="log rpm", title="Late time point"))
+print(plot_one(both, `ORF LENGTH`, `LFC DMSO/ETP`) + ggtitle("Early vs. Late TP"))
+print(plot_one(both, `ORF LENGTH`, z_LFC) + ggtitle("Early vs. Late TP"))
 dev.off()

@@ -20,7 +20,7 @@ loess_z = function(x, y) {
 }
 
 stat_loess_sd = function(mapping = NULL, data = NULL, geom = "line",
-                        position = "identity", na.rm = FALSE, show.legend = NA, 
+                        position = "identity", na.rm = FALSE, show.legend = NA,
                         inherit.aes = TRUE, ...) {
 
     statLoessSd = ggproto("statLoessSd", Stat,
@@ -32,7 +32,7 @@ stat_loess_sd = function(mapping = NULL, data = NULL, geom = "line",
         required_aes = c("x", "y")
     )
 
-    layer(stat = statLoessSd, data = data, mapping = mapping, geom = geom, 
+    layer(stat = statLoessSd, data = data, mapping = mapping, geom = geom,
           position = position, show.legend = show.legend, inherit.aes = inherit.aes,
           params = list(na.rm = na.rm, ...))
 }

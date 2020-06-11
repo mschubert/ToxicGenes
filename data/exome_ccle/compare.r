@@ -16,12 +16,15 @@ plot_compare = function(combined, x, y) {
                   frac_within = sum(dist_from_diagonal < 0.25) / length(dist_from_diagonal))
 
     ggplot(combined, aes(x={{ x }}, y={{ y }})) +
-        geom_abline(slope=1, intercept=c(-0.25,0.25), size=0.5, color="red", linetype="dashed") +
         stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
         scale_fill_distiller(palette="Spectral") +
+        geom_abline(slope=1, intercept=c(-0.25,0.25), size=0.5, color="red", linetype="dashed") +
+        annotate(geom="rect", xmin=0.75, xmax=1.25, ymin=0.75, ymax=1.25,
+                 color="black", linetype="dotted", fill="#ffffff00") +
         geom_text(data=stats, color="red", vjust="inward", hjust="inward",
-                  aes(x=x, y=y, label=sprintf("%.0f%% aneup within", 100*frac_within))) #+
+                  aes(x=x, y=y, label=sprintf("%.0f%% aneup within", 100*frac_within))) +
 #        facet_wrap(~ primary_disease, scales="free")
+        coord_fixed()
 }
 
 genes = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE)
@@ -57,7 +60,7 @@ combined = info %>%
     left_join(absolute_genes) %>%
     filter(is.na(snp)+ is.na(exome) + is.na(absolute) < 2)
 
-pdf("compare.pdf", 16, 10)
+pdf("compare.pdf", 10, 8)
 print(plot_compare(combined, snp, exome))
 print(plot_compare(combined, snp, absolute))
 print(plot_compare(combined, exome, absolute))

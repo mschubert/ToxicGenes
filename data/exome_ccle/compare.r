@@ -16,8 +16,8 @@ plot_compare = function(combined, x, y) {
                   frac_within = sum(dist_from_diagonal < 0.25) / length(dist_from_diagonal))
 
     ggplot(combined, aes(x={{ x }}, y={{ y }})) +
-        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
-        scale_fill_distiller(palette="Spectral") +
+        stat_bin2d(aes(fill=after_stat(count)), binwidth=c(0.1, 0.1)) +
+        scale_fill_distiller(palette="Spectral", trans="log10") +
         geom_abline(slope=1, intercept=c(-0.25,0.25), size=0.5, color="red", linetype="dashed") +
         annotate(geom="rect", xmin=0.75, xmax=1.25, ymin=0.75, ymax=1.25,
                  color="black", linetype="dotted", fill="#ffffff00") +
@@ -44,7 +44,10 @@ absolute_genes = join_overlap_intersect(genes, absolute_segments) %>%
     transmute(DepMap_ID = depMapID,
               gene = external_gene_name,
               absolute = Modal_Total_CN + Subclonal_HSCN_a1 + Subclonal_HSCN_a2) %>%
-    mutate(absolute = log2(absolute/2+1)) # same as exome
+    group_by(DepMap_ID) %>%
+        mutate(absolute = absolute / mean(absolute, na.rm=TRUE)) %>%
+    ungroup() %>%
+    mutate(absolute = log2(absolute+1)) # same as exome
 
 snp_genes = readRDS("../ccle/dset.rds")$copies %>%
     reshape2::melt() %>%

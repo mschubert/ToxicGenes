@@ -98,7 +98,8 @@ do_plot = function(a1, a2, smat, cap=20, wald=1.5, label=c(20, 10, 20, 3), cap_n
             aes(label=label, color=type, fontface=fface),
             size=2, na.rm=TRUE, segment.alpha=0.3, fill="#ffffffc0",
             label.padding=0.1, max.iter=1e4, min.segment.length=0) +
-        labs(subtitle = subt)
+        labs(subtitle = subt) +
+        theme_classic()
 }
 
 sys$run({
@@ -123,7 +124,6 @@ sys$run({
         mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat,
                                    label=c(20, 10, 20, 3)))
 
-    theme_set(cowplot::theme_cowplot())
     pdf(args$plotfile, 10, 10)
     for (i in seq_len(nrow(plots)))
         print(plots$plots[[i]] + ggtitle(sprintf("%s vs %s", plots$a1[i], plots$a2[i])))

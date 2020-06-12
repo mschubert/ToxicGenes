@@ -2,7 +2,6 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 library(plyranges)
-theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 seq = import('seq')
 plt = import('plot')
@@ -151,7 +150,8 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
                            labels=levels(td$mut)) +
         guides(fill=guide_legend(title="")) +
         labs(title = variable,
-             y = "normalized read count")
+             y = "normalized read count") +
+        theme_classic()
 }
 
 pdf(args$plotfile, 24, 8)

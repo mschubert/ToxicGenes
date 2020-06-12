@@ -1,7 +1,6 @@
 library(dplyr)
 library(ggplot2)
 library(patchwork)
-theme_set(cowplot::theme_cowplot())
 idmap = import('process/idmap')
 tcga = import('data/tcga')
 
@@ -28,6 +27,7 @@ plot_stats = function(dset, gene) {
         facet_wrap(~ dset + fit, scale="free_x", nrow=1) +
         coord_cartesian(ylim=c(0,yaxis_floor)) +
         labs(title = gene) +
+        theme_classic() +
         theme(axis.text.x = element_blank(),
               axis.title.x = element_blank(),
               axis.title.y = element_blank())
@@ -270,6 +270,56 @@ stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
     )
 }
 
+#' 2D tile convolution for survival fit
+#'
+#' @param bins      Number of bins to partition data in x and y axis (default: 20)
+#' @param se_alpha  Alpha of tiles corresponds to confidence (default: FALSE)
+#' @param se_size   Size of tiles corresponds to confidence (default: FALSE)
+stat_surv2d = function(mapping = NULL, data = NULL, geom = "tile",
+        position = "identity", na.rm = FALSE, show.legend = NA,
+        inherit.aes = TRUE, bins = 20, se_alpha=FALSE, se_size=FALSE, ...) {
+    surv2d = ggproto("surv2d", Stat, # also: sd/se as alpha?; pts<=density?
+        compute_group = function(data, scales, bins=20, se_alpha=FALSE, se_size=FALSE) {
+            rx = range(data$x, na.rm=TRUE)
+            ry = range(data$y, na.rm=TRUE)
+            df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
+                             y = seq(ry[1], ry[2], length.out=bins))
+            df$width = rep(diff(rx) / (bins - 1), bins)
+            df$height = rep(diff(ry) / (bins - 1), each=bins)
+
+            compute_gridpt = function(i, j) {
+#                keep_x = with(data, x > )
+#                keep_y = with(data, y ...)
+                res = survival::coxph(survival::Surv(time, status) ~ 1,
+                                      data=data[keep_x & keep_y])
+                broom::tidy(res)
+            }
+
+            lsurf = mgcv::gam(fill ~ s(x, y), data=data, select=TRUE)
+            pred = predict(lsurf, newdata=df, se=TRUE)
+            df$fill = c(pred$fit)
+
+            cor_factor = pmax(0.1, 1 - 2*(c(pred$se.fit)/(eff_max-eff_min)))
+
+            if (se_alpha)
+                df$alpha = cor_factor
+            if (se_size) {
+                df$width = df$width * cor_factor
+                df$height = df$height * cor_factor
+            }
+            df
+        },
+        required_aes = c("x", "y", "status", "time")
+    )
+
+    layer(
+        stat = surv2d, data = data, mapping = mapping, geom = geom,
+        position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+        params = list(bins = bins, se_alpha=se_alpha, se_size=se_size, cap_z=cap_z,
+                      na.rm = na.rm, ...)
+    )
+}
+
 #' Quantify methylation differences
 #'
 #' @param ct  Merged CCLE and TCGA data.frame
@@ -316,5 +366,6 @@ plot_meth_quant = function(ct, g) {
         scale_color_manual(labels=c("ns", "p<0.05"), values=c("grey20", "blue"), guide=FALSE) +
         scale_fill_manual(labels=c("amp", "del", "eu"), guide=FALSE,
                           values=c("#83242455", "#3A3A9855", "white")) +
-        ggtitle(g)
+        ggtitle(g) +
+        theme_classic()
 }

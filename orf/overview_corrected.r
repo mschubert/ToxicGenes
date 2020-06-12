@@ -1,4 +1,4 @@
-library(cowplot)
+library(ggplot2)
 io = import('io')
 sys = import('sys')
 ov = import('./overview_naive')
@@ -13,7 +13,8 @@ plot_overview = function(data, title, label_top=20) {
         ggrepel::geom_label_repel(aes(label=label), size=2) +
         labs(title = title,
              x = "DMSO",
-             y = "LFC DMSO/ETP z-score")
+             y = "LFC DMSO/ETP z-score") +
+        theme_classic()
 }
 
 args = sys$cmd$parse(

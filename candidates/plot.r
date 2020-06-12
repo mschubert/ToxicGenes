@@ -1,7 +1,6 @@
 library(dplyr)
 library(ggplot2)
 library(patchwork)
-theme_set(cowplot::theme_cowplot())
 sys = import('sys')
 plt = import('plot')
 util = import('./util')
@@ -54,7 +53,8 @@ for (i in seq_along(genes)) {
         geom_hline(yintercept=c(-1,1), color="red", linetype="dotted") +
         geom_point(aes(color=tissue, shape=factor(construct_i)), size=3, alpha=0.6) +
         facet_wrap(~ `GENE SYMBOL`, drop=FALSE) +
-        ggtitle("ORF drop-out (loess normalized, red line: mean +/- SD)")
+        ggtitle("ORF drop-out (loess normalized, red line: mean +/- SD)") +
+        theme_classic()
 
     ###
     ### CCLE data
@@ -93,7 +93,8 @@ for (i in seq_along(genes)) {
         scale_alpha_manual(guide="none", values=alphas) +
         labs(title = paste("CCLE compensation;",
                            "95th% shown (expr/copies); yellow=euploid"),
-             y = "normalized read count")
+             y = "normalized read count") +
+        theme_classic()
 
     ###
     ### TCGA data

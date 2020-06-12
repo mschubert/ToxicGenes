@@ -1,0 +1,13 @@
+# manually selected genes for possible follow-up
+genes:
+  selected:
+    - RBM12
+    - CPSF6
+    - HNRNPC
+    - HNRNPK
+    - SOX5 # did not pass filter
+    - SRSF6
+    - ZBTB14
+    - ZNF341
+methods:
+    - rlm3

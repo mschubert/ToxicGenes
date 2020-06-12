@@ -62,11 +62,11 @@ load_ccle = function(top) {
                gene = factor(gene, levels=top),
                mut = factor(mut),
                purity = 1) %>%
-        group_by(gene) %>%
-            mutate(expr_orig = expr, copies_orig = copies,
-                   expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
-                   copies = pmax(pmin(copies, quantile(copies, 0.95)), quantile(copies, 0.05))) %>%
-        ungroup() %>%
+#        group_by(gene) %>%
+#            mutate(expr_orig = expr, copies_orig = copies,
+#                   expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
+#                   copies = pmax(pmin(copies, quantile(copies, 0.95)), quantile(copies, 0.05))) %>%
+#        ungroup() %>%
         group_by(gene) %>%
             mutate(meth_class = rank(meth, ties="min", na="keep") / sum(!is.na(meth)),
                    meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
@@ -136,11 +136,11 @@ load_tcga = function(cohort, top, et=0.15) {
         inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
         mutate(cancer_copies = (copies - 2) / purity + 2) %>%
         group_by(gene) %>%
-            filter(expr > quantile(expr, 0.02) & expr < quantile(expr, 0.98)) %>%
-            mutate(expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),
-                   copies = pmax(pmin(copies, quantile(copies, 0.98)), quantile(copies, 0.02)),
-                   cancer_copies = pmax(pmin(copies, quantile(cancer_copies, 0.98)),
-                                        quantile(cancer_copies, 0.02))) %>%
+            filter(expr > quantile(expr, 0.01) & expr < quantile(expr, 0.99)) %>%
+            mutate(expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
+                   copies = pmax(pmin(copies, quantile(copies, 0.99)), quantile(copies, 0.01)),
+                   cancer_copies = pmax(pmin(copies, quantile(cancer_copies, 0.99)),
+                                        quantile(cancer_copies, 0.01))) %>%
         ungroup() %>%
         left_join(tcga_mut) %>%
         left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%

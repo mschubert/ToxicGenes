@@ -62,9 +62,9 @@ for (i in seq_along(genes)) {
         sizes = c(3, 1.5) # mut, wt
         alphas = c(0.5, 0.5)
     } else {
-        cd = filter(cd, cohort == args$tissue) %>%
-            mutate(Name = ifelse(expr == expr_orig & copies == copies_orig, Name,
-                        sprintf("%s\n%.1f;%.1g", Name, copies_orig, expr_orig)))
+        cd = filter(cd, cohort == args$tissue) #%>%
+#            mutate(Name = ifelse(expr == expr_orig & copies == copies_orig, Name,
+#                        sprintf("%s\n%.1f;%.1g", Name, copies_orig, expr_orig)))
         sizes = c(2, 3) # mut, wt
         alphas = c(0.8, 1)
     }
@@ -118,7 +118,8 @@ for (i in seq_along(genes)) {
         scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
         labs(title = paste("cancer copy TCGA compensation;",
                            "98th% shown (expr/copies); dashed line model, solid capped data"),
-             y = "normalized read count")
+             y = "normalized read count") +
+        theme_classic()
 
     ###
     ### Methylation quantification

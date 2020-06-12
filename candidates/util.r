@@ -112,13 +112,13 @@ load_tcga = function(cohort, top, et=0.15) {
     }
     tcga_expr = load_expr(cohort, top) # only primary because purity() only
     tcga_cns = load_copies(cohort, top) # has those samples
-    if (cohort == "pan")
-        tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
-    else
-        tcga_meth = tcga$meth(cohort, cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
-    tcga_meth = tcga_meth %>%
-        reshape2::melt() %>%
-        transmute(sample = Var2, gene = Var1, meth = value)
+#    if (cohort == "pan")
+#        tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
+#    else
+#        tcga_meth = tcga$meth(cohort, cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
+#    tcga_meth = tcga_meth %>%
+#        reshape2::melt() %>%
+#        transmute(sample = Var2, gene = Var1, meth = value)
     tcga_mut = tcga$mutations() %>%
         transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
     names(dimnames(tcga_expr)) = c("gene", "sample")
@@ -144,11 +144,11 @@ load_tcga = function(cohort, top, et=0.15) {
         ungroup() %>%
         left_join(tcga_mut) %>%
         left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%
-        left_join(tcga_meth) %>%
-        group_by(gene, cohort) %>%
-            mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
-                   meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%
-        ungroup() %>%
+#        left_join(tcga_meth) %>%
+#        group_by(gene, cohort) %>%
+#            mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
+#                   meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%
+#        ungroup() %>%
         mutate(gene = factor(gene, levels=top))
 }
 

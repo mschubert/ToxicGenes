@@ -5,6 +5,8 @@ idmap = import('process/idmap')
 tcga = import('data/tcga')
 
 quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
+shapes = c("oe", "amp", "del", "all")
+shape_i = c(21, 24, 25, 23)
 
 #' Plot summary statistics of associations using FDR and percentiles
 #'
@@ -12,6 +14,7 @@ quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
 #' @param gene  Character string which gene to plot
 #' @return      ggplot2 object
 plot_stats = function(dset, gene) {
+    yaxis_floor = dset %>% filter(name %in% gene) %>% pull(statistic) %>% min(na.rm=TRUE)
     cur = filter(dset, name == gene) %>%
         mutate(cna = factor(cna, levels=shapes),
                label = ifelse(adj %in% c("none", "puradj"),
@@ -71,7 +74,7 @@ load_ccle = function(top) {
         ungroup()
 }
 
-summary_ccle = function(cd, assocs, et=0.15) {
+summary_ccle = function(cd, assocs, top, et=0.15) {
     to_merge = assocs %>%
         filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
         transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
@@ -153,7 +156,7 @@ load_tcga = function(cohort, top, et=0.15) {
 #'
 #' @param td  data.frame from load_tcga()
 #' @return    data.frame for lines of expected vs observed compensation
-summary_tcga = function(td, assocs, et=0.15) {
+summary_tcga = function(td, assocs, top, et=0.15) {
     to_merge = assocs %>%
         filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="puradj") %>%
         transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)

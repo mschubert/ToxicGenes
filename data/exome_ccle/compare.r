@@ -43,7 +43,7 @@ absolute_genes = join_overlap_intersect(genes, absolute_segments) %>%
     as.data.frame() %>% as_tibble() %>%
     transmute(DepMap_ID = depMapID,
               gene = external_gene_name,
-              absolute = Modal_Total_CN + Subclonal_HSCN_a1 + Subclonal_HSCN_a2) %>%
+              absolute = Modal_Total_CN) %>%
     group_by(DepMap_ID) %>%
         mutate(absolute = absolute / mean(absolute, na.rm=TRUE)) %>%
     ungroup() %>%

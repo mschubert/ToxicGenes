@@ -16,16 +16,17 @@ rule overview_naive:
         rscript = "overview_naive.r",
         tissues = "../data/orf/tissues.txt",
         orflib = "../data/orf/20101003_ORF-size-plasmid.txt",
-        orfscreen = "../data/orf/ORF_DMSO-ETP_2019-07.xlsx"
+        orfscreen = "../data/orf/ORF_DMSO-ETP_2019-07.xlsx",
+        orfscreen2 = "../data/orf/ORF_DMSO_2019-02.txt"
     output:
         outfile = "overview.rds",
         plotfile = "overview_naive.pdf"
     shell:
         "Rscript {input.rscript}"
             " --tissues {input.tissues}"
-#            " --orflib {input.orflib}"
-#            " --orfscreen {input.orfscreen}"
-            " --orflib {input.orfscreen}"
+            " --orflib {input.orflib}"
+            " --orfscreen {input.orfscreen}"
+            " --orfscreen2 {input.orfscreen2}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 

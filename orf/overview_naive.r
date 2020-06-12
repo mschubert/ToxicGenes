@@ -53,17 +53,26 @@ plot_overview = function(data, title, label_top=20) {
 if (is.null(module_name())) {
     args = sys$cmd$parse(
         opt('t', 'tissues', 'txt', '../data/orf/tissues.txt'),
-        opt('l', 'orflib', 'txt', '../data/orf/ORF_DMSO_2019-02.txt'),
+        opt('l', 'orflib', 'txt', '../data/orf/20101003_ORF-size-plasmid.txt'), # ignored (for now)
+        opt('s', 'orfscreen', 'xlsx', '../data/orf/ORF_DMSO-ETP_2019-07.xlsx'),
+        opt('x', 'orfscreen2', 'txt', '../data/orf/ORF_DMSO_2019-02.txt'),
         opt('o', 'outfile', 'rds', 'overview.rds'),
         opt('p', 'plotfile', 'pdf', 'overview_naive.pdf'))
 
     tissues = io$read_table(args$tissues, header=TRUE)
 
-    expr = io$read_table(args$orflib, header=TRUE) %>%
+    missing = readr::read_tsv(args$orfscreen2) %>%
         tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
+        filter(condition %in% c("WM266-4 LFC")) # "WM266-4 DMSO" in both
+
+    expr = readxl::read_xlsx(args$orfscreen) %>%
+        tidyr::gather("condition", "value", -(`Construct Barcode`:`BEST GENE MATCH`)) %>%
+        bind_rows(missing) %>%
+        filter(condition != "Hs936T ETP") %>% # don't have LTP/LFC for this line
         mutate(condition = sub("( ORF)?[_-]DMSO", " DMSO", condition),
                condition = sub("LFC$", "LFC DMSO/ETP", condition),
                cells = sub(" .*$", "", condition),
+               cells = sub("-ETP", "", cells, fixed=TRUE),
                cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
                cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
                condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%

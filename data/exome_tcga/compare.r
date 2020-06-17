@@ -11,17 +11,19 @@ plot_compare = function(df, x, y) {
 
     stats = combined %>%
         na.omit() %>%
-        filter(abs({{ x }}) > 0.5 | abs({{ y }}) > 0.5) %>%
+        filter(abs({{ x }}) > 0.25 | abs({{ y }}) > 0.25) %>%
         mutate(dist_from_diagonal = abs({{ x }} - {{ y }})) %>%
         group_by(cohort) %>%
         summarize(x = min({{ x }}),
                   y = max({{ y }}),
-                  frac_within = sum(dist_from_diagonal < 0.5) / length(dist_from_diagonal))
+                  frac_within = sum(dist_from_diagonal < 0.25) / length(dist_from_diagonal))
 
     ggplot(combined, aes(x={{ x }}, y={{ y }})) +
-        geom_abline(slope=1, intercept=c(-0.5,0.5), size=0.5, color="red", linetype="dashed") +
-        stat_bin2d(aes(fill=after_stat(log(count+1))), binwidth=c(0.1, 0.1)) +
-        scale_fill_distiller(palette="Spectral") +
+        stat_bin2d(aes(fill=after_stat(count)), binwidth=c(0.1, 0.1)) +
+        scale_fill_distiller(palette="Spectral", trans="log10") +
+        geom_abline(slope=1, intercept=c(-0.25,0.25), size=0.5, color="red", linetype="dashed") +
+        annotate(geom="rect", xmin=0.75, xmax=1.25, ymin=0.75, ymax=1.25,
+                 color="black", linetype="dotted", fill="#ffffff00") +
         geom_text(data=stats, color="red", vjust="inward", hjust="inward",
                   aes(x=x, y=y, label=sprintf("%.0f%% aneup within", 100*frac_within))) +
         facet_wrap(~ cohort, scales="free")

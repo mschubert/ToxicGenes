@@ -37,6 +37,11 @@ fnames = c("./CESC.WES.Tangent_CBS_TumorsOnly.common_samples_for_IGV.hg19.catted
 genes_hg19 = seq$coords$gene(idtype="ensembl_gene_id", assembly="GRCh37", granges=TRUE)
 genes_hg38 = seq$coords$gene(idtype="ensembl_gene_id", assembly="GRCh38", granges=TRUE)
 
+purity = tcga$purity() %>%
+    transmute(Sample = Sample,
+              purity = estimate) %>%
+    na.omit()
+
 exome_copies = lapply(fnames, readr::read_tsv) %>%
     bind_rows() %>%
     mutate(Sample = gsub(".", "-", Sample, fixed=TRUE)) %>%
@@ -46,7 +51,7 @@ exome_genes = join_overlap_intersect(genes_hg19, exome_copies) %>%
     as_tibble() %>%
     transmute(Sample = substr(sub("^[^-]+", "TCGA", Sample), 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              exome = log(2^Segment_Mean + 1))
+              exome = log(2^(Segment_Mean+1) + 1))
 
 exome2_copies = readr::read_csv("tcga_total_cn_profiles_june1.seg") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
@@ -88,17 +93,21 @@ ascat_segments = tcga$cna_segments_ascat(granges=TRUE) %>%
 ascat_genes = join_overlap_intersect(genes_hg38, ascat_segments) %>%
     as.data.frame() %>%
     as_tibble() %>%
+    left_join(purity) %>%
     group_by(Sample) %>%
-        mutate(Copy_Number = Copy_Number / mean(Copy_Number, na.rm=TRUE)) %>%
+        mutate(Copy_Number = Copy_Number / mean(Copy_Number, na.rm=TRUE),
+               corrected = (Copy_Number - 1) * purity + 1) %>% # reverse correction
     ungroup() %>%
     transmute(Sample = substr(Sample, 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              ascat = log2(Copy_Number + 1))
+              ascat = log2(Copy_Number + 1),
+              ascat_corrected = log2(corrected + 1))
 
 pdf("compare.pdf", 16, 10)
 print(plot_compare(inner_join(snp_genes, exome_genes), snp, exome))
 print(plot_compare(inner_join(snp_genes, exome2_genes), snp, exome2))
 print(plot_compare(inner_join(snp_genes, ascat_genes), snp, ascat))
+print(plot_compare(inner_join(snp_genes, ascat_genes), snp, ascat_corrected))
 print(plot_compare(inner_join(snp_genes, wgs_genes), snp, wgs))
 print(plot_compare(inner_join(wgs_genes, exome_genes), wgs, exome))
 print(plot_compare(inner_join(wgs_genes, exome2_genes), wgs, exome2))

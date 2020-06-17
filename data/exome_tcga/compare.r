@@ -33,6 +33,7 @@ fnames = c("./CESC.WES.Tangent_CBS_TumorsOnly.common_samples_for_IGV.hg19.catted
            "./LGG_LUSC_PRAD_STAD_252exome_woCNV_hg19.catted.seg.txt")
 
 genes_hg19 = seq$coords$gene(idtype="ensembl_gene_id", assembly="GRCh37", granges=TRUE)
+genes_hg38 = seq$coords$gene(idtype="ensembl_gene_id", assembly="GRCh38", granges=TRUE)
 
 exome_copies = lapply(fnames, readr::read_tsv) %>%
     bind_rows() %>%
@@ -77,10 +78,21 @@ wgs_genes = join_overlap_intersect(genes_hg19, wgs_segments) %>%
               ensembl_gene_id = ensembl_gene_id,
               wgs = Segment_Mean)
 
+ascat_segments = tcga$cna_segments_ascat(granges=TRUE) %>%
+    filter(tcga$barcode2study(Sample) %in% cohorts)
+ascat_genes = join_overlap_intersect(genes_hg38, ascat_segments) %>%
+    as.data.frame() %>%
+    as_tibble() %>%
+    transmute(Sample = substr(Sample, 1, 12),
+              ensembl_gene_id = ensembl_gene_id,
+              ascat = Copy_Number)
+
 pdf("compare.pdf", 16, 10)
 print(plot_compare(inner_join(snp_genes, exome_genes), snp, exome))
 print(plot_compare(inner_join(snp_genes, exome2_genes), snp, exome2))
+print(plot_compare(inner_join(snp_genes, ascat_genes), snp, ascat))
 print(plot_compare(inner_join(snp_genes, wgs_genes), snp, wgs))
 print(plot_compare(inner_join(wgs_genes, exome_genes), wgs, exome))
 print(plot_compare(inner_join(wgs_genes, exome2_genes), wgs, exome2))
+print(plot_compare(inner_join(wgs_genes, ascat_genes), wgs, ascat))
 dev.off()

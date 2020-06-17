@@ -44,16 +44,19 @@ exome_genes = join_overlap_intersect(genes_hg19, exome_copies) %>%
     as_tibble() %>%
     transmute(Sample = substr(sub("^[^-]+", "TCGA", Sample), 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              exome = Segment_Mean)
+              exome = log(2^Segment_Mean + 1))
 
 exome2_copies = readr::read_csv("tcga_total_cn_profiles_june1.seg") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 exome2_genes = join_overlap_intersect(genes_hg19, exome2_copies) %>%
     as.data.frame() %>%
     as_tibble() %>%
+    group_by(tcga_barcode) %>%
+        mutate(Total_CN = Total_CN / mean(Total_CN, na.rm=TRUE)) %>%
+    ungroup() %>%
     transmute(Sample = substr(sub("^[^-]+", "TCGA", tcga_barcode), 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              exome2 = log2(Total_CN) - 1)
+              exome2 = log2(Total_CN + 1))
 
 snp_genes = lapply(cohorts, tcga$cna_genes) %>%
     narray::stack(along=2) %>%
@@ -62,7 +65,7 @@ snp_genes = lapply(cohorts, tcga$cna_genes) %>%
     filter(substr(Var2, 14, 16) == "01A") %>%
     transmute(Sample = substr(gsub(".", "-", Var2, fixed=TRUE), 1, 12),
               ensembl_gene_id = Var1,
-              snp = log2(value) - 1)
+              snp = log2(value/2 + 1))
 
 wgs_segments = setdiff(cohorts, c("LUAD", "LUSC")) %>%
     paste0("/data/p282396/data/tcga/TCGAbiolinks-downloader/wgs_segments/TCGA-", ., ".RData") %>%
@@ -76,16 +79,19 @@ wgs_genes = join_overlap_intersect(genes_hg19, wgs_segments) %>%
     as_tibble() %>%
     transmute(Sample = substr(sub("^[^-]+", "TCGA", Sample), 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              wgs = Segment_Mean)
+              wgs = log2(2^Segment_Mean + 1))
 
 ascat_segments = tcga$cna_segments_ascat(granges=TRUE) %>%
     filter(tcga$barcode2study(Sample) %in% cohorts)
 ascat_genes = join_overlap_intersect(genes_hg38, ascat_segments) %>%
     as.data.frame() %>%
     as_tibble() %>%
+    group_by(Sample) %>%
+        mutate(Copy_Number = Copy_Number / mean(Copy_Number, na.rm=TRUE)) %>%
+    ungroup() %>%
     transmute(Sample = substr(Sample, 1, 12),
               ensembl_gene_id = ensembl_gene_id,
-              ascat = Copy_Number)
+              ascat = log2(Copy_Number + 1))
 
 pdf("compare.pdf", 16, 10)
 print(plot_compare(inner_join(snp_genes, exome_genes), snp, exome))

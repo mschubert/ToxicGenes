@@ -89,7 +89,7 @@ for (i in seq_along(genes)) {
         scale_size_manual(guide="none", values=sizes) +
         scale_alpha_manual(guide="none", values=alphas) +
         labs(title = paste("CCLE compensation;",
-                           "95th% shown (expr/copies); yellow=euploid"),
+                           "99th% shown (expr/copies); yellow=euploid"),
              y = "normalized read count") +
         theme_classic()
 
@@ -101,12 +101,14 @@ for (i in seq_along(genes)) {
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 #        util$stat_loess2d(aes(fill=meth_eup_scaled), se_size=TRUE) +
         geom_density2d(bins=20, color="#00000050") +
+        stat_bin2d(aes(fill=after_stat(count)), bins=30) +
+        scale_fill_distiller(palette="Spectral", trans="log10") +
         geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
         facet_wrap(~ gene, scales="free") +
-        scale_fill_gradient2(low="blue", mid="white", high="red") +
+#        scale_fill_gradient2(low="blue", mid="white", high="red") +
         scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
                            values=c("brown", "red", "blue", "#000000ff"),
                            labels=c("full", "none", "observed", "x")) +
@@ -115,9 +117,9 @@ for (i in seq_along(genes)) {
                            labels=levels(td$mut)) +
         scale_size_manual(name="has mut", guide="none",
                            values=c(2, 1), labels=c("mut", "wt")) +
-        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
+#        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
         labs(title = paste("cancer copy TCGA compensation;",
-                           "98th% shown (expr/copies); dashed line model, solid capped data"),
+                           "99th% shown (expr/copies); dashed line model, solid capped data"),
              y = "normalized read count") +
         theme_classic()
 

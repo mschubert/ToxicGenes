@@ -62,11 +62,11 @@ load_ccle = function(top) {
                gene = factor(gene, levels=top),
                mut = factor(mut),
                purity = 1) %>%
-#        group_by(gene) %>%
-#            mutate(expr_orig = expr, copies_orig = copies,
-#                   expr = pmax(pmin(expr, quantile(expr, 0.95)), quantile(expr, 0.05)),
-#                   copies = pmax(pmin(copies, quantile(copies, 0.95)), quantile(copies, 0.05))) %>%
-#        ungroup() %>%
+        group_by(gene) %>%
+            mutate(expr_orig = expr, copies_orig = copies,
+                   expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
+                   copies = pmax(pmin(copies, quantile(copies, 0.99)), quantile(copies, 0.01))) %>%
+        ungroup() %>%
         group_by(gene) %>%
             mutate(meth_class = rank(meth, ties="min", na="keep") / sum(!is.na(meth)),
                    meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),

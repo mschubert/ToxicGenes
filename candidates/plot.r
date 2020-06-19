@@ -100,8 +100,8 @@ for (i in seq_along(genes)) {
     abl = util$summary_tcga(td, assocs, et=et, top=top)
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 #        util$stat_loess2d(aes(fill=meth_eup_scaled), se_size=TRUE) +
-        geom_density2d(bins=20, color="#00000050") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
+        geom_density2d(bins=20, color="#000000ff") +
         scale_fill_distiller(palette="Spectral", trans="log10") +
         geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +

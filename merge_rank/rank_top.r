@@ -3,7 +3,7 @@ sys = import('sys')
 
 score = function(dset) {
     score = dset %>%
-        filter(adj %in% c("none", "puradj"), #TODO: keep "none" for TCGA too???
+        filter(adj %in% c("none", "pur"), #TODO: keep "none" for TCGA too???
                fit %in% c("lm", args$fit)) %>%
         mutate(rsq = ifelse(dset == "orf", 0.5, rsq), #TODO: better way? (value determines ORF weight)
                estimate = ifelse(dset == "orf", 2^estimate - 1, estimate),

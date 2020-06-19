@@ -72,7 +72,7 @@ for (i in seq_along(genes)) {
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
-        geom_vline(xintercept=c(2-et,2+et), color="grey", linetype="dotted") +
+        geom_vline(xintercept=c(2-et,2+et,1+et,3-et), color="grey", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
         ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
@@ -103,7 +103,7 @@ for (i in seq_along(genes)) {
         geom_density2d(bins=20, color="#00000050") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
         scale_fill_distiller(palette="Spectral", trans="log10") +
-        geom_vline(xintercept=c(2-et,2+et), color="black", linetype="dotted") +
+        geom_vline(xintercept=c(2-et,2+et,1+et,3-et), color="black", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +

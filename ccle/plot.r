@@ -48,7 +48,7 @@ rsq_vs_comp = function(data, title) {
         geom_hline(yintercept=0.05, linetype="dashed") +
         geom_vline(xintercept=0.5, linetype="dashed") +
         ggrepel::geom_label_repel(aes(label=label), size=3, label.size=NA,
-            segment.alpha=0.3, min.segment.length=0, fill="#ffffffc0", label.padding=0.1,) +
+            segment.alpha=0.3, min.segment.length=0, fill="#ffffffc0", label.padding=0.1) +
         theme_classic() +
         labs(title = title, subtitle="compensated")
 }

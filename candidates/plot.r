@@ -57,6 +57,7 @@ for (i in seq_along(genes)) {
     ### CCLE data
     ###
     cd = util$load_ccle(top, et=et)
+    fracs = util$frac_labels(cd, copies, et=et)
     if (args$tissue == "pan") {
         cd$Name = NA # do not label cell lines in pan-can plots (too many)
         sizes = c(3, 1.5) # mut, wt
@@ -76,6 +77,8 @@ for (i in seq_along(genes)) {
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
         ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
+        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust), lineheight=1.0,
+                   label.size=NA, fill="#ffffffc0", size=2.5, vjust=1, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
         scale_color_manual(name="Compensation", guide="legend",
                            values=c("brown", "red", "blue"),
@@ -97,6 +100,7 @@ for (i in seq_along(genes)) {
     ### TCGA data
     ###
     td = util$load_tcga(args$tissue, top, et=et)
+    fracs = util$frac_labels(td, cancer_copies, et=et)
     abl = util$summary_tcga(td, assocs, et=et, top=top)
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
 #        util$stat_loess2d(aes(fill=meth_eup_scaled), se_size=TRUE) +
@@ -107,6 +111,8 @@ for (i in seq_along(genes)) {
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
+        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust), lineheight=1.0,
+                   label.size=NA, fill="#ffffffc0", size=2.5, vjust=1, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
 #        scale_fill_gradient2(low="blue", mid="white", high="red") +
         scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",

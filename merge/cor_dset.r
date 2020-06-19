@@ -118,8 +118,7 @@ sys$run({
 
     ds = unique(assocs$dset)
     plots = expand.grid(a1 = ds, a2 = ds, stringsAsFactors=FALSE) %>%
-        filter(a1 < a2,
-               ! a2 %in% c("tcga_naive", "tcga_pur")) %>%
+        filter(a1 < a2) %>%
         tbl_df() %>%
         mutate(plots = purrr::map2(a1, a2, do_plot, cap=cap, smat=smat,
                                    label=c(20, 10, 20, 3)))

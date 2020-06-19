@@ -17,7 +17,7 @@ plot_stats = function(dset, gene) {
     yaxis_floor = dset %>% filter(name %in% gene) %>% pull(statistic) %>% min(na.rm=TRUE)
     cur = filter(dset, name == gene) %>%
         mutate(cna = factor(cna, levels=shapes),
-               label = ifelse(adj %in% c("none", "puradj"),
+               label = ifelse(adj %in% c("none", "pur"),
                               sprintf("%.2f th\nFDR %.1g", pctile, adj.p), NA))
     ggplot(dset, aes(x=1, y = statistic, color=adj)) +
         geom_hline(yintercept=0, linetype="dashed", color="grey") +
@@ -177,7 +177,7 @@ load_tcga = function(cohort, top, et=0.15) {
 #' @return    data.frame for lines of expected vs observed compensation
 summary_tcga = function(td, assocs, top, et=0.15) {
     to_merge = assocs %>%
-        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="puradj") %>%
+        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="pur") %>%
         transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
     abl = td %>%
         select(gene) %>%

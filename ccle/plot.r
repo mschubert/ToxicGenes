@@ -38,8 +38,11 @@ do_plot = function(data, title) {
 rsq_vs_comp = function(data, title) {
     d2 = data %>%
         filter(slope_diff < 0, rsq > 0) %>%
-        mutate(rnk = rank(-scale(slope_diff, center=FALSE)^2 - scale(rsq, center=FALSE)^2),
-               label = ifelse(rnk < 50, sprintf("%s (%i)", name, n_aneup), NA))
+        mutate(rnk2 = rank(slope_diff * rsq),
+               rnk3 = rank(slope_diff),
+               rnk4 = rank(-rsq),
+               label = ifelse(rnk2 < 30 | rnk3 < 10 | rnk4 < 10,
+                              sprintf("%s (%i)", name, n_aneup), NA))
     ggplot(d2, aes(x=-slope_diff, y=rsq, size=n_aneup)) +
         geom_point(alpha=0.1) +
         geom_hline(yintercept=0.05, linetype="dashed") +
@@ -47,7 +50,7 @@ rsq_vs_comp = function(data, title) {
         ggrepel::geom_label_repel(aes(label=label), size=3, label.size=NA,
             segment.alpha=0.3, min.segment.length=0, fill="#ffffffc0", label.padding=0.1,) +
         theme_classic() +
-        ggtitle(title)
+        labs(title = title, subtitle="compensated")
 }
 
 sys$run({

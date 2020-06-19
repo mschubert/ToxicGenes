@@ -56,7 +56,7 @@ for (i in seq_along(genes)) {
     ###
     ### CCLE data
     ###
-    cd = util$load_ccle(top)
+    cd = util$load_ccle(top, et=et)
     if (args$tissue == "pan") {
         cd$Name = NA # do not label cell lines in pan-can plots (too many)
         sizes = c(3, 1.5) # mut, wt

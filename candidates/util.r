@@ -39,7 +39,7 @@ plot_stats = function(dset, gene) {
 #' Load CCLE data
 #'
 #' @param top  Character vector of genes to load
-load_ccle = function(top) {
+load_ccle = function(top, et=0.15) {
     ccledata = readRDS("../data/ccle/dset.rds")
     names(dimnames(ccledata$copies)) = c("gene", "CCLE_ID")
     names(dimnames(ccledata$eset)) = c("gene", "CCLE_ID")
@@ -65,7 +65,8 @@ load_ccle = function(top) {
         group_by(gene) %>%
             mutate(expr_orig = expr, copies_orig = copies,
                    expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
-                   copies = pmax(pmin(copies, quantile(copies, 0.99)), quantile(copies, 0.01))) %>%
+                   copies = pmin(copies, max(3+et, quantile(copies, 0.99))) %>%
+                                 pmax(min(1-et, quantile(copies, 0.01)))) %>%
         ungroup() %>%
         group_by(gene) %>%
             mutate(meth_class = rank(meth, ties="min", na="keep") / sum(!is.na(meth)),
@@ -138,9 +139,10 @@ load_tcga = function(cohort, top, et=0.15) {
         group_by(gene) %>%
             filter(expr > quantile(expr, 0.01) & expr < quantile(expr, 0.99)) %>%
             mutate(expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
-                   copies = pmax(pmin(copies, quantile(copies, 0.99)), quantile(copies, 0.01)),
-                   cancer_copies = pmax(pmin(copies, quantile(cancer_copies, 0.99)),
-                                        quantile(cancer_copies, 0.01))) %>%
+                   copies = pmin(copies, max(3+et, quantile(copies, 0.99))) %>%
+                                 pmax(min(1-et, quantile(copies, 0.01))),
+                   cancer_copies = pmin(cancer_copies, max(3+et, quantile(cancer_copies, 0.99))) %>%
+                                 pmax(min(1-et, quantile(cancer_copies, 0.01)))) %>%
         ungroup() %>%
         left_join(tcga_mut) %>%
         left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%

@@ -12,7 +12,7 @@ do_plot = function(data, title) {
     data$name[fps] = sprintf("%s:%i", data$name, as.integer(data$estimate))[fps]
     data$estimate[fps] = 10
 
-    p1 = tryCatch({ 
+    p1 = tryCatch({
         p = data %>%
             filter(estimate < 0) %>%
             plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
@@ -21,7 +21,7 @@ do_plot = function(data, title) {
                  subtitle = "compensated")
         plt$try(p)
     }, error = function(e) plt$text(conditionMessage(e)))
-        
+
     p2 = tryCatch({
         p = data %>%
             filter(estimate > 0) %>%
@@ -33,6 +33,21 @@ do_plot = function(data, title) {
     }, error = function(e) plt$text(conditionMessage(e)))
 
     p1 + p2 + plot_layout(nrow=1)
+}
+
+rsq_vs_comp = function(data, title) {
+    d2 = data %>%
+        filter(slope_diff < 0, rsq > 0) %>%
+        mutate(rnk = rank(-scale(slope_diff, center=FALSE)^2 - scale(rsq, center=FALSE)^2),
+               label = ifelse(rnk < 50, sprintf("%s (%i)", name, n_aneup), NA))
+    ggplot(d2, aes(x=-slope_diff, y=rsq, size=n_aneup)) +
+        geom_point(alpha=0.1) +
+        geom_hline(yintercept=0.05, linetype="dashed") +
+        geom_vline(xintercept=0.5, linetype="dashed") +
+        ggrepel::geom_label_repel(aes(label=label), size=3, label.size=NA,
+            segment.alpha=0.3, min.segment.length=0, fill="#ffffffc0", label.padding=0.1,) +
+        theme_classic() +
+        ggtitle(title)
 }
 
 sys$run({
@@ -48,6 +63,7 @@ sys$run({
     for (i in seq_along(fits)) {
         message(names(fits)[i])
         print(do_plot(fits[[i]], names(fits)[i]))
+        print(rsq_vs_comp(fits[[i]], names(fits)[i]))
     }
     dev.off()
 })

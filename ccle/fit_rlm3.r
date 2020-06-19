@@ -66,8 +66,13 @@ sys$run({
     et = yaml::read_yaml(args$config)$euploid_tol
 
     dset = readRDS(args$infile)
-    if (args$tissue != "pan")
-        dset$clines$tcga_code[dset$clines$tcga_code != args$tissue] = NA
+    if (args$tissue != "pan") {
+        keep = dset$clines$tcga_code == args$tissue
+        dset$clines = dset$clines[keep,]
+        dset$copies = dset$copies[,keep]
+        dset$eset = dset$eset[,keep]
+        dset$meth = dset$meth[,keep]
+    }
 
     emat = dset$eset # already copy-normalized in dset
     genes = setNames(rownames(emat), rownames(emat))

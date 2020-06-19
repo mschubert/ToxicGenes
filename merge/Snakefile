@@ -15,8 +15,6 @@ subworkflow tcga:
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
-types = ['naive', 'pur', 'puradj']
-
 rule all:
     input:
         expand("{tissue}.rds", tissue=config['cor_tissues']),
@@ -28,7 +26,8 @@ rule merge_one:
         rscript = "merge.r",
         orf = lambda wc: orf(wc.tissue + "/genes.xlsx"),
         ccle = lambda wc: ccle(expand(wc.tissue + "/{fit}.xlsx", fit=config['fits'])),
-        tcga = lambda wc: tcga(expand(wc.tissue + "/{fit}_{type}.xlsx", fit=config['fits'], type=types))
+        tcga = lambda wc: tcga(expand(wc.tissue + "/{fit}_{type}.xlsx",
+            fit=config['fits'], type=config['tcga_adj']))
     output:
         outfile = "{tissue}.rds"
     shell:

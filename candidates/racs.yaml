@@ -5,7 +5,6 @@ genes:
     - CPSF6
     - HNRNPC
     - HNRNPK
-    - SOX5 # did not pass filter
     - SRSF6
     - ZBTB14
     - ZNF341

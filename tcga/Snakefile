@@ -6,17 +6,15 @@ subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
 
-types = [ "naive", "pur", "puradj" ]
-
 mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
 cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
 
 rule all:
     input:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=types, fit=config['fits']),
+                type=config['tcga_adj'], fit=config['fits']),
         expand("{tissue}/{fit}_{type}/{gset}.pdf", tissue=config['cor_tissues'],
-                type=types, gset=config['genesets'], fit=['rlm3', 'lm3'])
+                type=['tcga_adj'], gset=config['genesets'], fit=['rlm3', 'lm3'])
 
 rule fit:
     input:

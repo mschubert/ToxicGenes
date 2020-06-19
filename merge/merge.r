@@ -24,8 +24,7 @@ ccle = tidyr::crossing(adj = "none",
     })) %>%
     tidyr::unnest("data")
 
-tcga = tidyr::crossing(adj = c("naive", "pur", "puradj"),
-                       fit = cfg$fits,
+tcga = tidyr::crossing(adj = cfg$tcga_adj, fit = cfg$fits,
                        cna = c("amp", "del", "all")) %>%
     mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
         fname = sprintf("../tcga/%s/%s_%s.xlsx", args$tissue, fit, adj)

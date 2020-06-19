@@ -62,7 +62,7 @@ do_fit = function(genes, emat, copies, purity, covar=0, et=0.15, type="pur") {
             filter(term == "cancer_copies") %>%
             select(-term) %>%
             mutate(estimate = 2 * estimate / mean(pred), # pct_comp
-                   n_aneup = sum(abs(df$cancer_copies-2) > et),
+                   n_aneup = sum(abs(df$cancer_copies-2) > 1-et),
                    n_genes = length(genes),
                    eup_reads = mean(pred),
                    slope_diff = 2 * estimate,

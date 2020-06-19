@@ -1,10 +1,16 @@
 #!/bin/sh
 
-rsync -auvr --prune-empty-dirs \
+cd $(dirname $0)
+PROJNAME=${PWD##*/}
+
+rsync -auvr $@ --prune-empty-dirs \
+    --exclude "candidates_mech/" \
     --exclude "data/" \
     --exclude "backup/" \
     --include "*/" \
     --include "*.pdf" \
     --include "*.xlsx" \
     --exclude="*" \
-    $(dirname $0) ~/Documents/Results/ORFdosage
+    . ~/Documents/Results/"$PROJNAME"
+
+cd -

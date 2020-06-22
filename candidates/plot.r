@@ -73,7 +73,8 @@ for (i in seq_along(genes)) {
     stats = assocs %>%
         filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
         transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
-        inner_join(fracs %>% select(gene, min_reads))
+        inner_join(fracs %>% select(gene, min_reads)) %>%
+        mutate(gene = factor(gene, levels=top))
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
@@ -111,7 +112,8 @@ for (i in seq_along(genes)) {
     stats = assocs %>%
         filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="pur") %>%
         transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
-        inner_join(fracs %>% select(gene, min_reads))
+        inner_join(fracs %>% select(gene, min_reads)) %>%
+        mutate(gene = factor(gene, levels=top))
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +

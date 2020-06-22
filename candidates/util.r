@@ -5,8 +5,8 @@ idmap = import('process/idmap')
 tcga = import('data/tcga')
 
 quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
-shapes = c("oe", "amp", "del", "all")
-shape_i = c(21, 24, 25, 23)
+shapes = c("amp", "del", "all", "oe")
+shape_i = c(24, 25, 23, 21)
 
 #' Plot summary statistics of associations using FDR and percentiles
 #'

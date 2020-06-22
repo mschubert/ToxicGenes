@@ -177,31 +177,12 @@ for (i in seq_along(genes)) {
     ###
     ### actually plot
     ###
-    ex_legend = cowplot::get_legend(overview[[1]]) # only way to get the legend to work
-    ov = lapply(seq_len(12+i-1), function(i) {
-        if (i > length(overview))
-            plot_spacer()
-        else {
-            p = overview[[i]]
-            if (class(try(ggplot_build(p))) == "try-error")
-                plot_spacer()
-            else
-                p + guides(color=FALSE, fill=FALSE, shape=FALSE)
-        }
-    })
-    pdf("/dev/null")
-    pg1 = patchworkGrob(
-        ( ( ov[[1]] | ov[[2]] | ov[[3]] | ov[[4]] ) /
-          ( ov[[5]] | ov[[6]] | ov[[7]] | ov[[8]] ) /
-          ( ov[[9]] | ov[[10]] | ov[[11]] | ov[[12]] ) )
-    )
-    dev.off()
-    gridExtra::grid.arrange(pg1, ex_legend, ncol=2, widths=c(10,1))
+    print(patchwork::wrap_plots(lapply(overview, plt$try)) + plot_layout(guides="collect"))
     if (nrow(orfdata) > 0)
         print(porf)
     print(pccle)
     print(ptcga)
-#    print(cowplot::plot_grid(plotlist=pmeth))
+#    print(patchwork::wrap_plots(pmeth))
 }
 
 dev.off()

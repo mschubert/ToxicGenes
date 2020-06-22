@@ -96,11 +96,13 @@ summary_ccle = function(cd, assocs, top, et=0.15) {
 frac_labels = function(dset, copies, et=0.15) {
     fracs = dset %>%
         group_by(gene) %>%
-        mutate(ntot = n(), max_reads = max(expr, na.rm=TRUE),
+        mutate(ntot = n(),
+               min_reads = min(expr, na.rm=TRUE),
+               max_reads = max(expr, na.rm=TRUE),
                cuts = cut({{ copies }}, c(-Inf, 1+et, 2-et, 2+et, 3-et, Inf), labels=FALSE),
                x = setNames(c(1+et, 1.5, 2, 2.5, 3-et), 1:5)[as.character(cuts)],
                hjust = setNames(c("right", rep("center", 3), "left"), 1:5)[as.character(cuts)]) %>%
-        group_by(gene, x, hjust, max_reads) %>%
+        group_by(gene, x, hjust, min_reads, max_reads) %>%
             summarize(n=n(), pct=n()/ntot[1]) %>%
         ungroup() %>%
         mutate(label = sprintf("%i\n%.0f%%", n, pct*100))

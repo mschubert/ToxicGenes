@@ -70,6 +70,10 @@ for (i in seq_along(genes)) {
         alphas = c(0.8, 1)
     }
     abl = util$summary_ccle(cd, assocs, et=et, top=top)
+    stats = assocs %>%
+        filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
+        transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
+        inner_join(fracs %>% select(gene, min_reads))
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
@@ -77,12 +81,14 @@ for (i in seq_along(genes)) {
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
         ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
-        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust), lineheight=1.0,
-                   label.size=NA, fill="#ffffffc0", size=2.5, vjust=1, fontface="bold") +
+        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust),
+                   label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
+        geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
+                   label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
         scale_color_manual(name="Compensation", guide="legend",
                            values=c("brown", "red", "blue"),
-                           labels=c("full", "none", "observed")) +
+                           labels=c("full", "none", "observed (amp)")) +
         scale_fill_brewer(palette="RdBu", direction=-1,
                           labels=c("lowest", "low", "high", "highest")) +
         guides(fill = guide_legend(override.aes=list(shape=21, size=5))) +
@@ -102,22 +108,27 @@ for (i in seq_along(genes)) {
     td = util$load_tcga(args$tissue, top, et=et)
     fracs = util$frac_labels(td, cancer_copies, et=et)
     abl = util$summary_tcga(td, assocs, et=et, top=top)
+    stats = assocs %>%
+        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="pur") %>%
+        transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
+        inner_join(fracs %>% select(gene, min_reads))
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
-#        util$stat_loess2d(aes(fill=meth_eup_scaled), se_size=TRUE) +
+        annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
-        geom_density2d(bins=20, color="#000000ff") +
+        geom_density2d(bins=20, color="#000000b0") +
         scale_fill_distiller(palette="Spectral", trans="log10") +
         geom_vline(xintercept=c(2-et,2+et,1+et,3-et), color="black", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
         geom_point(data = td %>% filter(!is.na(mut)),
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
-        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust), lineheight=1.0,
-                   label.size=NA, fill="#ffffffc0", size=2.5, vjust=1, fontface="bold") +
+        geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust),
+                   label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
+        geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
+                   label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
-#        scale_fill_gradient2(low="blue", mid="white", high="red") +
         scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
                            values=c("brown", "red", "blue", "#000000ff"),
-                           labels=c("full", "none", "observed", "x")) +
+                           labels=c("full", "none", "observed (amp)", "x")) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +

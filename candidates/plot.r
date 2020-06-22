@@ -75,7 +75,7 @@ for (i in seq_along(genes)) {
         alphas = c(0.8, 1)
     }
     abl = util$comp_summary(ccle_assocs)
-    stats = util$comp_stats(ccle_assocs, fracs)
+    stats = util$comp_stats(cd, copies, ccle_assocs, fracs)
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
@@ -85,7 +85,7 @@ for (i in seq_along(genes)) {
         ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
         geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust),
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
-        geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
+        geom_label(data=stats, aes(x=x, y=min_reads, label=label), hjust="center",
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
         scale_color_manual(name="Compensation", guide="legend", values=comp_cols) +
@@ -111,7 +111,7 @@ for (i in seq_along(genes)) {
         filter(name %in% top, dset=="tcga", fit=="rlm3", adj=="pur") %>%
         mutate(name = factor(name, levels=top))
     abl = util$comp_summary(tcga_assocs)
-    stats = util$comp_stats(tcga_assocs, fracs)
+    stats = util$comp_stats(td, cancer_copies, tcga_assocs, fracs)
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
@@ -123,7 +123,7 @@ for (i in seq_along(genes)) {
                    aes(shape=mut, size=is.na(mut)), color="black", alpha=1) +
         geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust),
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
-        geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
+        geom_label(data=stats, aes(x=x, y=min_reads, label=label), hjust="center",
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
         scale_color_manual(name="Compensation", guide="legend", values=comp_cols) +
@@ -133,8 +133,7 @@ for (i in seq_along(genes)) {
         scale_size_manual(name="has mut", guide="none",
                            values=c(2, 1), labels=c("mut", "wt")) +
 #        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
-        labs(title = paste("cancer copy TCGA compensation;",
-                           "98/99th% shown (expr/copies); dashed line model, solid capped data"),
+        labs(title = "cancer copy TCGA compensation; 98/99th% shown (expr/copies)",
              y = "normalized read count") +
         theme_classic()
 

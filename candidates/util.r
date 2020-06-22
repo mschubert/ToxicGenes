@@ -97,17 +97,23 @@ comp_summary = function(assocs) {
 
 #' Construct a label with compensation statistics
 #'
+#' @param dset  data.frame with underlying data
+#' @param dset_x  field in 'dset' that is plotted on x axis
 #' @param assocs  Associations for top genes in given data set
 #' @param fracs  data.frame containing min_reads for positioning
 #' @return  data.frame for label and its positions
-comp_stats = function(assocs, fracs) {
+comp_stats = function(dset, dset_x, assocs, fracs) {
+    dx = dset %>%
+        group_by(gene) %>%
+        summarize(x = mean(range({{ dset_x }}, na.rm=TRUE)))
     assocs %>%
         select(name, cna, estimate, rsq) %>%
         mutate(estimate = -100*estimate) %>%
         tidyr::pivot_wider(names_from=cna, values_from=c(estimate, rsq)) %>%
         transmute(gene=name, label=sprintf("comp/R^2 ▲ %.0f%% %.2f ▼ %.0f%% %.2f ◆ %.0f%% %.2f",
                estimate_amp, rsq_amp, estimate_del, rsq_del, estimate_all, rsq_all)) %>%
-        inner_join(fracs %>% select(gene, min_reads))
+        inner_join(fracs %>% select(gene, min_reads)) %>%
+        inner_join(dx)
 }
 
 #' Label fractions of amplified/euploid/deleted samples

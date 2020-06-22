@@ -23,8 +23,8 @@ subworkflow merge_rank:
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
-fits = ['rlm', 'rlm2', 'rlm3', 'lm3']
-types = ['naive', 'pur', 'puradj']
+fits = ['rlm3', 'lm3']
+types = ['naive', 'pur']
 sets = ['genes']
 
 yaml_src = {

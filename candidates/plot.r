@@ -98,7 +98,7 @@ for (i in seq_along(genes)) {
         scale_size_manual(guide="none", values=sizes) +
         scale_alpha_manual(guide="none", values=alphas) +
         labs(title = paste("CCLE compensation;",
-                           "99th% shown (expr/copies); yellow=euploid"),
+                           "98/99th% shown (expr/copies); yellow=euploid"),
              y = "normalized read count") +
         theme_classic()
 
@@ -136,7 +136,7 @@ for (i in seq_along(genes)) {
                            values=c(2, 1), labels=c("mut", "wt")) +
 #        scale_alpha_continuous(trans="log", range=c(0.1, 0.5)) +
         labs(title = paste("cancer copy TCGA compensation;",
-                           "99th% shown (expr/copies); dashed line model, solid capped data"),
+                           "98/99th% shown (expr/copies); dashed line model, solid capped data"),
              y = "normalized read count") +
         theme_classic()
 

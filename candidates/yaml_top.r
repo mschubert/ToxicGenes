@@ -15,11 +15,10 @@ top = sapply(sheets, simplify=FALSE, function(s) {
 
 res = list(
     genes = list(
-        top12 = top$all$name[seq_len(n)],
-        top24 = top$all$name[seq_len(2*n)[-seq_len(n)]],
         amp = top$amp$name[seq_len(n)],
         del = top$del$name[seq_len(n)]
     ),
-    methods = c("lm", "rlm", "rlm3")
+    methods = c("lm", "rlm3")
 )
+res$genes$both = setdiff(top$all$name, c(res$genes$amp,res$genes$del))[seq_len(n)]
 yaml::write_yaml(res, file=args$outfile)

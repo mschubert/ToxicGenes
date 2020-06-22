@@ -64,7 +64,7 @@ load_ccle = function(top, et=0.15) {
                purity = 1) %>%
         group_by(gene) %>%
             mutate(expr_orig = expr, copies_orig = copies,
-                   expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
+                   expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),
                    copies = pmin(copies, max(3+et, quantile(copies, 0.99))) %>%
                                  pmax(min(1-et, quantile(copies, 0.01)))) %>%
         ungroup() %>%
@@ -156,8 +156,8 @@ load_tcga = function(cohort, top, et=0.15) {
         inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
         mutate(cancer_copies = (copies - 2) / purity + 2) %>%
         group_by(gene) %>%
-            filter(expr > quantile(expr, 0.01) & expr < quantile(expr, 0.99)) %>%
-            mutate(expr = pmax(pmin(expr, quantile(expr, 0.99)), quantile(expr, 0.01)),
+#            filter(expr > quantile(expr, 0.01) & expr < quantile(expr, 0.99)) %>%
+            mutate(expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),
                    copies = pmin(copies, max(3+et, quantile(copies, 0.99))) %>%
                                  pmax(min(1-et, quantile(copies, 0.01))),
                    cancer_copies = pmin(cancer_copies, max(3+et, quantile(cancer_copies, 0.99))) %>%

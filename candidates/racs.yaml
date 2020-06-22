@@ -9,4 +9,5 @@ genes:
     - ZBTB14
     - ZNF341
 methods:
+    - lm
     - rlm3

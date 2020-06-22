@@ -47,5 +47,4 @@ genes:
     - ZNF143
 methods:
     - lm
-    - rlm
     - rlm3

@@ -18,10 +18,12 @@ fits = select$methods
 genes = select$genes #TODO: use right set if not only genes
 et = yaml::read_yaml(args$config)$euploid_tol
 
+comp_cols = c(full="brown", none="brown", amp="red", del="blue", all="darkviolet")
+
 if (!is.list(genes))
     genes = list(genes=genes)
 
-pdf(args$plotfile, 16, 12)
+cairo_pdf(args$plotfile, 16, 12, onefile=TRUE)
 for (i in seq_along(genes)) {
     top = genes[[i]]
     print(plt$text(names(genes)[i], size=20))
@@ -58,6 +60,9 @@ for (i in seq_along(genes)) {
     ###
     cd = util$load_ccle(top, et=et)
     fracs = util$frac_labels(cd, copies, et=et)
+    ccle_assocs = assocs %>%
+        filter(name %in% top, dset=="ccle", fit=="rlm3") %>%
+        mutate(name = factor(name, levels=top))
     if (args$tissue == "pan") {
         cd$Name = NA # do not label cell lines in pan-can plots (too many)
         sizes = c(3, 1.5) # mut, wt
@@ -69,12 +74,8 @@ for (i in seq_along(genes)) {
         sizes = c(2, 3) # mut, wt
         alphas = c(0.8, 1)
     }
-    abl = util$summary_ccle(cd, assocs, et=et, top=top)
-    stats = assocs %>%
-        filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
-        transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
-        inner_join(fracs %>% select(gene, min_reads)) %>%
-        mutate(gene = factor(gene, levels=top))
+    abl = util$comp_summary(ccle_assocs)
+    stats = util$comp_stats(ccle_assocs, fracs)
     pccle = ggplot(cd, aes(x=copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, alpha=0.2, fill="yellow") +
         geom_vline(xintercept=2, color="grey") +
@@ -87,9 +88,7 @@ for (i in seq_along(genes)) {
         geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
-        scale_color_manual(name="Compensation", guide="legend",
-                           values=c("brown", "red", "blue"),
-                           labels=c("full", "none", "observed (amp)")) +
+        scale_color_manual(name="Compensation", guide="legend", values=comp_cols) +
         scale_fill_brewer(palette="RdBu", direction=-1,
                           labels=c("lowest", "low", "high", "highest")) +
         guides(fill = guide_legend(override.aes=list(shape=21, size=5))) +
@@ -108,12 +107,11 @@ for (i in seq_along(genes)) {
     ###
     td = util$load_tcga(args$tissue, top, et=et)
     fracs = util$frac_labels(td, cancer_copies, et=et)
-    abl = util$summary_tcga(td, assocs, et=et, top=top)
-    stats = assocs %>%
-        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="pur") %>%
-        transmute(gene=name, label=sprintf("%.0f%% comp R^2=%.2f", -estimate*100, rsq)) %>%
-        inner_join(fracs %>% select(gene, min_reads)) %>%
-        mutate(gene = factor(gene, levels=top))
+    tcga_assocs = assocs %>%
+        filter(name %in% top, dset=="tcga", fit=="rlm3", adj=="pur") %>%
+        mutate(name = factor(name, levels=top))
+    abl = util$comp_summary(tcga_assocs)
+    stats = util$comp_stats(tcga_assocs, fracs)
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
@@ -128,9 +126,7 @@ for (i in seq_along(genes)) {
         geom_label(data=stats, aes(y=min_reads, label=label), x=2, hjust="center",
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
-        scale_color_manual(name="Compensation", guide="legend", na.value="#00000033",
-                           values=c("brown", "red", "blue", "#000000ff"),
-                           labels=c("full", "none", "observed (amp)", "x")) +
+        scale_color_manual(name="Compensation", guide="legend", values=comp_cols) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +

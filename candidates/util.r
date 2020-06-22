@@ -75,18 +75,39 @@ load_ccle = function(top, et=0.15) {
         ungroup()
 }
 
-summary_ccle = function(cd, assocs, top, et=0.15) {
-    to_merge = assocs %>%
-        filter(dset=="ccle", fit=="rlm3", cna=="amp") %>%
-        transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
-    abl = cd %>%
-        select(gene) %>%
-        left_join(to_merge) %>%
+#' Provide data for the compensation lines
+#'
+#' @param assocs  Associations for top genes in given data set
+#' @return  Slopes and intercepts of lines
+comp_summary = function(assocs) {
+    dset = assocs %>%
+        select(gene=name, type=cna, estimate, eup_reads)
+    observed = dset %>%
+        mutate(slope = 0.5 * eup_reads * (1 + estimate),
+               intcp = eup_reads - 2*slope)
+    ref = dset %>%
+        group_by(gene) %>%
+        summarize(eup_reads = median(eup_reads, na.rm=TRUE)) %>%
         mutate(none = 0.5 * eup_reads,
-               full = 0,
-               observed = none * (1 + observed)) %>%
+               full = 0) %>%
         tidyr::gather("type", "slope", -gene, -eup_reads) %>%
         mutate(intcp = eup_reads - 2*slope)
+    bind_rows(observed, ref)
+}
+
+#' Construct a label with compensation statistics
+#'
+#' @param assocs  Associations for top genes in given data set
+#' @param fracs  data.frame containing min_reads for positioning
+#' @return  data.frame for label and its positions
+comp_stats = function(assocs, fracs) {
+    assocs %>%
+        select(name, cna, estimate, rsq) %>%
+        mutate(estimate = -100*estimate) %>%
+        tidyr::pivot_wider(names_from=cna, values_from=c(estimate, rsq)) %>%
+        transmute(gene=name, label=sprintf("comp/R^2 ▲ %.0f%% %.2f ▼ %.0f%% %.2f ◆ %.0f%% %.2f",
+               estimate_amp, rsq_amp, estimate_del, rsq_del, estimate_all, rsq_all)) %>%
+        inner_join(fracs %>% select(gene, min_reads))
 }
 
 #' Label fractions of amplified/euploid/deleted samples
@@ -171,24 +192,6 @@ load_tcga = function(cohort, top, et=0.15) {
 #                   meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%
 #        ungroup() %>%
         mutate(gene = factor(gene, levels=top))
-}
-
-#' TCGA expected vs. observed expression
-#'
-#' @param td  data.frame from load_tcga()
-#' @return    data.frame for lines of expected vs observed compensation
-summary_tcga = function(td, assocs, top, et=0.15) {
-    to_merge = assocs %>%
-        filter(dset=="tcga", fit=="rlm3", cna=="amp", adj=="pur") %>%
-        transmute(gene=factor(name, levels=top), observed=estimate, eup_reads=eup_reads)
-    abl = td %>%
-        select(gene) %>%
-        left_join(to_merge) %>%
-        mutate(none = 0.5 * eup_reads,
-               full = 0,
-               observed = none * (1 + observed)) %>%
-        tidyr::gather("type", "slope", -gene, -eup_reads) %>%
-        mutate(intcp = eup_reads - 2*slope)
 }
 
 #' 2D loess plot showing gradient on a third variable

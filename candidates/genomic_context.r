@@ -1,4 +1,5 @@
 library(ggplot2)
+library(patchwork)
 library(dplyr)
 library(plyranges)
 seq = import('seq')
@@ -44,18 +45,24 @@ genes = data.frame(seqnames = pos$seqnames,
     as_tibble()
 
 cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
-p = ggplot(dset, aes(x=start)) +
-    geom_rect(aes(xmin=center_pos-hl/2, xmax=center_pos+hl/2), ymin=-Inf, ymax=Inf, fill="lightgrey") +
+p1 = ggplot(dset, aes(x=start)) +
+    geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
     geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
     geom_line(aes(y=num, color=type)) +
-    scale_fill_manual(values=cols) +
-    scale_color_manual(values=cols) +
+    scale_fill_manual(values=cols, guide=FALSE) +
+    scale_color_manual(values=cols, guide=FALSE) +
     theme_classic() +
     geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.7) +
-#    ggrepel::geom_text_repel(data=genes, size=2, maxiter=1e5, segment.alpha=0.3,
-#        aes(x=0.5*(start+end), y=0, label=external_gene_name)) +
-    ggtitle(sprintf("%s chr%i:%.1f-%.1f Mb", center, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6))
+    ggtitle(sprintf("%s chr%i:%.1f-%.1f Mb", center, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6)) +
+    theme(axis.title.x = element_blank())
+
+p2 = p1 +
+    xlim(c(center_pos-hl/2, center_pos+hl/2)) +
+    ggrepel::geom_text_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.3,
+        aes(x=0.5*(start+end), y=0, label=external_gene_name)) +
+    ggtitle(sprintf("%.1f-%.1f Mb", (center_pos-hl/2)/1e6, (center_pos+hl/2)/1e6)) +
+    theme(axis.title.x = element_blank())
 
 pdf("genomic_context.pdf", 10, 4)
-print(p)
+print(p1 / p2)
 dev.off()

@@ -2,6 +2,7 @@ library(ggplot2)
 library(patchwork)
 library(dplyr)
 library(plyranges)
+sys = import('sys')
 seq = import('seq')
 tcga = import('data/tcga')
 
@@ -57,11 +58,27 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
     p1 / p2
 }
 
+args = sys$cmd$parse(
+    opt('c', 'cohort', 'chr', 'pan'),
+#    opt('', '', '', ''),
+    opt('p', 'plotfile', 'pdf', 'gctx_pan.pdf')
+)
+
+if (args$cohort == "pan")
+    args$cohort = c("BRCA", "LUAD", "LUSC", "OV", "PRAD", "SKCM")
+
 genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE)
-copies = tcga$cna_segments("BRCA", granges=TRUE) # test on BRCA
+purity = tcga$purity() %>%
+    select(Sample, purity=estimate) %>%
+    na.omit()
+copies = lapply(args$cohort, tcga$cna_segments) %>%
+    bind_rows() %>%
+    inner_join(purity) %>%
+    mutate(ploidy = (ploidy-2)/purity + 2) %>% #todo: if purity/SegMean incorrect that can be <0
+    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 #racs =
 
-pdf("genomic_context.pdf", 10, 4)
+pdf(args$plotfile, 10, 4)
 for (g in c("EGFR", "ERBB2", "MYC", "CDKN1A", "RBM14", "RBM12", "HES1",
             "SNRPA", "NSF", "BANP", "H3F3C", "IRF2", "ZBTB14"))
     print(plot_gene_track(g))

@@ -17,7 +17,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         GenomicRanges::makeGRangesFromDataFrame() %>%
         join_overlap_inner_within(copies %>% select(Sample, ploidy)) %>%
         group_by(start, end) %>%
-        summarize(eup = n_distinct(Sample[abs(ploidy-2)<et]),
+        summarize(eup = n_distinct(Sample),
                   gain = n_distinct(Sample[ploidy>2+et & ploidy<3-et]),
                   amp = n_distinct(Sample[ploidy>3-et]),
                   loss = -n_distinct(Sample[ploidy<2-et & ploidy>1+et]),

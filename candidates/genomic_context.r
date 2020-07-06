@@ -34,7 +34,9 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         GenomicRanges::makeGRangesFromDataFrame() %>%
         join_overlap_intersect(genes_hg38 %>% select(external_gene_name)) %>%
         as.data.frame() %>%
-        as_tibble()
+        as_tibble() %>%
+        mutate(external_gene_name = ifelse(end < center_pos-hl/2 | start > center_pos+hl/2,
+                                           NA, external_gene_name))
 
     cracs = data_frame(seqnames = pos$seqnames,
                        start=max(0, center_pos - len/2)) %>%
@@ -59,7 +61,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         theme(axis.title.x = element_blank())
 
     p2 = p1 +
-        xlim(c(center_pos-hl/2, center_pos+hl/2)) +
+        coord_cartesian(xlim=c(center_pos-hl/2, center_pos+hl/2)) +
         ggrepel::geom_text_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.3,
             aes(x=0.5*(start+end), y=0, label=external_gene_name)) +
         ggtitle(sprintf("%.1f-%.1f Mb", (center_pos-hl/2)/1e6, (center_pos+hl/2)/1e6)) +
@@ -81,7 +83,8 @@ if (args$cohort == "pan") {
     racs_cohort = args$cohort
 }
 
-genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE)
+genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE) %>%
+    filter(gene_biotype %in% c("protein_coding", "miRNA", "lncRNA", "rRNA"))
 purity = tcga$purity() %>%
     select(Sample, purity=estimate) %>%
     na.omit()

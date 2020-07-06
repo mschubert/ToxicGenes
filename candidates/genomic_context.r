@@ -4,6 +4,7 @@ library(dplyr)
 library(plyranges)
 sys = import('sys')
 seq = import('seq')
+gdsc = import('data/gdsc')
 tcga = import('data/tcga')
 
 plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/100) {
@@ -32,7 +33,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
                        start = max(0, center_pos-len/2)) %>%
         mutate(end = start + len) %>%
         GenomicRanges::makeGRangesFromDataFrame() %>%
-        join_overlap_intersect(genes_hg38 %>% select(external_gene_name)) %>%
+        join_overlap_intersect(genes_hg38 %>% select(external_gene_name, driver)) %>%
         as.data.frame() %>%
         as_tibble() %>%
         mutate(external_gene_name = ifelse(end < center_pos-hl/2 | start > center_pos+hl/2,
@@ -47,7 +48,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         as_tibble()
 
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
-    p1 = ggplot(dset, aes(x=start)) +
+    p0 = ggplot(dset, aes(x=start)) +
         geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.15) +
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
@@ -56,16 +57,21 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         scale_color_manual(values=cols, guide=FALSE) +
         geom_text(data=cracs, aes(x=(start+end)/2, label=paste(racs, cna, sep="\n")), y=max(dset$num)/2, size=2, hjust=0.5) +
         theme_classic() +
-        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.7) +
-        ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6)) +
+        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5) +
         theme(axis.title.x = element_blank())
 
-    p2 = p1 +
+    p1 = p0 +
+        ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.3,
+            aes(x=0.5*(start+end), y=0, label=driver), min.segment.length=0,
+            label.size=NA, fill="#ffffff80", segment.color="white") +
+        ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6))
+
+    p2 = p0 +
         coord_cartesian(xlim=c(center_pos-hl/2, center_pos+hl/2)) +
-        ggrepel::geom_text_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.3,
-            aes(x=0.5*(start+end), y=0, label=external_gene_name)) +
-        ggtitle(sprintf("%.1f-%.1f Mb", (center_pos-hl/2)/1e6, (center_pos+hl/2)/1e6)) +
-        theme(axis.title.x = element_blank())
+        ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.3,
+            aes(x=0.5*(start+end), y=0, label=external_gene_name),
+            min.segment.length=0, label.size=NA, fill="#ffffff80", segment.color="white") +
+        ggtitle(sprintf("%.1f-%.1f Mb", (center_pos-hl/2)/1e6, (center_pos+hl/2)/1e6))
 
     p1 / p2
 }
@@ -83,8 +89,10 @@ if (args$cohort == "pan") {
     racs_cohort = args$cohort
 }
 
+drivers = gdsc$drivers(args$cohort) %>% pull(HGNC) %>% unique()
 genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE) %>%
-    filter(gene_biotype %in% c("protein_coding", "miRNA", "lncRNA", "rRNA"))
+    filter(gene_biotype %in% c("protein_coding", "miRNA")) %>%
+    mutate(driver = ifelse(external_gene_name %in% drivers, external_gene_name, NA))
 purity = tcga$purity() %>%
     select(Sample, purity=estimate) %>%
     na.omit()

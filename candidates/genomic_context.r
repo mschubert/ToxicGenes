@@ -38,7 +38,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
     cracs = data_frame(seqnames = pos$seqnames,
                        start=max(0, center_pos - len/2)) %>%
-        mutate(end = start + len/2 - 1) %>%
+        mutate(end = start + len) %>%
         GenomicRanges::makeGRangesFromDataFrame() %>%
         join_overlap_inner_within(racs %>% select(racs, cna), .) %>%
         as.data.frame() %>%
@@ -46,13 +46,13 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
     p1 = ggplot(dset, aes(x=start)) +
-        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.2) +
+        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.15) +
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
         scale_fill_manual(values=cols, guide=FALSE) +
         scale_color_manual(values=cols, guide=FALSE) +
-        geom_text(data=cracs, aes(x=(start+end)/2, label=racs), y=max(dset$num)/2, size=2, hjust=0.5) +
+        geom_text(data=cracs, aes(x=(start+end)/2, label=paste(racs, cna, sep="\n")), y=max(dset$num)/2, size=2, hjust=0.5) +
         theme_classic() +
         geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.7) +
         ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6)) +

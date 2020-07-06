@@ -36,16 +36,26 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         as.data.frame() %>%
         as_tibble()
 
+    cracs = data_frame(seqnames = pos$seqnames,
+                       start=max(0, center_pos - len/2)) %>%
+        mutate(end = start + len/2 - 1) %>%
+        GenomicRanges::makeGRangesFromDataFrame() %>%
+        join_overlap_inner_within(racs %>% select(racs, cna), .) %>%
+        as.data.frame() %>%
+        as_tibble()
+
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
     p1 = ggplot(dset, aes(x=start)) +
+        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.2) +
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
         scale_fill_manual(values=cols, guide=FALSE) +
         scale_color_manual(values=cols, guide=FALSE) +
+        geom_text(data=cracs, aes(x=(start+end)/2, label=racs), y=max(dset$num)/2, size=2, hjust=0.5) +
         theme_classic() +
         geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.7) +
-        ggtitle(sprintf("%s chr%i:%.1f-%.1f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6)) +
+        ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6)) +
         theme(axis.title.x = element_blank())
 
     p2 = p1 +
@@ -64,8 +74,12 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'gctx_pan.pdf')
 )
 
-if (args$cohort == "pan")
+if (args$cohort == "pan") {
     args$cohort = c("BRCA", "LUAD", "LUSC", "OV", "PRAD", "SKCM")
+    racs_cohort = "PANCAN"
+} else {
+    racs_cohort = args$cohort
+}
 
 genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE)
 purity = tcga$purity() %>%
@@ -76,7 +90,14 @@ copies = lapply(args$cohort, tcga$cna_segments) %>%
     inner_join(purity) %>%
     mutate(ploidy = (ploidy-2)/purity + 2) %>% #todo: if purity/SegMean incorrect that can be <0
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
-#racs =
+racs = readxl::read_xlsx("../data/racs/TableS2D.xlsx", skip=19) %>%
+    setNames(make.names(colnames(.))) %>%
+    select(racs=Identifier, cohort=Cancer.Type, chr, start, stop,
+           cna=Recurrent..Amplification...Deletion, Contained.genes) %>%
+    filter(cohort == racs_cohort) %>%
+    select(-cohort, -Contained.genes) %>%
+    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+#racs = join_overlap_intersect(genes_hg38, racs) # hg19??
 
 pdf(args$plotfile, 10, 4)
 for (g in c("EGFR", "ERBB2", "MYC", "CDKN1A", "RBM14", "RBM12", "HES1",

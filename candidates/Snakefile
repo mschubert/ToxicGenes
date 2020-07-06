@@ -40,6 +40,7 @@ rule all:
                 tissue=set(config['cor_tissues']) - set(['pan'])),
         expand("{tissue}/{manual}.pdf", tissue=config['cor_tissues'],
                 manual=manual),
+        expand("gctx_{tissue}.pdf", tissue=config['cor_tissues'])
 
 rule make_yaml:
     input:
@@ -109,4 +110,14 @@ rule plot_tissue_with_pan_yaml:
             " --dset {input.dset}"
             " --yaml {input.yaml}"
             " --tissue {wildcards.tissue}"
+            " --plotfile {output.plotfile}"
+
+rule genomic_context:
+    input:
+        rscript = "genomic_context.r"
+    output:
+        plotfile = "gctx_{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --cohort {wildcards.tissue}"
             " --plotfile {output.plotfile}"

@@ -48,7 +48,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         join_overlap_inner_within(racs %>% select(racs, cna), .) %>%
         as.data.frame() %>%
         as_tibble() %>%
-        mutate(label = paste(racs, arws[cna]), y = ys[cna])
+        mutate(label=paste(racs, arws[cna]), x=(start+end)/2, y=ys[cna])
 
     fras = data_frame(seqnames = pos$seqnames,
                       start=max(0, center_pos - len/2)) %>%
@@ -56,7 +56,11 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         GenomicRanges::makeGRangesFromDataFrame() %>%
         join_overlap_inner_within(fra, .) %>%
         as.data.frame() %>%
-        as_tibble()
+        as_tibble() %>%
+        mutate(label=fra, x=(start+end)/2, y = max(dset$num)/2)
+
+    labs = bind_rows(cracs %>% select(x, y, label),
+                     fras %>% select(x, y, label)) %>% na.omit()
 
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
     p0 = ggplot(dset, aes(x=start)) +
@@ -72,10 +76,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         theme(axis.title.x = element_blank())
 
     p1 = p0 +
-        ggrepel::geom_text_repel(data=fras, aes(x=(start+end)/2, y=max(dset$num)/2, label=fra),
-            size=2, hjust=0.5) +
-        ggrepel::geom_text_repel(data=cracs, aes(x=(start+end)/2, y=y, label=label),
-            size=2, hjust=0.5, direction="x") +
+        ggrepel::geom_text_repel(data=labs, aes(x=x, y=y, label=label), size=2, hjust=0.5) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=driver), min.segment.length=0,
             label.size=NA, fill="#ffffff80", segment.color="white") +

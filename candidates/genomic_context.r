@@ -50,8 +50,17 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         as_tibble() %>%
         mutate(label = paste(racs, arws[cna]), y = ys[cna])
 
+    fras = data_frame(seqnames = pos$seqnames,
+                      start=max(0, center_pos - len/2)) %>%
+        mutate(end = start + len) %>%
+        GenomicRanges::makeGRangesFromDataFrame() %>%
+        join_overlap_inner_within(fra, .) %>%
+        as.data.frame() %>%
+        as_tibble()
+
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
     p0 = ggplot(dset, aes(x=start)) +
+        geom_rect(data=fras, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="grey35", alpha=0.1) +
         geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.1) +
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
@@ -63,6 +72,8 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         theme(axis.title.x = element_blank())
 
     p1 = p0 +
+        ggrepel::geom_text_repel(data=fras, aes(x=(start+end)/2, y=max(dset$num)/2, label=fra),
+            size=2, hjust=0.5) +
         ggrepel::geom_text_repel(data=cracs, aes(x=(start+end)/2, y=y, label=label),
             size=2, hjust=0.5, direction="x") +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
@@ -93,6 +104,9 @@ if (args$cohort == "pan") {
     racs_cohort = args$cohort
 }
 
+fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
+    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+seqlevelsStyle(fra) = "Ensembl"
 drivers = gdsc$drivers(args$cohort) %>% pull(HGNC) %>% unique()
 genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE) %>%
     filter(gene_biotype %in% c("protein_coding", "miRNA")) %>%

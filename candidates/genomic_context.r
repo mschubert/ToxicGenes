@@ -101,6 +101,7 @@ copies = lapply(args$cohort, tcga$cna_segments) %>%
     inner_join(purity) %>%
     mutate(ploidy = (ploidy-2)/purity + 2) %>% #todo: if purity/SegMean incorrect that can be <0
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+hg19_to_hg38 = rtracklayer::import.chain(system.file(package="liftOver", "extdata", "hg38ToHg19.over.chain"))
 racs = readxl::read_xlsx("../data/racs/TableS2D.xlsx", skip=19) %>%
     setNames(make.names(colnames(.))) %>%
     select(racs=Identifier, cohort=Cancer.Type, chr, start, stop,
@@ -108,7 +109,14 @@ racs = readxl::read_xlsx("../data/racs/TableS2D.xlsx", skip=19) %>%
     filter(cohort == racs_cohort) %>%
     select(-cohort, -Contained.genes) %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
-#racs = join_overlap_intersect(genes_hg38, racs) # hg19??
+seqlevelsStyle(racs) = "UCSC"
+racs2 = rtracklayer::liftOver(racs, hg19_to_hg38) %>%
+    unlist() %>%
+    group_by(seqnames, racs, cna) %>%
+    summarize(start=min(start), end=max(end)) %>%
+    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+seqlevelsStyle(racs2) = "Ensembl"
+racs = racs2
 
 pdf(args$plotfile, 10, 4)
 for (g in c("EGFR", "ERBB2", "MYC", "CDKN1A", "RBM14", "RBM12", "HES1",

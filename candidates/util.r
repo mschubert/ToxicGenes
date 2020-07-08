@@ -143,11 +143,14 @@ load_tcga = function(cohort, top, et=0.15) {
     load_expr = function(cohort, genes) {
         if (cohort == "pan")
             cohort = tcga$cohorts()
-        lapply(cohort, function(x) {
-            expr = tcga$rna_seq(x)
-            rownames(expr) = idmap$gene(rownames(expr), to="hgnc_symbol")
-            expr[intersect(genes, rownames(expr)),,drop=FALSE]
-        }) %>% narray::stack(along=2)
+        mat = lapply(cohort, tcga$rna_seq) %>%
+            narray::stack(along=2) %>%
+            DESeq2::DESeqDataSetFromMatrix(data.frame(id=colnames(.)), ~1) %>%
+                DESeq2::estimateSizeFactors() %>%
+                DESeq2::counts(normalized=TRUE)
+        mat = mat[rowSums(mat) != 0,] # gene needs to have at least 1 read
+        rownames(mat) = idmap$gene(rownames(mat), to="hgnc_symbol")
+        mat[intersect(genes, rownames(mat)),,drop=FALSE]
     }
     load_copies = function(cohort, genes) {
         if (cohort == "pan")

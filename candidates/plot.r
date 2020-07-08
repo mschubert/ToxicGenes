@@ -140,34 +140,33 @@ for (i in seq_along(genes)) {
     ###
     ### Methylation quantification
     ###
-#    ct = bind_rows(ccle=cd, tcga=mutate(td, copies = cancer_copies), .id = "dset") %>%
-#        select(cohort, gene, dset, purity, copies, expr, meth)
-#    eu_cna = ct %>%
-#        group_by(dset) %>%
-#        mutate(facetx = "all", cna = case_when(
-#            copies < 2-et ~ "del",
-#            copies < 2+et ~ "eu",
-#            copies >= 2+et ~ "amp",
-#            TRUE ~ as.character(NA)), subs=cna) %>% ungroup() %>% na.omit()
-#    cna_diff = eu_cna %>%
-#        mutate(facetx = subs) %>%
-#        filter(subs != "eu") %>%
-#        group_by(dset, facetx) %>%
-#        mutate(subs = case_when(
-#            expr < median(expr, na.rm=TRUE) ~ "low", #TODO: fix for actual comp lines
-#            expr > median(expr, na.rm=TRUE) ~ "high",
-#            TRUE ~ as.character(NA))) %>% ungroup() %>% na.omit()
-#    ct = bind_rows(eu_cna, cna_diff) %>%
-#        mutate(facetx = factor(facetx, levels=c("del", "all", "amp")),
-#               subs = factor(subs, levels=c("low", "high", "del", "eu", "amp")),
-#               dset = factor(dset, levels=c("tcga", "ccle")))
-#    pmeth = lapply(top, util$plot_meth_quant, ct=ct)
+    ct = bind_rows(ccle=cd, tcga=mutate(td, copies = cancer_copies), .id = "dset") %>%
+        select(cohort, gene, dset, purity, copies, expr, meth)
+    eu_cna = ct %>%
+        group_by(dset) %>%
+        mutate(facetx = "all", cna = case_when(
+            copies < 2-et ~ "del",
+            copies < 2+et ~ "eu",
+            copies >= 2+et ~ "amp",
+            TRUE ~ as.character(NA)), subs=cna) %>% ungroup() %>% na.omit()
+    cna_diff = eu_cna %>%
+        mutate(facetx = subs) %>%
+        filter(subs != "eu") %>%
+        group_by(dset, facetx) %>%
+        mutate(subs = case_when(
+            expr < median(expr, na.rm=TRUE) ~ "low", #TODO: fix for actual comp lines
+            expr > median(expr, na.rm=TRUE) ~ "high",
+            TRUE ~ as.character(NA))) %>% ungroup() %>% na.omit()
+    ct = bind_rows(eu_cna, cna_diff) %>%
+        mutate(facetx = factor(facetx, levels=c("del", "all", "amp")),
+               subs = factor(subs, levels=c("low", "high", "del", "eu", "amp")),
+               dset = factor(dset, levels=c("tcga", "ccle")))
+    pmeth = lapply(top, util$plot_meth_quant, ct=ct)
 
     ###
     ### save data underlying plots
     ###
-#    writexl::write_xlsx(list(orf=orfdata, ccle=cd, tcga=td, meth=ct), args$outfile)
-    writexl::write_xlsx(list(orf=orfdata, ccle=cd, tcga=td), args$outfile)
+    writexl::write_xlsx(list(orf=orfdata, ccle=cd, tcga=td, meth=ct), args$outfile)
 
     ###
     ### actually plot
@@ -177,7 +176,7 @@ for (i in seq_along(genes)) {
         print(porf)
     print(pccle)
     print(ptcga)
-#    print(patchwork::wrap_plots(pmeth))
+    print(patchwork::wrap_plots(pmeth))
 }
 
 dev.off()

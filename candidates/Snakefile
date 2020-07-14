@@ -114,10 +114,12 @@ rule plot_tissue_with_pan_yaml:
 
 rule genomic_context:
     input:
-        rscript = "genomic_context.r"
+        rscript = "genomic_context.r",
+        compensation = tcga("{tissue}/rlm3_pur.xlsx")
     output:
         plotfile = "gctx_{tissue}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --cohort {wildcards.tissue}"
+            " --compensation {input.compensation}"
             " --plotfile {output.plotfile}"

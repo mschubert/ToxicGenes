@@ -7,6 +7,13 @@ seq = import('seq')
 gdsc = import('data/gdsc')
 tcga = import('data/tcga')
 
+rmean_noNA = function(x) {
+    nona = ! is.na(x)
+    x[nona] = zoo::rollapply(x[nona], 5, mean, partial=TRUE, fill=0)
+    x
+}
+
+# needs objs: genes_hg38, racs, copies
 plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/100) {
     pos = as.data.frame(genes_hg38) %>%
         filter(external_gene_name == gene)
@@ -33,11 +40,15 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
                        start = max(0, center_pos-len/2)) %>%
         mutate(end = start + len) %>%
         GenomicRanges::makeGRangesFromDataFrame() %>%
-        join_overlap_intersect(genes_hg38 %>% select(external_gene_name, driver)) %>%
+        join_overlap_intersect(genes_hg38 %>% select(external_gene_name, driver, comp_pct, comp_pct_rmean)) %>%
         as.data.frame() %>%
         as_tibble() %>%
         mutate(external_gene_name = ifelse(end < center_pos-hl/2 | start > center_pos+hl/2,
                                            NA, external_gene_name))
+
+    comp = genes %>%
+        filter(!is.na(comp_pct_rmean)) %>%
+        transmute(midpoint = (start+end)/2, comp_pct, comp_pct_rmean)
 
     arws = c(Amplification="▲", Deletion="▼")
     ys = c(Amplification=max(dset$num)/2, Deletion=min(dset$num)/2)
@@ -76,6 +87,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         theme(axis.title.x = element_blank())
 
     p1 = p0 +
+        geom_line(data=comp, aes(x=midpoint, y=comp_pct_rmean)) +
         ggrepel::geom_text_repel(data=labs, aes(x=x, y=y, label=label), size=2, hjust=0.5) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=driver), min.segment.length=0,
@@ -83,6 +95,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6))
 
     p2 = p0 +
+        geom_line(data=comp, aes(x=midpoint, y=comp_pct)) +
         coord_cartesian(xlim=c(center_pos-hl/2, center_pos+hl/2)) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=external_gene_name),
@@ -94,7 +107,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
 args = sys$cmd$parse(
     opt('c', 'cohort', 'chr', 'pan'),
-#    opt('', '', '', ''),
+    opt('m', 'compensation', 'tcga xlsx', '../tcga/pan/rlm3_naive.xlsx'),
     opt('p', 'plotfile', 'pdf', 'gctx_pan.pdf')
 )
 
@@ -105,13 +118,24 @@ if (args$cohort == "pan") {
     racs_cohort = args$cohort
 }
 
+tcga_comp = readxl::read_xlsx(args$compensation, "amp") %>%
+    transmute(external_gene_name = name,
+              comp_pct = statistic)
 fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 seqlevelsStyle(fra) = "Ensembl"
 drivers = gdsc$drivers(args$cohort) %>% pull(HGNC) %>% unique()
-genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38", granges=TRUE) %>%
+genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38") %>%
     filter(gene_biotype %in% c("protein_coding", "miRNA")) %>%
-    mutate(driver = ifelse(external_gene_name %in% drivers, external_gene_name, NA))
+    mutate(driver = ifelse(external_gene_name %in% drivers, external_gene_name, NA)) %>%
+    left_join(tcga_comp) %>%
+    mutate(strand = setNames(c("+", "-"), c(1, -1))[as.character(strand)]) %>%
+    GenomicRanges::makeGRangesFromDataFrame(start.field="start_position",
+            end.field="end_position", keep.extra.columns=TRUE) %>%
+    arrange(seqnames, (start+end)/2) %>%
+    group_by(seqnames) %>%
+        mutate(comp_pct_rmean = rmean_noNA(comp_pct)) %>%
+    ungroup()
 purity = tcga$purity() %>%
     select(Sample, purity=estimate) %>%
     na.omit()

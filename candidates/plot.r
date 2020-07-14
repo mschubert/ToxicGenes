@@ -161,7 +161,8 @@ for (i in seq_along(genes)) {
         mutate(facetx = factor(facetx, levels=c("del", "all", "amp")),
                subs = factor(subs, levels=c("low", "high", "del", "eu", "amp")),
                dset = factor(dset, levels=c("tcga", "ccle")))
-    pmeth = lapply(top, util$plot_meth_quant, ct=ct)
+    pmeth = lapply(top, function(g) tryCatch(util$plot_meth_quant(ct, g),
+                       error = function(e) plt$text(as.character(e))))
 
     ###
     ### save data underlying plots

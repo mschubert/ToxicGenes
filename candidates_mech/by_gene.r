@@ -96,7 +96,8 @@ cpg = tryCatch(error = muffle, { # in case no meth data
 })
 
 promoter_wanding = tcga$cpg_gene() %>%
-    transmute(cg = names(.))
+    mutate(cg = names(.)) %>%
+    select(cg)
 transcript_annots = seq$gene_table() %>%
     filter(external_gene_name == args$gene) %>%
     mutate(chromosome_name = paste0("chr", chromosome_name),

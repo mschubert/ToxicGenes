@@ -8,6 +8,8 @@ genes:
     - HES1
     - IRF2
     - PKNOX1
+    - RBM12
+    - RBM14
     - SFPQ
     - ZBTB14
   not_in_orf:

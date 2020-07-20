@@ -85,15 +85,15 @@ ggplot(td, aes(x=cancer_copies, y=expr)) +
     facet_grid(gene ~ p53_mut)
 
 ggplot(td, aes(x=cancer_copies, y=meth)) +
-    geom_point(size=2) +
-    geom_smooth(method="lm") +
+    geom_point(aes(alpha=purity), size=2) +
+    geom_smooth(method="lm", formula=y ~ x) +
     facet_grid(gene ~ p53_mut) +
     ggtitle("methylation")
 
-td = cbind(td, cpg)
+td2 = cbind(td, cpg)
 for (cp in colnames(cpg)) {
-    p = ggplot(td, aes_string(x="cancer_copies", y=cp)) +
-        geom_point(size=2) +
+    p = ggplot(td2, aes_string(x="cancer_copies", y=cp)) +
+        geom_point(aes(alpha=purity), size=2) +
         geom_smooth(method="lm") +
         facet_grid(gene ~ p53_mut) +
         ggtitle(cp)

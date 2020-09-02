@@ -48,29 +48,32 @@ cgs2 = lapply(cgs, summarize_cgs) %>% do.call(cbind, .)
 if (!is.null(cgs2) && ncol(cgs2) > 0)
     cpg = cbind(cgs2, cpg)
 
-mut = tcga$mutations() %>%
-    filter(Study == "BRCA", Hugo_Symbol == "TP53") %>%
-    transmute(Sample = Tumor_Sample_Barcode,
+#mut = tcga$mutations() %>%
+#    filter(Study == "BRCA", Hugo_Symbol == "TP53") %>%
+io = import('io')
+mut = io$load("/data/p282396/data/tcga/TCGAbiolinks-downloader/snv_mutect2/TCGA-BRCA.RData") %>%
+    filter(Hugo_Symbol == "TP53") %>%
+    transmute(Sample = substr(Tumor_Sample_Barcode, 1, 16),
               Variant = Variant_Classification,
               Var = Variant_Type,
-              AAChange = AAChange)
-
-snp = mut %>% filter(Var == "SNP") %>% pull(Sample) %>% unique()
-del = mut %>% filter(Var == "DEL") %>% pull(Sample) %>% unique()
+              AAChange = Amino_acids) %>%
+    mutate(p53_mut = case_when(
+        Variant == "Missense_Mutation" ~ "p53_snp",
+        Variant %in% c("Frame_Shift_Del", "Nonsense_Mutation", "Splice_Site") ~ "p53_del",
+        TRUE ~ "p53_wt"))
 
 brca_subtypes = readr::read_tsv("../../prmt5/BRCA.547.PAM50.SigClust.Subtypes.txt") %>%
     transmute(sample = substr(Sample, 1, 16),
               PAM50 = ifelse(PAM50 %in% c("Basal", "Her2"), PAM50, "LumAB+Normal"))
 
 td = util$load_tcga("BRCA", top="CDKN1A") %>%
-    select(-p53_mut) %>%
-    mutate(p53_mut = case_when(
-        sample %in% snp ~ "p53_snp",
-        sample %in% del ~ "p53_del",
-        TRUE ~ "p53_wt")) %>%
-    filter(cancer_copies >= 2-0.15) %>%
+    select(-p53_mut) %>% # what was that again?
+    filter(cancer_copies >= 2-0.15) %>% # only euploid or amp
     as_tibble() %>%
-    inner_join(brca_subtypes)
+    inner_join(brca_subtypes) %>%
+    left_join(mut %>% dplyr::rename(sample=Sample, p53_var=Variant)) %>%
+    mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", p53_mut),
+           p53_var = ifelse(is.na(p53_var), "other", p53_var))
 table(td$p53_mut)
 #rlm3$do_fit()
 
@@ -85,13 +88,13 @@ mean_eup = td %>% filter(cancer_copies < 2+0.15) %>%
 pdf("BRCA-p53-p21.pdf", 10, 8)
 ggplot(td, aes(x=cancer_copies, y=expr)) +
     geom_abline(data=mean_eup, aes(slope=mean_eup/2, intercept=0), linetype="dashed", color="red") +
-    geom_point(aes(color=meth_eup_scaled), size=2, alpha=0.5) +
+    geom_point(aes(color=meth_eup_scaled, shape=p53_var), size=2, alpha=0.5) +
     geom_smooth(method="lm", se=FALSE, color="red") +
     scale_color_distiller(palette="RdBu") +
     facet_grid(PAM50 ~ p53_mut)
 
 ggplot(td, aes(x=cancer_copies, y=meth)) +
-    geom_point(aes(alpha=purity), size=2) +
+    geom_point(aes(shape=p53_var, alpha=purity), size=2) +
     geom_smooth(method="lm", se=FALSE, color="blue") +
     facet_grid(PAM50 ~ p53_mut) +
     ggtitle("methylation")

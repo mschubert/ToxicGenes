@@ -48,6 +48,14 @@ cgs2 = lapply(cgs, summarize_cgs) %>% do.call(cbind, .)
 if (!is.null(cgs2) && ncol(cgs2) > 0)
     cpg = cbind(cgs2, cpg)
 
+idmap = import('process/idmap')
+p53_targets = c("CDKN1A", "CCND2", "GADD45A", "FAS", "BAX", "CDKN2A", "TP53",
+                "CCND3", "PERP", "CCNG1", "SESN1", "APAF1", "MDM2", "SERPINB5", "PIDD1", "ZMAT3")
+rnaseq = tcga$rna_seq("BRCA", trans="vst")
+rownames(rnaseq) = idmap$gene(rownames(rnaseq), to="hgnc_symbol")
+rnaseq = rnaseq[p53_targets,]
+p53_activity = tibble(sample=colnames(rnaseq), activity=scale(colMeans(rnaseq)))
+
 #mut = tcga$mutations() %>%
 #    filter(Study == "BRCA", Hugo_Symbol == "TP53") %>%
 io = import('io')
@@ -73,7 +81,8 @@ td = util$load_tcga("BRCA", top="CDKN1A") %>%
     inner_join(brca_subtypes) %>%
     left_join(mut %>% dplyr::rename(sample=Sample, p53_var=Variant)) %>%
     mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", p53_mut),
-           p53_var = ifelse(is.na(p53_var), "other", p53_var))
+           p53_var = ifelse(is.na(p53_var), "other", p53_var)) %>%
+    left_join(p53_activity)
 table(td$p53_mut)
 #rlm3$do_fit()
 
@@ -91,13 +100,20 @@ ggplot(td, aes(x=cancer_copies, y=expr)) +
     geom_point(aes(color=meth_eup_scaled, shape=p53_var), size=2, alpha=0.5) +
     geom_smooth(method="lm", se=FALSE, color="red") +
     scale_color_distiller(palette="RdBu") +
-    facet_grid(PAM50 ~ p53_mut)
+    facet_grid(PAM50 ~ p53_mut) +
+    ggtitle("CDKN1A expression")
 
 ggplot(td, aes(x=cancer_copies, y=meth)) +
     geom_point(aes(shape=p53_var, alpha=purity), size=2) +
     geom_smooth(method="lm", se=FALSE, color="blue") +
     facet_grid(PAM50 ~ p53_mut) +
     ggtitle("methylation")
+
+ggplot(td, aes(x=cancer_copies, y=activity)) +
+    geom_point(aes(shape=p53_var, alpha=purity), size=2) +
+    geom_smooth(method="lm", se=FALSE, color="blue") +
+    facet_grid(PAM50 ~ p53_mut) +
+    ggtitle("p53 signature activity (geometric mean Veronica's genes)")
 
 td2 = cbind(td, cpg)
 for (cp in colnames(cpg)) {

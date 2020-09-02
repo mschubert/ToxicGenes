@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(plyranges)
+io = import('io')
 seq = import('seq')
 tcga = import('data/tcga')
 util = import('./util')
@@ -54,11 +55,13 @@ p53_targets = c("CDKN1A", "CCND2", "GADD45A", "FAS", "BAX", "CDKN2A", "TP53",
 rnaseq = tcga$rna_seq("BRCA", trans="vst")
 rownames(rnaseq) = idmap$gene(rownames(rnaseq), to="hgnc_symbol")
 rnaseq = rnaseq[p53_targets,]
-p53_activity = tibble(sample=colnames(rnaseq), activity=scale(colMeans(rnaseq)))
+p53_activity = tibble(sample=colnames(rnaseq), activity=scale(c(colMeans(rnaseq))))
+
+prog_score = io$load("speed_linear.RData")
+prog_score = tibble(sample=rownames(prog_score), prog_p53=prog_score[,"p53"])
 
 #mut = tcga$mutations() %>%
 #    filter(Study == "BRCA", Hugo_Symbol == "TP53") %>%
-io = import('io')
 mut = io$load("/data/p282396/data/tcga/TCGAbiolinks-downloader/snv_mutect2/TCGA-BRCA.RData") %>%
     filter(Hugo_Symbol == "TP53") %>%
     transmute(Sample = substr(Tumor_Sample_Barcode, 1, 16),
@@ -80,10 +83,13 @@ td = util$load_tcga("BRCA", top="CDKN1A") %>%
     as_tibble() %>%
     inner_join(brca_subtypes) %>%
     left_join(mut %>% dplyr::rename(sample=Sample, p53_var=Variant)) %>%
+    left_join(p53_activity) %>%
+    left_join(prog_score) %>%
     mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", p53_mut),
-           p53_var = ifelse(is.na(p53_var), "other", p53_var)) %>%
-    left_join(p53_activity)
+           p53_var = ifelse(! p53_mut %in% c("p53_snp", "p53_del"), "other/none", p53_var),
+           p53_var = relevel(factor(p53_var), "other/none"))
 table(td$p53_mut)
+table(td$p53_var)
 #rlm3$do_fit()
 
 tcga$intersect(td$sample, cpg, along=1)
@@ -114,6 +120,12 @@ ggplot(td, aes(x=cancer_copies, y=activity)) +
     geom_smooth(method="lm", se=FALSE, color="blue") +
     facet_grid(PAM50 ~ p53_mut) +
     ggtitle("p53 signature activity (geometric mean Veronica's genes)")
+
+ggplot(td, aes(x=cancer_copies, y=prog_p53)) +
+    geom_point(aes(shape=p53_var, alpha=purity), size=2) +
+    geom_smooth(method="lm", se=FALSE, color="blue") +
+    facet_grid(PAM50 ~ p53_mut) +
+    ggtitle("p53 signature activity (progeny method)")
 
 td2 = cbind(td, cpg)
 for (cp in colnames(cpg)) {

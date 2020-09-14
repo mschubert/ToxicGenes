@@ -14,7 +14,7 @@ rule all:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
                 type=config['tcga_adj'], fit=config['fits']),
         expand("{tissue}/{fit}_{type}/{gset}.pdf", tissue=config['cor_tissues'],
-                type=['tcga_adj'], gset=config['genesets'], fit=['rlm3', 'lm3'])
+                type=config['tcga_adj'], gset=config['genesets'], fit=['rlm3', 'lm3'])
 
 rule fit:
     input:
@@ -26,6 +26,8 @@ rule fit:
         cores = lambda wc: cores[wc.tissue] if wc.tissue in cores.keys() else cores["*"],
         walltime = 480
     group: "fit_and_plot"
+    wildcard_constraints:
+        fit = "[a-z0-9]+"
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
@@ -55,6 +57,9 @@ rule gset:
         setfile = genesets("{gset}.rds")
     output:
         plotfile = "{tissue}/{fit}_{type}/{gset}.pdf"
+    wildcard_constraints:
+        fit = "[a-z0-9]+",
+        type = "[a-z0-9]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

@@ -50,8 +50,8 @@ if (!is.null(cgs2) && ncol(cgs2) > 0)
     cpg = cbind(cgs2, cpg)
 
 idmap = import('process/idmap')
-p53_targets = c("CDKN1A", "CCND2", "GADD45A", "FAS", "BAX", "CDKN2A", "TP53",
-                "CCND3", "PERP", "CCNG1", "SESN1", "APAF1", "MDM2", "SERPINB5", "PIDD1", "ZMAT3")
+p53_targets = c("CDKN1A", "GADD45A", "FAS", "BAX", "CDKN2A", "TP53",
+                "PERP", "CCNG1", "SESN1", "APAF1", "MDM2", "SERPINB5", "PIDD1", "ZMAT3")
 rnaseq = tcga$rna_seq("BRCA", trans="vst")
 rownames(rnaseq) = idmap$gene(rownames(rnaseq), to="hgnc_symbol")
 rnaseq = rnaseq[p53_targets,]
@@ -75,7 +75,8 @@ mut = io$load("/data/p282396/data/tcga/TCGAbiolinks-downloader/snv_mutect2/TCGA-
 
 brca_subtypes = readr::read_tsv("../../prmt5/BRCA.547.PAM50.SigClust.Subtypes.txt") %>%
     transmute(sample = substr(Sample, 1, 16),
-              PAM50 = ifelse(PAM50 %in% "Basal", PAM50, "LumAB+Normal+HER2"))
+              PAM50 = ifelse(PAM50 %in% c("Basal", "Her2"), PAM50, "LumAB+Normal"))
+#              PAM50 = ifelse(PAM50 %in% "Basal", PAM50, "LumAB+Normal+HER2"))
 
 td = util$load_tcga("BRCA", top="CDKN1A") %>%
     select(-p53_mut) %>% # what was that again?
@@ -100,7 +101,7 @@ mean_eup = td %>% filter(cancer_copies < 2+0.15) %>%
     group_by(gene, p53_mut) %>%
     summarize(mean_eup = mean(expr))
 
-pdf("BRCA-p53-p21.pdf", 10, 5)
+pdf("BRCA-p53-p21.pdf", 10, 8)
 ggplot(td, aes(x=cancer_copies, y=expr)) +
     geom_abline(data=mean_eup, aes(slope=mean_eup/2, intercept=0), linetype="dashed", color="red") +
     geom_point(aes(color=meth_eup_scaled, shape=p53_var), size=2, alpha=0.5) +

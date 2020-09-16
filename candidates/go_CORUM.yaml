@@ -18,19 +18,30 @@ genes:
     - SNRPF
     - SNRPA1
     - SNRPE
-  26S proteasome (human):
+  20S proteasome (human):
+    - PSMA1
+    - PSMB1
+    - PSMA2
+    - PSMB2
+    - PSMA3
+    - PSMB3
+    - PSMA4
+    - PSMB4
+    - PSMA5
+    - PSMB5
+    - PSMA6
+    - PSMB6
+    - PSMA7
+    - PSMB7
+  26S proteasome (human) (excl. 20S):
     - PSMD13
     - LOC643668
-    - PSMB7
-    - PSMA6
-    - PSMA7
     - PSMC6
-    - PSMA4
-    - PSMB5
-    - PSMA5
-    - PSMB6
-    - PSMB3
-    - PSMA2
+    - PSMC5
+    - PSMC2
+    - PSMC3
+    - PSMD4
+    - LOC652826
 methods:
     - lm
     - rlm3

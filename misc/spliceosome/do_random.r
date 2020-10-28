@@ -11,6 +11,14 @@ splice = readr::read_tsv("spliceosome.txt") %>%
            chr = Chromosome,
            subunit = `Group name`) %>%
     distinct()
+seq = import("seq")
+splice = seq$gene_table() %>%
+    transmute(ensembl_gene_id = ensembl_gene_id,
+              hgnc_symbol = external_gene_name,
+              chr = chromosome_name,
+              subunit = "random") %>%
+    distinct() %>%
+    sample_n(nrow(splice))
 
 # load breast cancer_copies
 purity = tcga$purity() %>%
@@ -56,7 +64,7 @@ dset = reshape2::melt(cancer_copies, value.name="cancer_copies") %>%
            hgnc_chr = sprintf("%s -- %s", hgnc_symbol, chr))
 
 # umap plot for different samples & genes
-pdf("do.pdf", 20, 12)
+pdf("do_random.pdf", 20, 12)
 ggplot(dset, aes(x=forcats::fct_reorder(Sample, umap_x),
                  y=forcats::fct_reorder(hgnc_chr, umap_y), fill=cancer_copies)) +
     geom_tile() +

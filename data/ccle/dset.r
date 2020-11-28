@@ -75,10 +75,10 @@ eset_raw = DESeq2::DESeqDataSetFromMatrix(expr, clines, ~1) %>%
     DESeq2::estimateSizeFactors(normMatrix=copies)
 eset = DESeq2::counts(eset_raw, normalized=TRUE)
 
-loc = readr::read_tsv("LOC254896_GE_values.txt") %>%
-    left_join(readr::read_csv("./CCLE_DepMapID_name_mapping.csv") %>%
-                 rename(DepMap_ID = broad_id))
-eset = rbind(eset, LOC254896=loc$LOC254896[match(colnames(eset), loc$ccle_name)])
-copies = rbind(copies, LOC254896=copies["TNFRSF10C",])
+#loc = readr::read_tsv("LOC254896_GE_values.txt") %>%
+#    left_join(readr::read_csv("./CCLE_DepMapID_name_mapping.csv") %>%
+#                 rename(DepMap_ID = broad_id))
+#eset = rbind(eset, LOC254896=loc$LOC254896[match(colnames(eset), loc$ccle_name)])
+#copies = rbind(copies, LOC254896=copies["TNFRSF10C",])
 
 saveRDS(list(clines=clines, copies=copies, eset_raw=eset_raw, eset=eset, mut=mut, meth=meth), file=args$outfile)

@@ -3,28 +3,15 @@ sys = import('sys')
 gset = import('data/genesets')
 
 do_fit = function(genes, eset, copies, covar=1, et=0.15) {
-    cnts = DESeq2::counts(eset)
-    names(dimnames(cnts)) = names(dimnames(copies)) = c("gene", "cell_line")
-    sfs = data.frame(cell_line=colnames(eset), sf=DESeq2::sizeFactors(eset))
-    cv = data.frame(cell_line=colnames(eset), covar=covar)
-    cnts = reshape2::melt(cnts[genes,], value.name="expr")
-    copies2 = reshape2::melt(copies[genes,], value.name="copies")
-    df = inner_join(tibble::rownames_to_column(cnts, "cell_line"),
-                    tibble::rownames_to_column(copies2, "cell_line")) %>%
-        inner_join(sfs) %>%
-        inner_join(cv) %>%
-        na.omit() %>%
-        mutate(eup_equiv = (copies - 2) / 2)
+    if (length(unique(covar)) == 1) {
+        full = expr ~ eup_equiv
+        red = expr ~ 1
+    } else {
+        full = expr ~ covar + eup_equiv
+        red = expr ~ covar
+    }
 
     tryCatch({
-        if (length(unique(covar)) == 1) {
-            full = expr ~ eup_equiv
-            red = expr ~ 1
-        } else {
-            full = expr ~ covar + eup_equiv
-            red = expr ~ covar
-        }
-
         res = rstanarm::stan_glm(full, data=df, offset=sf,
                                  family = neg_binomial_2(link="identity"),
                                  prior = normal(mean(df$expr), sd(df$expr)),
@@ -35,15 +22,15 @@ do_fit = function(genes, eset, copies, covar=1, et=0.15) {
         hdist = statip::hellinger(rmat[,"(Intercept)"], rmat[,"eup_equiv"])
         #for rsq, could compare bayes factors of model +/- eup_equiv
 
-        res2 = rstanarm::stan_glm(red, data=df, offset=sf,
-                                  family = neg_binomial_2(link="identity"),
-                                  prior = normal(mean(df$expr), sd(df$expr)),
-                                  prior_intercept = normal(mean(df$expr), sd(df$expr)),
-                                  seed = 2380719)
-
-        loo1 = loo(res, k_threshold = 0.7)
-        loo2 = loo(res2, k_threshold = 0.7)
-        cmp = loo_compare(loo1, loo2)
+#        res2 = rstanarm::stan_glm(red, data=df, offset=sf,
+#                                  family = neg_binomial_2(link="identity"),
+#                                  prior = normal(mean(df$expr), sd(df$expr)),
+#                                  prior_intercept = normal(mean(df$expr), sd(df$expr)),
+#                                  seed = 2380719)
+#
+#        loo1 = loo(res, k_threshold = 0.7)
+#        loo2 = loo(res2, k_threshold = 0.7)
+#        cmp = loo_compare(loo1, loo2)
 
         pseudo_p = pnorm(abs((mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"])) /
                              sd(rmat[,"(Intercept)"])), lower.tail=F)
@@ -54,8 +41,8 @@ do_fit = function(genes, eset, copies, covar=1, et=0.15) {
                eup_reads = mean(rmat[,"(Intercept)"]),
                slope_diff = mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"]),
                rsq = hdist, # not rsq, but [0,1]
-               p.value = pseudo_p,
-               loo_z = -cmp["res2", "elpd_diff"] / cmp["res2", "se_diff"])
+               p.value = pseudo_p)
+#               loo_z = -cmp["res2", "elpd_diff"] / cmp["res2", "se_diff"])
 
     }, error = function(e) {
         warning(genes, ": ", conditionMessage(e), immediate.=TRUE)
@@ -81,13 +68,35 @@ sys$run({
         dset$copies = dset$copies[,keep]
         dset$eset = dset$eset[,keep]
         dset$meth = dset$meth[,keep]
+        covar = 1
     }
 
     eset = DESeq2::estimateSizeFactors(dset$eset_raw)
-    genes = setNames(rownames(eset), rownames(eset))
+    copies = dset$copies
 
-    w = clustermq::workers(n_jobs = as.integer(args$cores),
-                           template = list(memory = as.integer(args$memory)))
+    cnts = DESeq2::counts(eset)
+    names(dimnames(cnts)) = names(dimnames(copies)) = c("gene", "cell_line")
+    sfs = data.frame(cell_line=colnames(eset), sf=DESeq2::sizeFactors(eset))
+    cv = data.frame(cell_line=colnames(eset), covar=covar)
+    cnts = reshape2::melt(cnts, value.name="expr")
+    copies2 = reshape2::melt(copies, value.name="copies")
+    df = inner_join(cnts, copies2) %>%
+        inner_join(sfs) %>%
+        inner_join(cv) %>%
+        na.omit() %>%
+        mutate(eup_equiv = (copies - 2) / 2) %>%
+        group_by(gene) %>%
+        tidyr::nest() %>%
+        tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))
+
+
+
+#    w = clustermq::workers(n_jobs = as.integer(args$cores),
+#                           template = list(memory = as.integer(args$memory)))
+
+top100 = readxl::read_xlsx("../merge_rank/rank_top/pan_rlm3.xlsx", "amp") %>%
+    pull(name) %>% head(100)
+genes = genes[genes %in% top100]
 
     ffuns = list(
         amp = function(x) { x[x < 2-et] = NA; x },
@@ -95,7 +104,7 @@ sys$run({
         all = identity
     )
     fits = lapply(ffuns, function(ff) {
-        res = clustermq::Q(do_fit, genes=sample(genes, 50), workers=w,
+        res = clustermq::Q(do_fit, genes=genes, n_jobs=10, memory=3072, #workers=w,
                            chunk_size=1, pkgs=c("dplyr", "rstanarm"),
                 const = list(eset=eset, copies=ff(dset$copies),
                              covar=dset$clines$tcga_code, et=et)) %>%
@@ -106,5 +115,4 @@ sys$run({
     })
 
     writexl::write_xlsx(fits, args$outfile)
-    w$cleanup()
 })

@@ -2,8 +2,19 @@ library(dplyr)
 sys = import('sys')
 gset = import('data/genesets')
 
-do_fit = function(genes, eset, copies, covar=1, et=0.15) {
-    if (length(unique(covar)) == 1) {
+#' Fit a negative binomial model using a stan glm
+#'
+#' @param df   A data.frame with columns: expr, copies, sf, covar, eup_equiv
+#' @param cna  Character string of either: "amp", "del", or "all"
+#' @param et   Tolerance in ploidies to consider sample euploid
+do_fit = function(df, cna, et=0.15) {
+    if (cna == "amp") {
+        df = df %>% filter(copies > 2-et)
+    } else if (cna == "del") {
+        df = df %>% filter(copies < 2+et)
+    }
+
+    if (length(unique(df$covar)) == 1) {
         full = expr ~ eup_equiv
         red = expr ~ 1
     } else {
@@ -37,7 +48,7 @@ do_fit = function(genes, eset, copies, covar=1, et=0.15) {
 
         tibble(estimate = mean(rmat[,"eup_equiv"]) / mean(rmat[,"(Intercept)"]) - 1, # pct_comp
                n_aneup = sum(abs(df$copies-2) > 1-et),
-               n_genes = length(genes),
+               n_genes = 1,
                eup_reads = mean(rmat[,"(Intercept)"]),
                slope_diff = mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"]),
                rsq = hdist, # not rsq, but [0,1]
@@ -45,7 +56,7 @@ do_fit = function(genes, eset, copies, covar=1, et=0.15) {
 #               loo_z = -cmp["res2", "elpd_diff"] / cmp["res2", "se_diff"])
 
     }, error = function(e) {
-        warning(genes, ": ", conditionMessage(e), immediate.=TRUE)
+        warning(conditionMessage(e), immediate.=TRUE)
         data.frame(estimate=NA)
     })
 }
@@ -89,30 +100,19 @@ sys$run({
         tidyr::nest() %>%
         tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))
 
-
-
-#    w = clustermq::workers(n_jobs = as.integer(args$cores),
-#                           template = list(memory = as.integer(args$memory)))
-
+# debug
 top100 = readxl::read_xlsx("../merge_rank/rank_top/pan_rlm3.xlsx", "amp") %>%
     pull(name) %>% head(100)
-genes = genes[genes %in% top100]
+df = df %>% filter(gene %in% top100)
 
-    ffuns = list(
-        amp = function(x) { x[x < 2-et] = NA; x },
-        del = function(x) { x[x > 2+et] = NA; x },
-        all = identity
-    )
-    fits = lapply(ffuns, function(ff) {
-        res = clustermq::Q(do_fit, genes=genes, n_jobs=10, memory=3072, #workers=w,
-                           chunk_size=1, pkgs=c("dplyr", "rstanarm"),
-                const = list(eset=eset, copies=ff(dset$copies),
-                             covar=dset$clines$tcga_code, et=et)) %>%
-            setNames(names(genes)) %>%
-            bind_rows(.id="name") %>%
-            mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-            arrange(adj.p, p.value)
-    })
+    df$res = clustermq::Q(do_fit, df=df$data, cna=df$cna, n_jobs=10, memory=3072,
+                          pkgs = c("dplyr", "rstanarm"), chunk_size=1)
 
-    writexl::write_xlsx(fits, args$outfile)
+    res = df %>%
+        select(-data) %>%
+        tidyr::unnest("res") %>%
+        split(.$cna) %>%
+        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
+
+    writexl::write_xlsx(res, args$outfile)
 })

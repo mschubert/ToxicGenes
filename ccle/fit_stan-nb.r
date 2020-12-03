@@ -1,6 +1,5 @@
 library(dplyr)
 sys = import('sys')
-gset = import('data/genesets')
 
 #' Fit a negative binomial model using a stan glm
 #'
@@ -68,7 +67,8 @@ sys$run({
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('j', 'cores', 'integer', '10'),
         opt('m', 'memory', 'integer', '6144'),
-        opt('o', 'outfile', 'xlsx', 'pan_stan-nb/genes.xlsx'))
+        opt('o', 'outfile', 'xlsx', 'pan/stan-nb/genes.xlsx')
+    )
 
     et = yaml::read_yaml(args$config)$euploid_tol
 
@@ -79,7 +79,6 @@ sys$run({
         dset$copies = dset$copies[,keep]
         dset$eset = dset$eset[,keep]
         dset$meth = dset$meth[,keep]
-        covar = 1
     }
 
     eset = DESeq2::estimateSizeFactors(dset$eset_raw)
@@ -88,7 +87,7 @@ sys$run({
     cnts = DESeq2::counts(eset)
     names(dimnames(cnts)) = names(dimnames(copies)) = c("gene", "cell_line")
     sfs = data.frame(cell_line=colnames(eset), sf=DESeq2::sizeFactors(eset))
-    cv = data.frame(cell_line=colnames(eset), covar=covar)
+    cv = data.frame(cell_line=colnames(eset), covar=dset$clines$tcga_code)
     cnts = reshape2::melt(cnts, value.name="expr")
     copies2 = reshape2::melt(copies, value.name="copies")
     df = inner_join(cnts, copies2) %>%
@@ -100,12 +99,8 @@ sys$run({
         tidyr::nest() %>%
         tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))
 
-# debug
-top100 = readxl::read_xlsx("../merge_rank/rank_top/pan_rlm3.xlsx", "amp") %>%
-    pull(name) %>% head(100)
-df = df %>% filter(gene %in% top100)
-
-    df$res = clustermq::Q(do_fit, df=df$data, cna=df$cna, n_jobs=10, memory=3072,
+    df$res = clustermq::Q(do_fit, df=df$data, cna=df$cna,
+                          n_jobs=as.integer(args$cores), memory=args$memory,
                           pkgs = c("dplyr", "rstanarm"), chunk_size=1)
 
     res = df %>%

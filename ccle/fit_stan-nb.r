@@ -72,29 +72,10 @@ sys$run({
 
     et = yaml::read_yaml(args$config)$euploid_tol
 
-    dset = readRDS(args$infile)
-    if (args$tissue != "pan") {
-        keep = dset$clines$tcga_code == args$tissue
-        dset$clines = dset$clines[keep,]
-        dset$copies = dset$copies[,keep]
-        dset$eset = dset$eset[,keep]
-        dset$meth = dset$meth[,keep]
-    }
-
-    eset = DESeq2::estimateSizeFactors(dset$eset_raw)
-    copies = dset$copies
-
-    cnts = DESeq2::counts(eset)
-    names(dimnames(cnts)) = names(dimnames(copies)) = c("gene", "cell_line")
-    sfs = data.frame(cell_line=colnames(eset), sf=DESeq2::sizeFactors(eset))
-    cv = data.frame(cell_line=colnames(eset), covar=dset$clines$tcga_code)
-    cnts = reshape2::melt(cnts, value.name="expr")
-    copies2 = reshape2::melt(copies, value.name="copies")
-    df = inner_join(cnts, copies2) %>%
-        inner_join(sfs) %>%
-        inner_join(cv) %>%
-        na.omit() %>%
-        mutate(eup_equiv = (copies - 2) / 2) %>%
+    df = readRDS(args$df_ccle)
+    if (args$tissue != "pan")
+        df = df %>% filter(covar %in% tissue)
+    df = df %>%
         group_by(gene) %>%
         tidyr::nest() %>%
         tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))

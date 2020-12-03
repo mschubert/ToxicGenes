@@ -1,0 +1,30 @@
+subworkflow ccle:
+    workdir: "ccle"
+    snakefile: "ccle/Snakefile"
+
+rule all:
+    input:
+        "df_ccle.rds",
+        "df_tcga.rds"
+
+rule ccle:
+    input:
+        rscript = "df_ccle.r",
+        infile = ccle("dset.rds")
+    output:
+        outfile = "df_ccle.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --outfile {output.outfile}"
+
+rule tcga:
+    input:
+        rscript = "df_tcga.r"
+    output:
+        outfile = "df_tcga.rds"
+    resources:
+        mem = 120 * 1000
+    shell:
+        "Rscript {input.rscript}"
+            " --outfile {output.outfile}"

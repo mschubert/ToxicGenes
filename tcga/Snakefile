@@ -2,6 +2,10 @@ from glob import glob
 
 configfile: "../config.yaml"
 
+subworkflow data:
+    workdir: "../data"
+    snakefile: "../data/Snakefile"
+
 subworkflow genesets:
     workdir: "../data/genesets"
     snakefile: "../data/genesets/Snakefile"
@@ -18,7 +22,8 @@ rule all:
 
 rule fit:
     input:
-        rscript = "fit_{fit}.r"
+        rscript = "fit_{fit}.r",
+        infile = data("df_tcgs.rds")
     output:
         outfile = "{tissue}/{fit}_{type}.xlsx"
     resources:

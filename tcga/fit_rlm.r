@@ -51,6 +51,7 @@ do_fit = function(genes, fml, emat, copies, purity, covar=0, et=0.15) {
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
+        opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
         opt('j', 'cores', 'integer', '10'),

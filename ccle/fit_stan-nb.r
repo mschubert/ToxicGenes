@@ -63,26 +63,33 @@ do_fit = function(df, cna, et=0.15) {
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
-        opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
+        opt('i', 'infile', 'rds', '../data/df_ccle.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('j', 'cores', 'integer', '10'),
-        opt('m', 'memory', 'integer', '6144'),
+        opt('j', 'cores', 'integer', '300'),
+        opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb/genes.xlsx')
     )
 
-    et = yaml::read_yaml(args$config)$euploid_tol
+    cna_cmq = function(data, cna) {
+        clustermq::Q(do_fit, df=data,
+                     const = list(cna=cna, et=cfg$euploid_tol),
+                     pkgs = c("dplyr", "rstanarm"),
+                     n_jobs = as.integer(args$cores),
+                     memory = as.integer(args$memory),
+                     chunk_size = 1)
+    }
 
-    df = readRDS(args$df_ccle)
+    cfg = yaml::read_yaml(args$config)
+    df = readRDS(args$infile)
     if (args$tissue != "pan")
         df = df %>% filter(covar %in% tissue)
     df = df %>%
         group_by(gene) %>%
         tidyr::nest() %>%
-        tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))
-
-    df$res = clustermq::Q(do_fit, df=df$data, cna=df$cna,
-                          n_jobs=as.integer(args$cores), memory=args$memory,
-                          pkgs = c("dplyr", "rstanarm"), chunk_size=1)
+        ungroup() %>%
+        mutate(amp = cna_cmq(data, "amp"),
+               del = cna_cmq(data, "del"),
+               all = cna_cmq(data, "all"))
 
     res = df %>%
         select(-data) %>%

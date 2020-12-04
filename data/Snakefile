@@ -13,6 +13,8 @@ rule ccle:
         infile = ccle("dset.rds")
     output:
         outfile = "df_ccle.rds"
+    resources:
+        mem = 4096
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -24,7 +26,8 @@ rule tcga:
     output:
         outfile = "df_tcga.rds"
     resources:
-        mem = 120 * 1000
+        mem = 120 * 1024,
+        walltime = 120
     shell:
         "Rscript {input.rscript}"
             " --outfile {output.outfile}"

@@ -6,7 +6,12 @@ sys = import('sys')
 #' @param df   A data.frame with columns: expr, copies, sf, covar, eup_equiv
 #' @param cna  Character string of either: "amp", "del", or "all"
 #' @param et   Tolerance in ploidies to consider sample euploid
-do_fit = function(df, cna, et=0.15) {
+#' @param timeout  Number of seconds that a fit can take before returnin NA
+#' @return     A data.frame with fit statistics
+do_fit = function(df, cna, et=0.15, timeout=3600 / 4) {
+    stopifnot(requireNamespace("rstanarm"))
+    stopifnot(requireNamespace("statip"))
+
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
     } else if (cna == "del") {
@@ -22,6 +27,7 @@ do_fit = function(df, cna, et=0.15) {
     }
 
     tryCatch({
+        setTimeLimit(elapsed=timeout, transient=TRUE)
         res = rstanarm::stan_glm(full, data=df, offset=sf,
                                  family = neg_binomial_2(link="identity"),
                                  prior = normal(mean(df$expr), sd(df$expr)),
@@ -65,7 +71,7 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_ccle.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('j', 'cores', 'integer', '300'),
+        opt('j', 'cores', 'integer', '1000'),
         opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb/genes.xlsx')
     )
@@ -87,9 +93,9 @@ sys$run({
         group_by(gene) %>%
         tidyr::nest() %>%
         ungroup() %>%
-        mutate(amp = cna_cmq(data, "amp"),
-               del = cna_cmq(data, "del"),
-               all = cna_cmq(data, "all"))
+        mutate(amp = cna_cmq(data, "amp"))
+#               del = cna_cmq(data, "del"),
+#               all = cna_cmq(data, "all"))
 
     res = df %>%
         select(-data) %>%

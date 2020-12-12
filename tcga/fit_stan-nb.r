@@ -9,7 +9,12 @@ idmap = import('process/idmap')
 #' @param cna   Character string of either: "amp", "del", or "all"
 #' @param type  Character string of either: "naive", "pur"
 #' @param et    Tolerance in ploidies to consider sample euploid
-do_fit = function(df, cna, type="pur", et=0.15) {
+#' @param timeout  Number of seconds that a fit can take before returnin NA
+#' @return     A data.frame with fit statistics
+do_fit = function(df, cna, type="pur", et=0.15, timeout=3600) {
+    stopifnot(requireNamespace("rstanarm"))
+    stopifnot(requireNamespace("statip"))
+
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
     } else if (cna == "del") {
@@ -31,6 +36,7 @@ do_fit = function(df, cna, type="pur", et=0.15) {
     }
 
     tryCatch({
+        setTimeLimit(elapsed=timeout, transient=TRUE)
         res = rstanarm::stan_glm(full, data=df, offset=sizeFactor,
                                  family = neg_binomial_2(link="identity"),
                                  prior = normal(mean(df$expr), sd(df$expr)),
@@ -63,13 +69,21 @@ sys$run({
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
         opt('y', 'type', 'naive|pur|puradj', 'naive'),
-        opt('j', 'cores', 'integer', '10'),
-        opt('m', 'memory', 'integer', '4096'),
+        opt('j', 'cores', 'integer', '1000'),
+        opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'LUAD/genes.xlsx')
     )
 
-    et = yaml::read_yaml(args$config)$euploid_tol
+    cna_cmq = function(data, cna) {
+        clustermq::Q(do_fit, df=data,
+                     const = list(cna=cna, type=args$type, et=cfg$euploid_tol),
+                     pkgs = c("dplyr", "rstanarm"),
+                     n_jobs = as.integer(args$cores),
+                     memory = as.integer(args$memory),
+                     chunk_size = 1)
+    }
 
+    cfg = yaml::read_yaml(args$config)
     if (args$tissue == "pan")
         args$tissue = tcga$cohorts()
 
@@ -77,18 +91,18 @@ sys$run({
         filter(covar %in% args$tissue) %>%
         group_by(gene) %>%
         tidyr::nest() %>%
-        tidyr::expand_grid(tibble(cna = c("amp", "del", "all")))
+        ungroup() %>%
+        mutate(amp = cna_cmq(data, "amp"))
+#               del = cna_cmq(data, "del"),
+#               all = cna_cmq(data, "all"))
 
-    df$res = clustermq::Q(do_fit, df=df$data, cna=df$cna,
-                          const = list(type=args$type, et=et),
-                          n_jobs = as.integer(args$cores), memory=args$memory,
-                          pkgs = c("dplyr", "rstanarm"), chunk_size=1)
+    saveRDS(df, file=args$outfile)
 
-    res = df %>%
-        select(-data) %>%
-        tidyr::unnest("res") %>%
-        split(.$cna) %>%
-        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
+#    res = df %>%
+#        select(-data) %>%
+#        tidyr::unnest("res") %>%
+#        split(.$cna) %>%
+#        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
 
-    writexl::write_xlsx(res, args$outfile)
+#    writexl::write_xlsx(res, args$outfile)
 })

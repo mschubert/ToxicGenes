@@ -13,48 +13,50 @@ idmap = import('process/idmap')
 #' @return     A data.frame with fit statistics
 do_fit = function(df, cna, type="pur", et=0.15, timeout=3600) {
     stopifnot(requireNamespace("rstanarm"))
-    stopifnot(requireNamespace("statip"))
 
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
     } else if (cna == "del") {
         df = df %>% filter(copies < 2+et)
     }
+    df$sf = df$sizeFactor
 
     if (length(unique(df$covar)) == 1) {
         full = switch(type,
-            naive = expr ~ eup_equiv,
-            pur = expr ~ purity + eup_equiv
+            naive = expr ~ eup_equiv:sf,
+            pur = expr ~ purity:sf + eup_equiv:sf
 #            puradj = expr ~ purity + eup_equiv
         )
     } else {
         full = switch(type,
-            naive = expr ~ covar + eup_equiv,
-            pur = expr ~ covar + purity + eup_equiv
+            naive = expr ~ covar:sf + eup_equiv:sf,
+            pur = expr ~ covar:sf + purity:sf + eup_equiv:sf
 #            puradj = expr ~ covar + purity + eup_equiv
         )
     }
 
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
-        res = rstanarm::stan_glm(full, data=df, offset=sizeFactor,
+        res = rstanarm::stan_glm(full, data=df,
                                  family = neg_binomial_2(link="identity"),
                                  prior = normal(mean(df$expr), sd(df$expr)),
                                  prior_intercept = normal(mean(df$expr), sd(df$expr)),
                                  seed = 2380719)
 
         rmat = as.matrix(res)
-        hdist = statip::hellinger(rmat[,"(Intercept)"], rmat[,"eup_equiv"])
+        is_covar = grepl("covar", colnames(rmat))
+        rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
+        intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
+        sd_intcp = mean(apply(intcp, 2, sd))
+        eup_eq = rmat[,"sf:eup_equiv"]
+        pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
-        pseudo_p = pnorm(abs((mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"])) /
-                             sd(rmat[,"(Intercept)"])), lower.tail=F)
-
-        tibble(estimate = mean(rmat[,"eup_equiv"]) / mean(rmat[,"(Intercept)"]) - 1, # pct_comp
+        tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
                n_aneup = sum(abs(df$copies-2) > 1-et),
                n_genes = 1,
-               eup_reads = mean(rmat[,"(Intercept)"]),
-               slope_diff = mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"]),
-               rsq = hdist, # not rsq, but [0,1]
+               eup_reads = mean(intcp),
+               slope_diff = mean(eup_eq) - mean(intcp),
+#               rsq = hdist, # not rsq, but [0,1]
                p.value = pseudo_p)
 
     }, error = function(e) {
@@ -67,11 +69,11 @@ sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
-        opt('t', 'tissue', 'TCGA identifier', 'LUAD'),
-        opt('y', 'type', 'naive|pur|puradj', 'naive'),
+        opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('y', 'type', 'naive|pur|puradj', 'pur'),
         opt('j', 'cores', 'integer', '1000'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'xlsx', 'LUAD/genes.xlsx')
+        opt('o', 'outfile', 'xlsx', 'pan/stan-nb_pur.xlsx')
     )
 
     cna_cmq = function(data, cna) {
@@ -96,7 +98,12 @@ sys$run({
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))
 
-    saveRDS(df, file=args$outfile)
+    res = df %>%
+        select(-data) %>%
+        tidyr::unnest("amp") %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
+    saveRDS(res, file=sub("\\.xlsx$", ".rds", args$outfile))
 
 #    res = df %>%
 #        select(-data) %>%
@@ -104,5 +111,5 @@ sys$run({
 #        split(.$cna) %>%
 #        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
 
-#    writexl::write_xlsx(res, args$outfile)
+    writexl::write_xlsx(res, args$outfile)
 })

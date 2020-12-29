@@ -23,7 +23,7 @@ rule all:
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data("df_tcgs.rds")
+        infile = data("df_tcga.rds")
     output:
         outfile = "{tissue}/{fit}_{type}.xlsx"
     resources:
@@ -32,7 +32,7 @@ rule fit:
         walltime = 480
     group: "fit_and_plot"
     wildcard_constraints:
-        fit = "[a-z0-9]+"
+        fit = "[a-z0-9-]+"
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"

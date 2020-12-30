@@ -8,57 +8,45 @@ sys = import('sys')
 #' @param et   Tolerance in ploidies to consider sample euploid
 #' @param timeout  Number of seconds that a fit can take before returnin NA
 #' @return     A data.frame with fit statistics
-do_fit = function(df, cna, et=0.15, timeout=3600 / 4) {
+do_fit = function(df, cna, et=0.15, timeout=1800) {
     stopifnot(requireNamespace("rstanarm"))
-    stopifnot(requireNamespace("statip"))
 
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
     } else if (cna == "del") {
         df = df %>% filter(copies < 2+et)
     }
+    df$sf = df$sizeFactor
 
     if (length(unique(df$covar)) == 1) {
-        full = expr ~ eup_equiv
-        red = expr ~ 1
+        full = expr ~ eup_equiv:sf
     } else {
-        full = expr ~ covar + eup_equiv
-        red = expr ~ covar
+        full = expr ~ covar:sf + eup_equiv:sf
     }
 
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
-        res = rstanarm::stan_glm(full, data=df, offset=sf,
+        res = rstanarm::stan_glm(full, data=df,
                                  family = neg_binomial_2(link="identity"),
                                  prior = normal(mean(df$expr), sd(df$expr)),
                                  prior_intercept = normal(mean(df$expr), sd(df$expr)),
                                  seed = 2380719)
 
         rmat = as.matrix(res)
-        hdist = statip::hellinger(rmat[,"(Intercept)"], rmat[,"eup_equiv"])
-        #for rsq, could compare bayes factors of model +/- eup_equiv
+        is_covar = grepl("covar", colnames(rmat))
+        rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
+        intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
+        sd_intcp = mean(apply(intcp, 2, sd))
+        eup_eq = rmat[,"sf:eup_equiv"]
+        pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
-#        res2 = rstanarm::stan_glm(red, data=df, offset=sf,
-#                                  family = neg_binomial_2(link="identity"),
-#                                  prior = normal(mean(df$expr), sd(df$expr)),
-#                                  prior_intercept = normal(mean(df$expr), sd(df$expr)),
-#                                  seed = 2380719)
-#
-#        loo1 = loo(res, k_threshold = 0.7)
-#        loo2 = loo(res2, k_threshold = 0.7)
-#        cmp = loo_compare(loo1, loo2)
-
-        pseudo_p = pnorm(abs((mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"])) /
-                             sd(rmat[,"(Intercept)"])), lower.tail=F)
-
-        tibble(estimate = mean(rmat[,"eup_equiv"]) / mean(rmat[,"(Intercept)"]) - 1, # pct_comp
+        tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
                n_aneup = sum(abs(df$copies-2) > 1-et),
                n_genes = 1,
-               eup_reads = mean(rmat[,"(Intercept)"]),
-               slope_diff = mean(rmat[,"(Intercept)"]) - mean(rmat[,"eup_equiv"]),
-               rsq = hdist, # not rsq, but [0,1]
+               eup_reads = mean(intcp),
+               slope_diff = mean(eup_eq) - mean(intcp),
+#               rsq = hdist, # not rsq, but [0,1]
                p.value = pseudo_p)
-#               loo_z = -cmp["res2", "elpd_diff"] / cmp["res2", "se_diff"])
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
@@ -71,7 +59,7 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_ccle.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('j', 'cores', 'integer', '1000'),
+        opt('j', 'cores', 'integer', '500'),
         opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb/genes.xlsx')
     )
@@ -89,6 +77,7 @@ sys$run({
     df = readRDS(args$infile)
     if (args$tissue != "pan")
         df = df %>% filter(covar %in% tissue)
+
     df = df %>%
         group_by(gene) %>%
         tidyr::nest() %>%
@@ -99,9 +88,16 @@ sys$run({
 
     res = df %>%
         select(-data) %>%
-        tidyr::unnest("res") %>%
-        split(.$cna) %>%
-        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
+        tidyr::unnest("amp") %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
+    saveRDS(res, file=sub("\\.xlsx$", ".rds", args$outfile))
+
+#    res = df %>%
+#        select(-data) %>%
+#        tidyr::unnest("res") %>%
+#        split(.$cna) %>%
+#        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
 
     writexl::write_xlsx(res, args$outfile)
 })

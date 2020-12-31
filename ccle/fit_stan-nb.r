@@ -45,6 +45,8 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
                n_genes = 1,
                eup_reads = mean(intcp),
                slope_diff = mean(eup_eq) - mean(intcp),
+               cv_intcp = sd_intcp / mean(intcp),
+               cv_copy = sd(eup_eq) / mean(eup_eq),
 #               rsq = hdist, # not rsq, but [0,1]
                p.value = pseudo_p)
 

@@ -70,6 +70,7 @@ sys$run({
                      pkgs = c("dplyr", "rstanarm"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
+                     max_calls_worker = 142, # 72h job / 0.5h max run - 1h
                      chunk_size = 1)
     }
 

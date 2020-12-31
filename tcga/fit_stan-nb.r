@@ -11,7 +11,7 @@ idmap = import('process/idmap')
 #' @param et    Tolerance in ploidies to consider sample euploid
 #' @param timeout  Number of seconds that a fit can take before returnin NA
 #' @return     A data.frame with fit statistics
-do_fit = function(df, cna, type="pur", et=0.15, timeout=3600) {
+do_fit = function(df, cna, type="pur", et=0.15, timeout=7200) {
     stopifnot(requireNamespace("rstanarm"))
 
     if (cna == "amp") {
@@ -82,6 +82,7 @@ sys$run({
                      pkgs = c("dplyr", "rstanarm"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
+                     max_calls_worker = 35, # 72h job / 2h max run - 1
                      chunk_size = 1)
     }
 

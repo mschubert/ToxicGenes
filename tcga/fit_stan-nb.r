@@ -31,9 +31,8 @@ do_fit = function(df, cna, type="pur", et=0.15, timeout=7200) {
     } else {
         full = switch(type,
             naive = expr ~ covar:sf + eup_equiv:sf,
-            pur = expr ~ covar:sf + purity:sf + eup_equiv:sf,
-            puradj = expr ~ covar:sf + stroma:sf + purity:eup_equiv:sf
-#            puradj = expr ~ covar:sf + covar:purity:sf + purity:eup_equiv:sf
+            pur = expr ~ covar:sf + stroma:sf + purity:eup_equiv:sf,
+            puradj = expr ~ covar:sf + covar:stroma:sf + purity:eup_equiv:sf
         )
     }
 
@@ -75,18 +74,19 @@ sys$run({
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('y', 'type', 'naive|pur|puradj', 'pur'),
-        opt('j', 'cores', 'integer', '1000'),
+        opt('j', 'cores', 'integer', '2000'),
         opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb_pur.xlsx')
     )
 
     cna_cmq = function(data, cna) {
+        to = 4 # hours
         clustermq::Q(do_fit, df=data,
-                     const = list(cna=cna, type=args$type, et=cfg$euploid_tol),
+                     const = list(cna=cna, type=args$type, et=cfg$euploid_tol, timeout=round(to*3600)),
                      pkgs = c("dplyr", "rstanarm"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-                     max_calls_worker = 35, # 72h job / 2h max run - 1
+                     max_calls_worker = round(72 / to) - 1, # 72h job / 2h max run - 1
                      chunk_size = 1)
     }
 

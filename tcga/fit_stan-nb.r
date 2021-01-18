@@ -20,18 +20,20 @@ do_fit = function(df, cna, type="pur", et=0.15, timeout=7200) {
         df = df %>% filter(copies < 2+et)
     }
     df$sf = df$sizeFactor
+    df$stroma = 1 - df$purity
 
     if (length(unique(df$covar)) == 1) {
         full = switch(type,
             naive = expr ~ eup_equiv:sf,
-            pur = expr ~ purity:sf + eup_equiv:sf
-#            puradj = expr ~ purity + eup_equiv
+            pur = expr ~ purity:sf + eup_equiv:sf,
+            puradj = expr ~ stroma:sf + purity:eup_equiv:sf
         )
     } else {
         full = switch(type,
             naive = expr ~ covar:sf + eup_equiv:sf,
-            pur = expr ~ covar:sf + purity:sf + eup_equiv:sf
-#            puradj = expr ~ covar + purity + eup_equiv
+            pur = expr ~ covar:sf + purity:sf + eup_equiv:sf,
+            puradj = expr ~ covar:sf + stroma:sf + purity:eup_equiv:sf
+#            puradj = expr ~ covar:sf + covar:purity:sf + purity:eup_equiv:sf
         )
     }
 
@@ -48,7 +50,7 @@ do_fit = function(df, cna, type="pur", et=0.15, timeout=7200) {
         rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
         intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
         sd_intcp = mean(apply(intcp, 2, sd))
-        eup_eq = rmat[,"sf:eup_equiv"]
+        eup_eq = rmat[,grepl("eup_equiv", colnames(rmat), fixed=TRUE)]
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
         tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp

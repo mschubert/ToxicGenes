@@ -11,7 +11,7 @@ subworkflow genesets:
     snakefile: "../data/genesets/Snakefile"
 
 mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
-cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
+cores = { "pan" : 1000, "BRCA" : 5, "*" : 0 }
 
 rule all:
     input:

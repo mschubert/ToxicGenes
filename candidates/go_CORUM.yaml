@@ -1,0 +1,47 @@
+# TCGA pan-can top compensated in amp
+genes:
+  snRNP-free U1A (SF-A) complex (human):
+    - SNRPA
+    - DDX5
+    - SFPQ
+    - NONO
+  17S U2 snRNP (human) (first 12):
+    - RBM17
+    - SF3A2
+    - SF3A3
+    - TRAP1
+    - CHERP
+    - SFRS1
+    - PHF5A
+    - SF3B14
+    - DNAJC8
+    - SNRPF
+    - SNRPA1
+    - SNRPE
+  20S proteasome (human):
+    - PSMA1
+    - PSMB1
+    - PSMA2
+    - PSMB2
+    - PSMA3
+    - PSMB3
+    - PSMA4
+    - PSMB4
+    - PSMA5
+    - PSMB5
+    - PSMA6
+    - PSMB6
+    - PSMA7
+    - PSMB7
+  26S proteasome (human) (excl. 20S):
+    - PSMD13
+    - LOC643668
+    - PSMC6
+    - PSMC5
+    - PSMC2
+    - PSMC3
+    - PSMD4
+    - LOC652826
+methods:
+    - lm
+    - rlm3

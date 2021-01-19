@@ -1,5 +1,6 @@
 sys = import('sys')
 idmap = import('process/idmap')
+enr = import('tools/enrichr')
 
 args = sys$cmd$parse(
     opt('h', 'haplo', 'xlsx' , 'pnas.1900437116.sd01.xlsx'),
@@ -9,15 +10,18 @@ args = sys$cmd$parse(
     opt('o', 'outfile', 'save to rds', 'manual.rds'))
 
 davoli = readxl::read_xlsx(args$davoli, skip=2)
+cplx = sets = enr$genes("CORUM")
 
 sets = list(
     haplo_insuff = setdiff(readxl::read_xlsx(args$haplo, "published data")$gene, "WT"),
-    common_essential = sub("^([^ ]+).*", "\\1",
+    DepMap_essential = sub("^([^ ]+).*", "\\1",
             read.table(args$essential, header=TRUE, sep="\t")$gene),
-    non_essential = sub("^([^ ]+).*", "\\1",
+    DepMap_nonessential = sub("^([^ ]+).*", "\\1",
             read.table(args$nonessential, header=TRUE, sep="\t")$gene),
-    oncogenes = davoli$OG,
-    TSGs = davoli$TSG
+    Davoli_oncogenes = davoli$OG,
+    Davoli_TSGs = davoli$TSG,
+    CORUM_complexes= unique(unlist(cplx))
 )
+sets = c(sets, cplx[grepl("snRNP|proteasome", names(cplx))])
 
 saveRDS(sets, file=args$outfile)

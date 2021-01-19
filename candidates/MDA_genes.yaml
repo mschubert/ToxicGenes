@@ -1,0 +1,21 @@
+# https://www.biorxiv.org/content/10.1101/2020.08.28.272641v1
+genes:
+  decoupled:
+    - FADD
+    - TLK2
+    - GATA3
+    - IRF1
+    - UTP18
+    - ZBTB25
+    - MYLK
+    - UGP2
+    - SMAP2
+    - SPI1
+    - TAP1
+  coupled:
+    - AMICA1
+    - ABCA8
+    - XPO5
+methods:
+    - lm
+    - rlm3

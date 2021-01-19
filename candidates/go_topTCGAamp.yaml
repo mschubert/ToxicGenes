@@ -1,0 +1,43 @@
+# TCGA pan-can top compensated in amp
+genes:
+  neurotransmitter loading into synaptic vesicle (GO:0098700):
+    - SLC17A6
+    - SLC17A7
+    - SLC17A8
+    - SLC18A1
+    - SLC18A2
+  peptidyl−glutamic acid carboxylation (GO:0017187):
+    - F7
+    - PROC
+    - VKORC1L1
+    - F9
+    - VKORC1
+    - F10
+    - GGCX
+    - PROS1
+    - PROZ
+    - F2
+  synaptic vesicle cycle (GO:0099504):
+    - RAB3A
+    - WNT3A
+    - SLC32A1
+    - NLGN1
+    - WNT7A
+    - PLD2
+    - SYT7
+    - SLC17A6
+    - SLC17A7
+    - SYNDIG1
+    - SLC17A8
+    - RAB5A
+    - SLC18A2
+  positive regulation of RNA export from nucleus (GO:0046833):
+    - KHDRBS1
+    - CPSF6
+    - RBM26
+    - RBM27
+    - DHX9
+    - NCBP2
+methods:
+    - lm
+    - rlm3

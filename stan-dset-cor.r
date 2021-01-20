@@ -35,8 +35,10 @@ ggplot(both, aes(x=ccle, y=tcga)) +
 
 # tcga+ccle vs orf screen
 cmp = both %>% mutate(gene=gene, tcga_ccle = (tcga + ccle)/2) %>%
-    inner_join(orf1 %>% transmute(gene=gene, orf1=estimate)) %>%
-    inner_join(orf2 %>% transmute(gene=gene, orf2=estimate))
+#    inner_join(orf1 %>% transmute(gene=gene, orf1=estimate)) %>%
+#    inner_join(orf2 %>% transmute(gene=gene, orf2=estimate))
+    inner_join(orf1 %>% transmute(gene=gene, orf1=statistic)) %>%
+    inner_join(orf2 %>% transmute(gene=gene, orf2=statistic))
 m1 = broom::glance(lm(orf1 ~ tcga_ccle, data=cmp)); m1
 m2 = broom::glance(lm(orf2 ~ tcga_ccle, data=cmp)); m2
 ggplot(cmp, aes(x=tcga_ccle, y=orf2)) +

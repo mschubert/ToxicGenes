@@ -11,7 +11,7 @@ subworkflow genesets:
     snakefile: "../data/genesets/Snakefile"
 
 mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
-cores = { "pan" : 10, "BRCA" : 5, "*" : 0 }
+cores = { "pan" : 1000, "BRCA" : 5, "*" : 0 }
 
 rule all:
     input:
@@ -23,7 +23,7 @@ rule all:
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data("df_tcgs.rds")
+        infile = data("df_tcga.rds")
     output:
         outfile = "{tissue}/{fit}_{type}.xlsx"
     resources:
@@ -32,7 +32,7 @@ rule fit:
         walltime = 480
     group: "fit_and_plot"
     wildcard_constraints:
-        fit = "[a-z0-9]+"
+        fit = "[a-z0-9-]+"
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"

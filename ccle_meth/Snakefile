@@ -11,7 +11,7 @@ subworkflow genesets:
     snakefile: "../data/genesets/Snakefile"
 
 mem = { 'pan' : 4096, '*' : 5120 }
-cores = { 'pan' : 10, '*' : 0 }
+cores = { 'pan' : 20, '*' : 0 }
 time = { 'pan' : 120, '*' : 360 }
 
 #tissue=config['ccle_tissues']

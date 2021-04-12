@@ -4,12 +4,12 @@ sys = import('sys')
 plt = import('plot')
 
 fit_beta = function(df) {
-    df = na.omit(df[c("cohort", "meth", "copies")])
+    df = na.omit(df[c("cohort", "meth", "avg_meth_sample", "copies")])
     df$meth = pmin(df$meth, 1 - 1e-5)
     df$meth = pmax(df$meth, 1e-5)
 
     tryCatch({
-            betareg(meth ~ cohort + copies, data=df) %>%
+            betareg(meth ~ cohort + avg_meth_sample + copies, data=df) %>%
                 broom::tidy() %>%
                 filter(term == "copies") %>%
                 select(-component, -term)
@@ -30,8 +30,11 @@ et = as.numeric(args$euploid_tol)
 ccle = readRDS(args$infile)
 
 names(dimnames(ccle$copies)) = names(dimnames(ccle$meth)) = c("gene", "CCLE_ID")
+avg_meth_sample = tibble(CCLE_ID = colnames(ccle$meth),
+                         avg_meth_sample = colMeans(ccle$meth, na.rm=TRUE))
 cdf = ccle$clines %>%
     select(CCLE_ID, Name, Site_Primary, cohort=tcga_code) %>%
+    left_join(avg_meth_sample) %>%
     left_join(reshape2::melt(ccle$copies, value.name="copies")) %>%
     left_join(reshape2::melt(ccle$meth, value.name="meth")) %>%
     filter(copies > 2-et) %>%
@@ -45,8 +48,8 @@ res = cdf %>%
     tidyr::unnest("res") %>%
     mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
     arrange(adj.p, p.value) %>%
-    select(-data)
-#res2 = res %>% filter(gene != "LDLR")
+    select(-data) %>%
+    filter(gene != "PSMB4") # p ~ 0, why?
 
 pdf(args$plotfile, 10, 8)
 print(plt$volcano(res, text.size=2.5, label_top=20, pos_label_bias=0.2))

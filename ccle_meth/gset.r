@@ -9,9 +9,7 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'pan/betareg/MSigDB_Hallmark_2020.pdf')
 )
 
-dset = readxl::read_xlsx(args$infile) %>%
-    filter(gene != "LDLR") # p=0
-
+dset = readxl::read_xlsx(args$infile)
 sets = readRDS(args$setfile) %>%
     gset$filter(min=1, valid=dset$gene)
 

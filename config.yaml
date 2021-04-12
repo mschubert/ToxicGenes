@@ -69,6 +69,10 @@ fit_compare:
     - lm3
 #    - lm3r
 
+cna:
+    - amp
+#    - del
+#    - all
 
 tcga_adj:
     - naive

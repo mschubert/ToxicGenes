@@ -1,6 +1,7 @@
 library(dplyr)
 library(betareg)
 sys = import('sys')
+plt = import('plot')
 
 fit_beta = function(df) {
     df = na.omit(df[c("cohort", "meth", "copies")])
@@ -17,15 +18,13 @@ fit_beta = function(df) {
 
 args = sys$cmd$parse(
     opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
-    opt('c', 'cohort', 'pan|TCGA cohort', 'pan'),
+    opt('t', 'tissue', 'pan|TCGA cohort', 'pan'),
     opt('e', 'euploid_tol', 'numeric copy dev from euploid', '0.15'),
-    opt('o', 'outfile', 'rds', 'betareg.rds')
+    opt('c', 'cores', 'parallel cores', '0'),
+    opt('m', 'memory', 'mem per core', '1024'),
+    opt('o', 'outfile', 'rds', 'pan/betareg.rds'),
+    opt('p', 'plotfile', 'pdf', 'pan/betareg.pdf')
 )
-
-#TODO:
-#  volcano plot
-# gene sets + plot (different script?)
-#  overlap ccle stan-nb compensation
 
 et = as.numeric(args$euploid_tol)
 ccle = readRDS(args$infile)
@@ -37,15 +36,20 @@ cdf = ccle$clines %>%
     left_join(reshape2::melt(ccle$meth, value.name="meth")) %>%
     filter(copies > 2-et) %>%
     group_by(gene) %>%
-    tidyr::nest()
+        tidyr::nest() %>%
+    ungroup()
 
 res = cdf %>%
-    rowwise() %>%
-        mutate(res = list(fit_beta(data))) %>%
-    ungroup() %>%
+    mutate(res = clustermq::Q(fit_beta, df=data, n_jobs=as.integer(args$cores),
+        memory=as.integer(args$memory), pkgs=c("dplyr", "betareg"))) %>%
     tidyr::unnest("res") %>%
     mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-    arrange(adj.p, p.value)
+    arrange(adj.p, p.value) %>%
+    select(-data)
 #res2 = res %>% filter(gene != "LDLR")
 
-saveRDS(res, file=args$outfile)
+pdf(args$plotfile, 10, 8)
+print(plt$volcano(res, text.size=2.5, label_top=20, pos_label_bias=0.2))
+dev.off()
+
+writexl::write_xlsx(res, args$outfile)

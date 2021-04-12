@@ -1,7 +1,8 @@
 #!/bin/sh
 
 cd $(dirname $0)
-PROJNAME=${PWD##*/}
+PROJNAME=ToxicGenes
+#PROJNAME=${PWD##*/}
 
 rsync -auvr $@ --prune-empty-dirs \
     --exclude "candidates_mech/" \
@@ -11,6 +12,6 @@ rsync -auvr $@ --prune-empty-dirs \
     --include "*.pdf" \
     --include "*.xlsx" \
     --exclude="*" \
-    . ~/Documents/Results/"$PROJNAME"
+    . ~/Documents/Projects/"$PROJNAME"
 
 cd -

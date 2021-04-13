@@ -9,7 +9,8 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'pan/betareg/MSigDB_Hallmark_2020.pdf')
 )
 
-dset = readxl::read_xlsx(args$infile)
+dset = readxl::read_xlsx(args$infile) %>%
+    filter(adj.p > 1e-80) # outliers drive assocs too much, look at them on gene level
 sets = readRDS(args$setfile) %>%
     gset$filter(min=1, valid=dset$gene)
 

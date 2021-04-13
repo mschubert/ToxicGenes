@@ -56,8 +56,7 @@ res = cdf %>%
     tidyr::unnest("res") %>%
     mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
     arrange(adj.p, p.value) %>%
-    select(-data) %>%
-    filter(gene != "PSMB4") # p ~ 0, why?
+    select(-data)
 
 pdf(args$plotfile, 10, 8)
 print(plt$volcano(res, text.size=2.5, label_top=20, pos_label_bias=0.2))

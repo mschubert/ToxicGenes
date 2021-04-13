@@ -8,8 +8,13 @@ fit_beta = function(df) {
     df$meth = pmin(df$meth, 1 - 1e-5)
     df$meth = pmax(df$meth, 1e-5)
 
+    if (length(unique(df$cohort)) == 1)
+        fml = meth ~ avg_meth_sample + copies
+    else
+        fml = meth ~ cohort + avg_meth_sample + copies
+
     tryCatch({
-            betareg(meth ~ cohort + avg_meth_sample + copies, data=df) %>%
+            betareg(fml, data=df) %>%
                 broom::tidy() %>%
                 filter(term == "copies") %>%
                 select(-component, -term)
@@ -28,12 +33,15 @@ args = sys$cmd$parse(
 
 et = as.numeric(args$euploid_tol)
 ccle = readRDS(args$infile)
+if (args$tissue == "pan")
+    args$tissue = unique(na.omit(ccle$clines$tcga_code))
 
 names(dimnames(ccle$copies)) = names(dimnames(ccle$meth)) = c("gene", "CCLE_ID")
 avg_meth_sample = tibble(CCLE_ID = colnames(ccle$meth),
                          avg_meth_sample = colMeans(ccle$meth, na.rm=TRUE))
 cdf = ccle$clines %>%
     select(CCLE_ID, Name, Site_Primary, cohort=tcga_code) %>%
+    filter(cohort %in% args$tissue) %>%
     left_join(avg_meth_sample) %>%
     left_join(reshape2::melt(ccle$copies, value.name="copies")) %>%
     left_join(reshape2::melt(ccle$meth, value.name="meth")) %>%

@@ -11,15 +11,17 @@ subworkflow genesets:
     snakefile: "../data/genesets/Snakefile"
 
 mem = { 'pan' : 4096, '*' : 5120 }
-cores = { 'pan' : 20, '*' : 0 }
+cores = { 'pan' : 20, '*' : 5 }
 time = { 'pan' : 120, '*' : 360 }
 
-#tissue=config['ccle_tissues']
+tissues = config['ccle_tissues']
+fits = ['gene' ]#, 'cpg']
+
 rule all:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=['pan'], fit=['betareg']),
+        expand("{tissue}/{fit}.pdf", tissue=tissues, fit=fits),
         expand("{tissue}/{fit}/{gset}.pdf",
-                tissue=['pan'], gset=config['genesets'], fit=['betareg'])
+                tissue=tissues, gset=config['genesets'], fit=fits)
 
 rule fit:
     input:

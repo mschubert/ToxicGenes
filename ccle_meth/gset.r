@@ -17,5 +17,5 @@ sets = readRDS(args$setfile) %>%
 res = gset$test(dset, sets)
 
 pdf(args$plotfile, 10, 8)
-print(plt$volcano(res, base.size=0.2, text.size=2.5, label_top=20, pos_label_bias=0.2))
+print(plt$volcano(res, base.size=0.2, text.size=2.5, label_top=30))
 dev.off()

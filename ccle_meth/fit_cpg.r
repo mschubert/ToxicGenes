@@ -62,7 +62,7 @@ res = cdf %>%
     select(-data)
 
 pdf(args$plotfile, 10, 8)
-print(plt$volcano(res, label="cluster_id", text.size=2.5, label_top=20, pos_label_bias=0.2))
+print(plt$volcano(res, label="cluster_id", text.size=2.5, label_top=30))
 dev.off()
 
 writexl::write_xlsx(res, args$outfile)

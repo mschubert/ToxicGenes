@@ -15,7 +15,7 @@ cores = { 'pan' : 20, '*' : 5 }
 time = { 'pan' : 120, '*' : 360 }
 
 tissues = config['ccle_tissues']
-fits = ['gene' ]#, 'cpg']
+fits = ['gene', 'cpg']
 
 rule all:
     input:

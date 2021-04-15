@@ -1,0 +1,57 @@
+configfile: "../config.yaml"
+
+#TODO: overlap ccle stan-nb compensation
+
+subworkflow data_ccle:
+    workdir: "../data/ccle"
+    snakefile: "../data/ccle/Snakefile"
+
+subworkflow genesets:
+    workdir: "../data/genesets"
+    snakefile: "../data/genesets/Snakefile"
+
+mem = { 'pan' : 4096, '*' : 5120 }
+cores = { 'pan' : 20, '*' : 5 }
+time = { 'pan' : 120, '*' : 360 }
+
+tissues = config['ccle_tissues']
+fits = ['gene', 'cpg']
+
+rule all:
+    input:
+        expand("{tissue}/{fit}.pdf", tissue=tissues, fit=fits),
+        expand("{tissue}/{fit}/{gset}.pdf",
+                tissue=tissues, gset=config['genesets'], fit=fits)
+
+rule fit:
+    input:
+        rscript = "fit_{fit}.r",
+        infile = data_ccle("dset.rds"),
+    output:
+        outfile = "{tissue}/{fit}.xlsx",
+        plotfile = "{tissue}/{fit}.pdf"
+    resources:
+        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
+        cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
+        walltime = lambda wc: [ time[wc.tissue] if wc.tissue in time.keys() else time['*'] ][0]
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --tissue {wildcards.tissue}"
+            " --cores {resources.cores}"
+            " --memory {resources.mem}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
+rule gset:
+    input:
+        rscript = "gset.r",
+        infile = "{tissue}/{fit}.xlsx",
+        setfile = genesets("{gset}.rds")
+    output:
+        plotfile = "{tissue}/{fit}/{gset}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"

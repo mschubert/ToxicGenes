@@ -1,7 +1,8 @@
 #!/bin/sh
 
 cd $(dirname $0)
-PROJNAME=${PWD##*/}
+PROJNAME=ToxicGenes
+#PROJNAME=${PWD##*/}
 
 rsync -auvr $@ --prune-empty-dirs \
     --exclude "candidates_mech/" \

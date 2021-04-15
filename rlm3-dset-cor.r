@@ -27,7 +27,7 @@ ggplot(both, aes(x=tcga_naive, y=tcga_pur)) +
 
 # tcga-ccle cor
 both = inner_join(ccle %>% transmute(gene=gene, ccle=estimate),
-           tcga1 %>% transmute(gene=gene, tcga=estimate, tcga_aneup=n_aneup))
+           tcga3 %>% transmute(gene=gene, tcga=estimate, tcga_aneup=n_aneup))
 m0 = broom::glance(lm(ccle ~ tcga, data=both)); m0
 ggplot(both, aes(x=ccle, y=tcga)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +

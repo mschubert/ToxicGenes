@@ -25,7 +25,8 @@ rule fit:
         rscript = "fit_{fit}.r",
         infile = data("df_tcga.rds")
     output:
-        outfile = "{tissue}/{fit}_{type}.xlsx"
+        outfile = "{tissue}/{fit}_{type}.xlsx",
+        outfile2 = "{tissue}/{fit}_{type}.rds"
     resources:
         mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
         cores = lambda wc: cores[wc.tissue] if wc.tissue in cores.keys() else cores["*"],

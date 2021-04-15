@@ -1,32 +1,37 @@
 configfile: "../config.yaml"
 
-#TODO: overlap ccle stan-nb compensation
-
 subworkflow data_ccle:
     workdir: "../data/ccle"
-    snakefile: "../data/ccle/Snakefile"
 
 subworkflow genesets:
     workdir: "../data/genesets"
-    snakefile: "../data/genesets/Snakefile"
 
-mem = { 'pan' : 4096, '*' : 5120 }
-cores = { 'pan' : 20, '*' : 5 }
-time = { 'pan' : 120, '*' : 360 }
+subworkflow ccle:
+    workdir: "../ccle"
+
+subworkflow orf:
+    workdir: "../orf"
+
+mem = { 'pan' : 2048, '*' : 768 }
+cores = { 'pan' : 10, '*' : 5 }
+time = { 'pan' : 120, '*' : 60 }
 
 tissues = config['ccle_tissues']
 fits = ['gene', 'cpg']
+sets = set(config['genesets']) - set('genes')
 
 rule all:
     input:
         expand("{tissue}/{fit}.pdf", tissue=tissues, fit=fits),
+#        expand("{tissue}/cor-comp.pdf", tissue=tissues, fit=fits),
+        expand("{tissue}/cor-comp.pdf", tissue=['pan'], fit=fits), # no stan-nb avail for tissues
         expand("{tissue}/{fit}/{gset}.pdf",
                 tissue=tissues, gset=config['genesets'], fit=fits)
 
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data_ccle("dset.rds"),
+        infile = data_ccle("dset.rds")
     output:
         outfile = "{tissue}/{fit}.xlsx",
         plotfile = "{tissue}/{fit}.pdf"
@@ -34,6 +39,8 @@ rule fit:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
         walltime = lambda wc: [ time[wc.tissue] if wc.tissue in time.keys() else time['*'] ][0]
+    wildcard_constraints:
+        fit = "(?!cor-comp).*"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -54,4 +61,20 @@ rule gset:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"
+
+rule cor:
+    input:
+        rscript = "cor-comp.r",
+        comp = ccle("{tissue}/stan-nb.rds"),
+        orf = orf("{tissue}/genes.xlsx"),
+        meth = "{tissue}/gene.xlsx"
+    output:
+        plotfile = "{tissue}/cor-comp.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --tissue {wildcards.tissue}"
+            " --comp {input.comp}"
+            " --orf {input.orf}"
+            " --meth {input.meth}"
             " --plotfile {output.plotfile}"

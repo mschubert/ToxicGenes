@@ -20,8 +20,8 @@ sets = set(config['genesets']) - set('genes')
 rule all:
     input:
         expand("{tissue}/{fit}.pdf", tissue=tissues, fit=fits),
-#        expand("{tissue}/cor-comp.pdf", tissue=tissues, fit=['gene']),
-        expand("{tissue}/cor-comp.pdf", tissue=['pan'], fit=['gene']), # no stan-nb avail for tissues
+#        expand("{tissue}/cor-comp.pdf", tissue=tissues, fit=fits),
+        expand("{tissue}/cor-comp.pdf", tissue=['pan'], fit=fits), # no stan-nb avail for tissues
         expand("{tissue}/{fit}/{gset}.pdf",
                 tissue=tissues, gset=config['genesets'], fit=fits)
 
@@ -71,4 +71,5 @@ rule cor:
             " --tissue {wildcards.tissue}"
             " --comp {input.comp}"
             " --orf {input.orf}"
+            " --meth {input.meth}"
             " --plotfile {output.plotfile}"

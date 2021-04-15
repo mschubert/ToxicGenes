@@ -61,7 +61,9 @@ rule gset:
 rule cor:
     input:
         rscript = "cor-comp.r",
-        comp = tcga("{tissue}/stan-nb_pur.rds"),
+        comp_naive = tcga("{tissue}/stan-nb_naive.rds"),
+        comp_pur = tcga("{tissue}/stan-nb_pur.rds"),
+        comp_puradj = tcga("{tissue}/stan-nb_puradj.rds"),
         orf = orf("{tissue}/genes.xlsx"),
         meth = "{tissue}/gene.xlsx"
     output:
@@ -69,7 +71,9 @@ rule cor:
     shell:
         "Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
-            " --comp {input.comp}"
+            " --comp_naive {input.comp_naive}"
+            " --comp_pur {input.comp_pur}"
+            " --comp_puradj {input.comp_puradj}"
             " --orf {input.orf}"
             " --meth {input.meth}"
             " --plotfile {output.plotfile}"

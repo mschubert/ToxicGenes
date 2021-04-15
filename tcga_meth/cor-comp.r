@@ -8,13 +8,14 @@ join_plot_one = function(comp) {
         inner_join(meth) %>%
         left_join(orf)
 
-    broom::tidy(lm(meth ~ comp, data=both))
+    mod = broom::tidy(lm(meth ~ comp, data=both))
 
     ggplot(data=both %>% filter(!is.na(orf_dir)), aes(x=comp, y=meth)) +
         geom_point(data=both %>% filter(is.na(orf_dir)), alpha=0.1) +
         geom_point(aes(color=orf_dir), alpha=0.1) +
         geom_density2d(aes(color=orf_dir)) +
-        geom_smooth(method="lm")
+        geom_smooth(method="lm") +
+        labs(subtitle = sprintf("%.2f (p=%.2g)", mod$estimate, mod$p.value))
 }
 
 args = sys$cmd$parse(

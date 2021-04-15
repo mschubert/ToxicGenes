@@ -41,7 +41,7 @@ tcga_tissues:
     - HNSC
     - KIRC
     - SKCM
-    - COAD
+    - COADREAD
     - OV
     - PRAD
 
@@ -53,6 +53,7 @@ cor_tissues:
     - LUAD
     - LUSC
     - PRAD
+    - COADREAD
 
 # all the fits that should be calculated
 fits:

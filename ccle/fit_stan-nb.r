@@ -16,7 +16,6 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
     } else if (cna == "del") {
         df = df %>% filter(copies < 2+et)
     }
-    df$sf = df$sizeFactor
 
     if (length(unique(df$covar)) == 1) {
         full = expr ~ eup_equiv:sf
@@ -37,7 +36,7 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
         rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
         intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
         sd_intcp = mean(apply(intcp, 2, sd))
-        eup_eq = rmat[,"sf:eup_equiv"]
+        eup_eq = rmat[,"eup_equiv:sf"]
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
         tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
@@ -61,9 +60,9 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_ccle.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('j', 'cores', 'integer', '500'),
+        opt('j', 'cores', 'integer', '20'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'xlsx', 'pan/stan-nb/genes.xlsx')
+        opt('o', 'outfile', 'xlsx', 'pan/stan-nb.xlsx')
     )
 
     cna_cmq = function(data, cna) {
@@ -72,15 +71,18 @@ sys$run({
                      pkgs = c("dplyr", "rstanarm"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-                     max_calls_worker = 142, # 72h job / 0.5h max run - 1h
+#                     max_calls_worker = 142, # 72h job / 0.5h max run - 1h
                      chunk_size = 1)
     }
 
     cfg = yaml::read_yaml(args$config)
     df = readRDS(args$infile)
-    if (args$tissue != "pan")
-        df = df %>% filter(covar %in% tissue)
-
+    if (args$tissue == "NSCLC") {
+        args$tissue = c("LUAD", "LUSC")
+    }
+    if (!identical(args$tissue, "pan")) {
+        df = df %>% filter(covar %in% args$tissue)
+    }
     df = df %>%
         group_by(gene) %>%
         tidyr::nest() %>%

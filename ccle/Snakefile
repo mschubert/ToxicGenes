@@ -1,17 +1,13 @@
-from glob import glob
-
 configfile: "../config.yaml"
 
-subworkflow data_ccle:
-    workdir: "../data/ccle"
-    snakefile: "../data/ccle/Snakefile"
+subworkflow data:
+    workdir: "../data"
 
 subworkflow genesets:
     workdir: "../data/genesets"
-    snakefile: "../data/genesets/Snakefile"
 
-mem = { 'pan' : 4096, '*' : 2048 }
-cores = { 'pan' : 60, '*' : 0 }
+mem = { 'pan' : 1024, '*' : 512 }
+cores = { 'pan' : 60, '*' : 20 }
 time = { 'pan' : 72*60, '*' : 360 }
 
 rule all:
@@ -23,7 +19,7 @@ rule all:
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data_ccle("dset.rds"),
+        infile = data("df_ccle.rds"),
     output:
         outfile = "{tissue}/{fit}.xlsx",
         outfile2 = "{tissue}/{fit}.rds"

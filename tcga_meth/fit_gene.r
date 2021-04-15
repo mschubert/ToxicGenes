@@ -23,10 +23,9 @@ fit_beta = function(df) {
 
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
-    opt('i', 'infile', 'rds', '../data/ccle/dset.rds'),
     opt('t', 'tissue', 'pan|TCGA cohort', 'pan'),
     opt('e', 'euploid_tol', 'numeric copy dev from euploid', '0.15'),
-    opt('c', 'cores', 'parallel cores', '20'),
+    opt('c', 'cores', 'parallel cores', '5'),
     opt('m', 'memory', 'mem per core', '1024'),
     opt('o', 'outfile', 'rds', 'pan/betareg.rds'),
     opt('p', 'plotfile', 'pdf', 'pan/betareg.pdf')

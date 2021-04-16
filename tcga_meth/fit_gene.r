@@ -33,8 +33,11 @@ args = sys$cmd$parse(
 
 cfg = yaml::read_yaml(args$config)
 et = as.numeric(args$euploid_tol)
-if (args$tissue == "pan")
+if (args$tissue == "pan") {
     args$tissue = setdiff(cfg$tcga_tissues, "pan") # reduced set
+} else if (args$tissue == "COADREAD") {
+    args$tissue = c("COAD", "READ")
+}
 
 copies = lapply(args$tissue, tcga$cna_genes, gene="external_gene_name") %>%
     narray::stack(along=2)

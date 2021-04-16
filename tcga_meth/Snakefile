@@ -63,7 +63,7 @@ rule cor:
         rscript = "cor-comp.r",
         comp_naive = tcga("{tissue}/stan-nb_naive.rds"),
         comp_pur = tcga("{tissue}/stan-nb_pur.rds"),
-        comp_puradj = tcga("{tissue}/stan-nb_puradj.rds"),
+#        comp_puradj = tcga("{tissue}/stan-nb_puradj.rds"),
         orf = orf("{tissue}/genes.xlsx"),
         meth = "{tissue}/gene.xlsx"
     output:
@@ -73,7 +73,7 @@ rule cor:
             " --tissue {wildcards.tissue}"
             " --comp_naive {input.comp_naive}"
             " --comp_pur {input.comp_pur}"
-            " --comp_puradj {input.comp_puradj}"
+#            " --comp_puradj {input.comp_puradj}"
             " --orf {input.orf}"
             " --meth {input.meth}"
             " --plotfile {output.plotfile}"

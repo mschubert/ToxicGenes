@@ -22,7 +22,7 @@ args = sys$cmd$parse(
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
     opt('n', 'comp_naive', 'rds', '../tcga/pan/stan-nb_naive.rds'),
     opt('u', 'comp_pur', 'rds', '../tcga/pan/stan-nb_pur.rds'),
-    opt('a', 'comp_puradj', 'rds', '../tcga/pan/stan-nb_puradj.rds'),
+#    opt('a', 'comp_puradj', 'rds', '../tcga/pan/stan-nb_puradj.rds'),
     opt('o', 'orf', 'xlsx', '../orf/pan/genes.xlsx'),
     opt('m', 'meth', 'xlsx', 'pan/gene.xlsx'),
     opt('p', 'plotfile', 'pdf', 'pan/cor-comp.pdf')
@@ -30,8 +30,8 @@ args = sys$cmd$parse(
 
 comp_naive = readRDS(args$comp_naive)
 comp_pur = readRDS(args$comp_pur)
-comp_puradj = readRDS(args$comp_puradj) %>%
-    mutate(estimate = sign(estimate) * pmin(abs(estimate), 2))
+#comp_puradj = readRDS(args$comp_puradj) %>%
+#    mutate(estimate = sign(estimate) * pmin(abs(estimate), 2))
 
 meth = readxl::read_excel(args$meth) %>%
     transmute(gene=gene, meth=statistic)
@@ -42,5 +42,5 @@ orf = readxl::read_excel(args$orf) %>%
 pdf(args$plotfile)
 join_plot_one(comp_naive) + ggtitle("naive")
 join_plot_one(comp_pur) + ggtitle("pur")
-join_plot_one(comp_puradj) + ggtitle("puradj")
+#join_plot_one(comp_puradj) + ggtitle("puradj")
 dev.off()

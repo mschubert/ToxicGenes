@@ -11,7 +11,7 @@ args = sys$cmd$parse(
 )
 
 comp = readRDS(args$comp) %>%
-    transmute(gene = gene, comp=estimate)
+    transmute(gene = gene, comp=sign(estimate) * pmin(abs(estimate), 2))
 meth = readxl::read_excel("./pan/cpg.xlsx") %>%
     transmute(gene=gene, meth=statistic)
 orf = readxl::read_excel(args$orf) %>%

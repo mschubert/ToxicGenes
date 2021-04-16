@@ -64,7 +64,7 @@ rule cor:
         comp_naive = tcga("{tissue}/stan-nb_naive.rds"),
         comp_pur = tcga("{tissue}/stan-nb_pur.rds"),
 #        comp_puradj = tcga("{tissue}/stan-nb_puradj.rds"),
-        orf = orf("{tissue}/genes.xlsx"),
+        orf = lambda wc: orf([wc.tissue if wc.tissue in config['orf_tissues'] else 'pan'][0] + "/genes.xlsx"),
         meth = "{tissue}/gene.xlsx"
     output:
         plotfile = "{tissue}/cor-comp.pdf"

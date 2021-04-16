@@ -4,7 +4,7 @@ sys = import('sys')
 
 join_plot_one = function(comp) {
     both = comp %>%
-        transmute(gene = gene, comp=estimate) %>%
+        transmute(gene = gene, comp=sign(estimate) * pmin(abs(estimate), 2)) %>%
         inner_join(meth) %>%
         left_join(orf)
 
@@ -30,8 +30,7 @@ args = sys$cmd$parse(
 
 comp_naive = readRDS(args$comp_naive)
 comp_pur = readRDS(args$comp_pur)
-#comp_puradj = readRDS(args$comp_puradj) %>%
-#    mutate(estimate = sign(estimate) * pmin(abs(estimate), 2))
+#comp_puradj = readRDS(args$comp_puradj)
 
 meth = readxl::read_excel(args$meth) %>%
     transmute(gene=gene, meth=statistic)

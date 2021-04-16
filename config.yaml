@@ -27,6 +27,7 @@ ccle_tissues:
     - BRCA
     - LUAD
     - LUSC
+    - NSCLC
     - SCLC
     - SKCM
     - COADREAD
@@ -38,6 +39,7 @@ tcga_tissues:
     - BRCA
     - LUAD
     - LUSC
+    - NSCLC
     - HNSC
     - KIRC
     - SKCM
@@ -52,6 +54,7 @@ cor_tissues:
     - SKCM
     - LUAD
     - LUSC
+    - NSCLC
     - PRAD
     - COADREAD
 

@@ -2,7 +2,6 @@ configfile: "../config.yaml"
 
 subworkflow merge:
     workdir: "../merge"
-    snakefile: "../merge/Snakefile"
 
 rule all:
     input:

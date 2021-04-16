@@ -72,11 +72,11 @@ sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
-        opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('t', 'tissue', 'TCGA identifier', 'COADREAD'),
         opt('y', 'type', 'naive|pur|puradj', 'pur'),
-        opt('j', 'cores', 'integer', '2000'),
+        opt('j', 'cores', 'integer', '50'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'xlsx', 'pan/stan-nb_pur.xlsx')
+        opt('o', 'outfile', 'xlsx', 'COADREAD/stan-nb_pur.xlsx')
     )
 
     cna_cmq = function(data, cna) {

@@ -62,8 +62,9 @@ cor_tissues:
 fits:
 #    - rlm
 #    - rlm2
-    - rlm3
-    - lm3
+#    - rlm3
+    - stan-nb
+#    - lm3
 #    - lm3r
 
 # which fits are plotted in top hit comparisons

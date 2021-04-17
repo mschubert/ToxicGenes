@@ -34,9 +34,11 @@ args = sys$cmd$parse(
 cfg = yaml::read_yaml(args$config)
 et = as.numeric(args$euploid_tol)
 if (args$tissue == "pan") {
-    args$tissue = setdiff(cfg$tcga_tissues, "pan") # reduced set
+    args$tissue = setdiff(cfg$tcga_tissues, c("NSCLC", "COADREAD", "pan")) # reduced set (todo: select better)
 } else if (args$tissue == "COADREAD") {
     args$tissue = c("COAD", "READ")
+} else if (args$tissue == "NSCLC") {
+    args$tissue = c("LUAD", "LUSC")
 }
 
 copies = lapply(args$tissue, tcga$cna_genes, gene="external_gene_name") %>%

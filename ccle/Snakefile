@@ -7,14 +7,17 @@ subworkflow genesets:
     workdir: "../data/genesets"
 
 mem = { 'pan' : 1024, '*' : 512 }
-cores = { 'pan' : 60, '*' : 20 }
+cores = { 'pan' : 70, '*' : 70 }
 time = { 'pan' : 72*60, '*' : 360 }
 
-rule all:
+rule fits:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits']),
+        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits'])
+
+rule gsets:
+    input:
         expand("{tissue}/{fit}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'], fit=['rlm3', 'lm3'])
+                tissue=config['cor_tissues'], gset=config['genesets'], fit=config['fits'])
 
 rule fit:
     input:

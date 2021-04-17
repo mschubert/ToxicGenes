@@ -6,15 +6,18 @@ subworkflow data:
 subworkflow genesets:
     workdir: "../data/genesets"
 
-mem = { "pan" : 61440, "BRCA" : 8192, "*" : 4096 }
-cores = { "pan" : 1000, "BRCA" : 5, "*" : 0 }
+mem = { "pan" : 2048, "*" : 1024 }
+cores = { "pan" : 70, "*" : 70 }
 
-rule all:
+rule fits:
     input:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=config['tcga_adj'], fit=config['fits']),
+                type=config['tcga_adj'], fit=config['fits'])
+
+rule sets:
+    input:
         expand("{tissue}/{fit}_{type}/{gset}.pdf", tissue=config['cor_tissues'],
-                type=config['tcga_adj'], gset=config['genesets'], fit=['rlm3', 'lm3'])
+                type=config['tcga_adj'], gset=config['genesets'], fit=config['fits'])
 
 rule fit:
     input:
@@ -61,7 +64,7 @@ rule gset:
         plotfile = "{tissue}/{fit}_{type}/{gset}.pdf"
     wildcard_constraints:
         fit = "[a-z0-9]+",
-        type = "[a-z0-9]+"
+        type = "[a-z0-9-]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

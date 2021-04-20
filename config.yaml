@@ -27,6 +27,7 @@ ccle_tissues:
     - BRCA
     - LUAD
     - LUSC
+    - NSCLC
     - SCLC
     - SKCM
     - COADREAD
@@ -38,10 +39,11 @@ tcga_tissues:
     - BRCA
     - LUAD
     - LUSC
+    - NSCLC
     - HNSC
     - KIRC
     - SKCM
-    - COAD
+    - COADREAD
     - OV
     - PRAD
 
@@ -52,14 +54,17 @@ cor_tissues:
     - SKCM
     - LUAD
     - LUSC
+    - NSCLC
     - PRAD
+    - COADREAD
 
 # all the fits that should be calculated
 fits:
 #    - rlm
 #    - rlm2
-    - rlm3
-    - lm3
+#    - rlm3
+    - stan-nb
+#    - lm3
 #    - lm3r
 
 # which fits are plotted in top hit comparisons

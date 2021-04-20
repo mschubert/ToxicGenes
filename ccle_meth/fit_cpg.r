@@ -5,8 +5,8 @@ plt = import('plot')
 
 fit_beta = function(df) {
     df = na.omit(df[c("cohort", "meth", "avg_meth_sample", "copies")])
-    df$meth = pmin(df$meth, 1 - 1e-5)
-    df$meth = pmax(df$meth, 1e-5)
+    df$meth = pmin(df$meth, 1 - 1e-3)
+    df$meth = pmax(df$meth, 1e-3)
 
     if (length(unique(df$cohort)) == 1)
         fml = meth ~ avg_meth_sample + copies

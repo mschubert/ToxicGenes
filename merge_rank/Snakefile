@@ -2,11 +2,9 @@ configfile: "../config.yaml"
 
 subworkflow merge:
     workdir: "../merge"
-    snakefile: "../merge/Snakefile"
 
 subworkflow genesets:
     workdir: "../data/genesets"
-    snakefile: "../data/genesets/Snakefile"
 
 fits = ['rlm', 'rlm2', 'rlm3', 'lm3']
 

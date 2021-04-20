@@ -72,32 +72,37 @@ sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
-        opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('t', 'tissue', 'TCGA identifier', 'COADREAD'),
         opt('y', 'type', 'naive|pur|puradj', 'pur'),
-        opt('j', 'cores', 'integer', '2000'),
+        opt('j', 'cores', 'integer', '50'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'xlsx', 'pan/stan-nb_pur.xlsx')
+        opt('o', 'outfile', 'xlsx', 'COADREAD/stan-nb_pur.xlsx')
     )
 
     cna_cmq = function(data, cna) {
-        to = 4 # hours
+        to = 3 # hours
         clustermq::Q(do_fit, df=data,
                      const = list(cna=cna, type=args$type, et=cfg$euploid_tol, timeout=round(to*3600)),
                      pkgs = c("dplyr", "rstanarm"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-                     max_calls_worker = round(72 / to) - 1, # 72h job / 2h max run - 1
+#                     max_calls_worker = 25, #round(72 / to) - 1, # 72h job / 2h max run - 1
                      chunk_size = 1)
     }
 
     cfg = yaml::read_yaml(args$config)
-    if (args$tissue == "pan")
+    if (args$tissue == "pan") {
         args$tissue = tcga$cohorts()
+    } else if (args$tissue == "COADREAD") {
+        args$tissue = c("COAD", "READ")
+    } else if (args$tissue == "NSCLC") {
+        args$tissue = c("LUAD", "LUSC")
+    }
 
     df = readRDS(args$infile) %>%
         filter(covar %in% args$tissue) %>%
         group_by(gene) %>%
-        tidyr::nest() %>%
+            tidyr::nest() %>%
         ungroup() %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),

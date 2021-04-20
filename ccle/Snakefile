@@ -1,31 +1,31 @@
-from glob import glob
-
 configfile: "../config.yaml"
 
-subworkflow data_ccle:
-    workdir: "../data/ccle"
-    snakefile: "../data/ccle/Snakefile"
+subworkflow data:
+    workdir: "../data"
 
 subworkflow genesets:
     workdir: "../data/genesets"
-    snakefile: "../data/genesets/Snakefile"
 
-mem = { 'pan' : 8192, '*' : 2048 }
-cores = { 'pan' : 5, '*' : 0 }
-time = { 'pan' : 960, '*' : 360 }
+mem = { 'pan' : 1024, '*' : 512 }
+cores = { 'pan' : 70, '*' : 70 }
+time = { 'pan' : 72*60, '*' : 360 }
 
-rule all:
+rule fits:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits']),
+        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits'])
+
+rule gsets:
+    input:
         expand("{tissue}/{fit}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'], fit=['rlm3', 'lm3']),
+                tissue=config['cor_tissues'], gset=config['genesets'], fit=config['fits'])
 
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data_ccle("dset.rds"),
+        infile = data("df_ccle.rds"),
     output:
-        outfile = "{tissue}/{fit}.xlsx"
+        outfile = "{tissue}/{fit}.xlsx",
+        outfile2 = "{tissue}/{fit}.rds"
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],

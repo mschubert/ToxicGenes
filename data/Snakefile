@@ -1,6 +1,5 @@
 subworkflow ccle:
     workdir: "ccle"
-    snakefile: "ccle/Snakefile"
 
 rule all:
     input:

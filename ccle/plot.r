@@ -60,13 +60,18 @@ sys$run({
 
     fits = readxl::excel_sheets(args$infile) %>%
         sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
-    fits = lapply(fits, function(f) mutate(f, label=name, size=n_aneup))
+    fits = lapply(fits, function(f) {
+        if (! "name" %in% colnames(f)) # 2 lines: tcga meth 'gene' as colname
+            f$name = f$gene
+        mutate(f, label=name, size=n_aneup)
+    })
 
     pdf(args$plotfile, 12, 8)
     for (i in seq_along(fits)) {
         message(names(fits)[i])
         print(do_plot(fits[[i]], names(fits)[i]))
-        print(rsq_vs_comp(fits[[i]], names(fits)[i]))
+        if ("rsq" %in% colnames(fits[[i]]))
+            print(rsq_vs_comp(fits[[i]], names(fits)[i]))
     }
     dev.off()
 })

@@ -2,15 +2,12 @@ configfile: "../config.yaml"
 
 subworkflow orf:
     workdir: "../orf"
-    snakefile: "../orf/Snakefile"
 
 subworkflow ccle:
     workdir: "../ccle"
-    snakefile: "../ccle/Snakefile"
 
 subworkflow tcga:
     workdir: "../tcga"
-    snakefile: "../tcga/Snakefile"
 
 import glob
 manual = [ x[:-5] for x in glob.glob("../candidates/*.yaml") ]

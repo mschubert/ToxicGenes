@@ -36,7 +36,7 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
         rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
         intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
         sd_intcp = mean(apply(intcp, 2, sd))
-        eup_eq = rmat[,"eup_equiv:sf"]
+        eup_eq = rmat[,intersect(colnames(rmat), c("eup_equiv:sf", "sf:eup_equiv"))]
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
         tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp

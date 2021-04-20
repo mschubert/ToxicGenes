@@ -19,6 +19,10 @@ if (args$tissue == "pan") {
 comp = readRDS(args$comp) %>%
     transmute(gene = gene, comp=sign(estimate) * pmin(abs(estimate), 2), n_aneup=n_aneup)
 meth = readxl::read_excel("./pan/cpg.xlsx") %>%
+    arrange(adj.p, p.value) %>%
+    group_by(gene) %>%
+        top_n(1) %>%
+    ungroup() %>%
     transmute(gene=gene, meth=statistic)
 orf = readxl::read_excel(args$orf) %>%
     filter(adj.p < 0.1) %>%

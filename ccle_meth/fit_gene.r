@@ -33,8 +33,11 @@ args = sys$cmd$parse(
 
 et = as.numeric(args$euploid_tol)
 ccle = readRDS(args$infile)
-if (args$tissue == "pan")
+if (args$tissue == "pan") {
     args$tissue = unique(na.omit(ccle$clines$tcga_code))
+} else if (args$tissue == "NSCLC") {
+    args$tissue = c("LUAD", "LUSC")
+}
 
 names(dimnames(ccle$copies)) = names(dimnames(ccle$meth)) = c("gene", "CCLE_ID")
 avg_meth_sample = tibble(CCLE_ID = colnames(ccle$meth),

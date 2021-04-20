@@ -10,6 +10,12 @@ args = sys$cmd$parse(
     opt('p', 'plotfile', 'pdf', 'pan/cor-comp.pdf')
 )
 
+if (args$tissue == "pan") {
+    min_aneup = 50
+} else {
+    min_aneup = 10
+}
+
 comp = readRDS(args$comp) %>%
     transmute(gene = gene, comp=sign(estimate) * pmin(abs(estimate), 2))
 meth = readxl::read_excel("./pan/cpg.xlsx") %>%
@@ -21,13 +27,21 @@ orf = readxl::read_excel(args$orf) %>%
 both = inner_join(comp, meth) %>%
     left_join(orf)
 
-mod = broom::tidy(lm(meth ~ comp, data=both))
+m1 = broom::tidy(lm(meth ~ comp, data=both)) %>% filter(term == "comp")
+m2 = broom::tidy(lm(meth ~ comp, data=both %>% filter(orf_dir == 1))) %>% filter(term == "comp") # hyperact
+m3 = broom::tidy(lm(meth ~ comp, data=both %>% filter(orf_dir == -1))) %>% filter(term == "comp") # comp
 
-pdf(args$plotfile)
-ggplot(data=both %>% filter(!is.na(orf_dir)), aes(x=comp, y=meth)) +
+p = ggplot(data=both %>% filter(!is.na(orf_dir)), aes(x=comp, y=meth)) +
     geom_point(data=both %>% filter(is.na(orf_dir)), alpha=0.1) +
     geom_point(aes(color=orf_dir), alpha=0.1) +
     geom_density2d(aes(color=orf_dir)) +
     geom_smooth(method="lm") +
-    labs(subtitle = sprintf("%.2f (p=%.2g)", mod$estimate, mod$p.value))
+    geom_smooth(aes(color=orf_dir), method="lm", se=FALSE) +
+    labs(subtitle = sprintf("%.2f (p=%.2g) [hyper: %.2f (p=%.2g) | comp: %.2f (p=%.2g)]",
+                            m1$estimate, m1$p.value,
+                            m2$estimate, m2$p.value,
+                            m3$estimate, m3$p.value))
+
+pdf(args$plotfile)
+print(p)
 dev.off()

@@ -36,8 +36,11 @@ ccle = readRDS(args$infile)
 ccle_cpg = readr::read_tsv("../data/ccle/CCLE_RRBS_TSS_CpG_clusters_20180614.txt") %>%
     select(-(RefSeq_id:avg_coverage)) %>%
     tidyr::gather("CCLE_ID", "meth", -cluster_id, -gene_name)
-if (args$tissue == "pan")
+if (args$tissue == "pan") {
     args$tissue = unique(na.omit(ccle$clines$tcga_code))
+} else if (args$tissue == "NSCLC") {
+    args$tissue = c("LUAD", "LUSC")
+}
 
 names(dimnames(ccle$copies)) = c("gene", "CCLE_ID")
 avg_meth_sample = tibble(CCLE_ID = colnames(ccle$meth),

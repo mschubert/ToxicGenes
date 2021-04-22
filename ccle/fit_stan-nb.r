@@ -18,9 +18,9 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
     }
 
     if (length(unique(df$covar)) == 1) {
-        full = expr ~ eup_equiv:sf
+        full = expr ~ sf + eup_dev:sf
     } else {
-        full = expr ~ covar:sf + eup_equiv:sf
+        full = expr ~ sf + covar:sf + eup_dev:sf
     }
 
     tryCatch({
@@ -33,10 +33,9 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
-        rmat[,is_covar] = rmat[,is_covar] + rmat[,"(Intercept)"]
-        intcp = rmat[colnames(rmat) == "(Intercept)" | is_covar,, drop=FALSE]
+        intcp = rmat[,colnames(rmat) == "sf" | is_covar, drop=FALSE] + rmat[,"(Intercept)"]
         sd_intcp = mean(apply(intcp, 2, sd))
-        eup_eq = rmat[,intersect(colnames(rmat), c("eup_equiv:sf", "sf:eup_equiv"))]
+        eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
         tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
@@ -84,8 +83,9 @@ sys$run({
         df = df %>% filter(covar %in% args$tissue)
     }
     df = df %>%
+        mutate(eup_dev = eup_equiv - 1) %>%
         group_by(gene) %>%
-        tidyr::nest() %>%
+            tidyr::nest() %>%
         ungroup() %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),

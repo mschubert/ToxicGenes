@@ -15,20 +15,18 @@ do_plot = function(data, title) {
     p1 = tryCatch({
         p = data %>%
             filter(estimate < 0) %>%
-            plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
             plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
-            labs(title = title,
-                 subtitle = "compensated")
+                labs(title = title,
+                     subtitle = "compensated")
         plt$try(p)
     }, error = function(e) plt$text(conditionMessage(e)))
 
     p2 = tryCatch({
         p = data %>%
             filter(estimate > 0) %>%
-            plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
             plt$volcano(base.size=0.1, text.size=2.5, label_top=30, repel=TRUE) +
-            labs(subtitle="hyper-deregulated") +
-            theme(axis.title.y = element_blank())
+                labs(subtitle="hyper-deregulated") +
+                theme(axis.title.y = element_blank())
         plt$try(p)
     }, error = function(e) plt$text(conditionMessage(e)))
 

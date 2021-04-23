@@ -10,7 +10,7 @@ sys = import('sys')
 #' @param et    Tolerance in ploidies to consider sample euploid
 #' @param timeout  Number of seconds that a fit can take before returnin NA
 #' @return      A data.frame with fit statistics
-do_fit = function(df, cna, mods, mod_covar, et=0.15, timeout=1800) {
+do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
     stopifnot(requireNamespace("brms"))
 
     if (cna == "amp") {
@@ -18,6 +18,10 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, timeout=1800) {
     } else if (cna == "del") {
         df = df %>% filter(copies < 2+et)
     }
+
+    n_aneup = sum(abs(df$copies-2) > 1-et)
+    if (n_aneup < min_aneup)
+        return(data.frame(n_aneup=n_aneup))
 
     if (length(unique(df$covar)) == 1) {
         mod = mods$simple
@@ -38,7 +42,7 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, timeout=1800) {
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
         tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
-               n_aneup = sum(abs(df$copies-2) > 1-et),
+               n_aneup = n_aneup,
                n_genes = 1,
                eup_reads = mean(intcp),
                slope_diff = mean(eup_eq) - mean(intcp),

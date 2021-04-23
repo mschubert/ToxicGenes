@@ -22,6 +22,7 @@ df = inner_join(cnts, copies2) %>%
     inner_join(sfs) %>%
     inner_join(cv) %>%
     na.omit() %>%
-    mutate(eup_equiv = (copies - 2) / 2)
+    mutate(eup_dev = ((copies - 2) / 2),
+           eup_equiv = eup_dev + 1)
 
 saveRDS(df, file=args$outfile)

@@ -37,21 +37,18 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) 
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
-#        intcp = rmat[,colnames(rmat) == "b_sf" | is_covar, drop=FALSE]
         intcp = rmat[,colnames(rmat) == "b_eup_equiv:sf" | is_covar, drop=FALSE]
-        sd_intcp = mean(apply(intcp, 2, sd))
         eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
-        pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
-        tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp FIXME: why -1?
+        tibble(estimate = mean(eup_eq) / mean(intcp),
                n_aneup = n_aneup,
                n_genes = 1,
                eup_reads = mean(intcp),
                slope_diff = mean(eup_eq) - mean(intcp),
-               cv_intcp = sd_intcp / mean(intcp),
+               cv_intcp = mean(apply(intcp, 2, sd)) / mean(intcp),
                cv_copy = sd(eup_eq) / mean(eup_eq),
 #               rsq = hdist, # not rsq, but [0,1]
-               p.value = pseudo_p)
+               p.value = pnorm(abs(mean(eup_eq)) / sd(eup_eq), lower.tail=F))
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
@@ -95,11 +92,12 @@ sys$run({
     mods = list(
         simple = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
                      data=testd, chains=1, iter=1, control=list(adapt_delta=0.99),
-                     prior = prior(normal(0,0.15), coef="sf:eup_dev")),
+                     prior = prior(normal(0,0.5), coef="sf:eup_dev")),
         covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"), #FIXME:
                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99))
     )
-    df = df[sample(seq_len(nrow(df)), 5000),] %>%
+    df = df %>%
+#    df = df[sample(seq_len(nrow(df)), 5000),] %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

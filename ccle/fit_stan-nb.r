@@ -19,6 +19,8 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) 
         df = df %>% filter(copies < 2+et)
     }
 
+    df$sf = df$sf * mean(df$expr) # parameterize so prior SD is constant
+
     n_aneup = sum(abs(df$copies-2) > 1-et)
     if (n_aneup < min_aneup)
         return(data.frame(n_aneup=n_aneup))
@@ -41,7 +43,7 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) 
         eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
 
-        tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp
+        tibble(estimate = mean(eup_eq) / mean(intcp) - 1, # pct_comp FIXME: why -1?
                n_aneup = n_aneup,
                n_genes = 1,
                eup_reads = mean(intcp),
@@ -92,11 +94,12 @@ sys$run({
     testd = df$data[[1]] %>% mutate(covar = sample(letters[1:2], nrow(df$data[[1]]), replace=TRUE))
     mods = list(
         simple = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
-                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99)),
-        covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"),
+                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99),
+                     prior = prior(normal(0,0.15), coef="sf:eup_dev")),
+        covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"), #FIXME:
                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99))
     )
-    df = df[sample(seq_len(nrow(df)), 2000),] %>%
+    df = df[sample(seq_len(nrow(df)), 5000),] %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

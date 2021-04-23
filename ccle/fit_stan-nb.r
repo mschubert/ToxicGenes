@@ -31,7 +31,8 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, timeout=1800) {
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
-        intcp = rmat[,colnames(rmat) == "b_sf" | is_covar, drop=FALSE]
+#        intcp = rmat[,colnames(rmat) == "b_sf" | is_covar, drop=FALSE]
+        intcp = rmat[,colnames(rmat) == "b_eup_equiv:sf" | is_covar, drop=FALSE]
         sd_intcp = mean(apply(intcp, 2, sd))
         eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
@@ -81,18 +82,17 @@ sys$run({
         df = df %>% filter(covar %in% args$tissue)
     }
     df = df %>%
-        mutate(eup_dev = eup_equiv - 1) %>%
         group_by(gene) %>%
             tidyr::nest() %>%
         ungroup()
     testd = df$data[[1]] %>% mutate(covar = sample(letters[1:2], nrow(df$data[[1]]), replace=TRUE))
     mods = list(
-        simple = brm(expr ~ 0 + sf + eup_dev:sf, family=negbinomial(link="identity"),
+        simple = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
                      data=testd, chains=1, iter=1, control=list(adapt_delta=0.99)),
         covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"),
                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99))
     )
-    df = df %>%
+    df = df[sample(seq_len(nrow(df)), 2000),] %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

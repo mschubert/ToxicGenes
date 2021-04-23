@@ -4,15 +4,14 @@ sys = import('sys')
 
 #' Fit a negative binomial model using a stan glm
 #'
-#' @param df    A data.frame with columns: expr, copies, sf, covar, eup_equiv
-#' @param cna   Character string of either: "amp", "del", or "all"
-#' @param mods  List of precompiled brms models
-#' @param et    Tolerance in ploidies to consider sample euploid
+#' @param df   A data.frame with columns: expr, copies, sf, covar, eup_equiv
+#' @param cna  Character string of either: "amp", "del", or "all"
+#' @param mod  Precompiled brms model
+#' @param et   Tolerance in ploidies to consider sample euploid
 #' @param timeout  Number of seconds that a fit can take before returnin NA
-#' @return      A data.frame with fit statistics
-do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
+#' @return     A data.frame with fit statistics
+do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
     stopifnot(requireNamespace("brms"))
-
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
     } else if (cna == "del") {
@@ -24,12 +23,6 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) 
     n_aneup = sum(abs(df$copies-2) > 1-et)
     if (n_aneup < min_aneup)
         return(data.frame(n_aneup=n_aneup))
-
-    if (length(unique(df$covar)) == 1) {
-        mod = mods$simple
-    } else {
-        mod = mods$covar
-    }
 
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
@@ -67,7 +60,7 @@ sys$run({
 
     cna_cmq = function(data, cna) {
         clustermq::Q(do_fit, df=data,
-                     const = list(cna=cna, et=cfg$euploid_tol, mods=mods),
+                     const = list(cna=cna, et=cfg$euploid_tol, mod=mod),
                      pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
@@ -87,16 +80,14 @@ sys$run({
         group_by(gene) %>%
             tidyr::nest() %>%
         ungroup()
-    testd = df$data[[1]] %>% mutate(covar = sample(letters[1:2], nrow(df$data[[1]]), replace=TRUE))
-    mods = list(
-        simple = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
-                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99),
-                     prior = prior(normal(0,0.5), coef="sf:eup_dev")),
-        covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"), #FIXME:
-                    data=testd, chains=1, iter=1, control=list(adapt_delta=0.99))
-    )
+    if (length(unique(df$data[[1]]$covar)) == 1) {
+        mod = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
+                  data=df$data[[1]], chains=0, prior = prior(normal(0,0.5), coef="sf:eup_dev"))
+    } else {
+        mod = brm(expr ~ 0 + covar:sf + eup_dev:sf, family=negbinomial(link="identity"),
+                  data=df$data[[1]], chains=0, prior = prior(normal(0,0.5), coef="sf:eup_dev"))
+    }
     df = df %>%
-#    df = df[sample(seq_len(nrow(df)), 5000),] %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

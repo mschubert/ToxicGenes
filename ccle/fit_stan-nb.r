@@ -1,15 +1,17 @@
+library(brms)
 library(dplyr)
 sys = import('sys')
 
 #' Fit a negative binomial model using a stan glm
 #'
-#' @param df   A data.frame with columns: expr, copies, sf, covar, eup_equiv
-#' @param cna  Character string of either: "amp", "del", or "all"
-#' @param et   Tolerance in ploidies to consider sample euploid
+#' @param df    A data.frame with columns: expr, copies, sf, covar, eup_equiv
+#' @param cna   Character string of either: "amp", "del", or "all"
+#' @param mods  List of precompiled brms models
+#' @param et    Tolerance in ploidies to consider sample euploid
 #' @param timeout  Number of seconds that a fit can take before returnin NA
-#' @return     A data.frame with fit statistics
-do_fit = function(df, cna, et=0.15, timeout=1800) {
-    stopifnot(requireNamespace("rstanarm"))
+#' @return      A data.frame with fit statistics
+do_fit = function(df, cna, mods, mod_covar, et=0.15, timeout=1800) {
+    stopifnot(requireNamespace("brms"))
 
     if (cna == "amp") {
         df = df %>% filter(copies > 2-et)
@@ -18,22 +20,18 @@ do_fit = function(df, cna, et=0.15, timeout=1800) {
     }
 
     if (length(unique(df$covar)) == 1) {
-        full = expr ~ sf + eup_dev:sf
+        mod = mods$simple
     } else {
-        full = expr ~ sf + covar:sf + eup_dev:sf
+        mod = mods$covar
     }
 
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
-        res = rstanarm::stan_glm(full, data=df,
-                                 family = neg_binomial_2(link="identity"),
-                                 prior = normal(mean(df$expr), sd(df$expr)),
-                                 prior_intercept = normal(mean(df$expr), sd(df$expr)),
-                                 seed = 2380719)
+        res = update(mod, newdata=df, chains=4, iter=2000, seed=2380719)
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
-        intcp = rmat[,colnames(rmat) == "sf" | is_covar, drop=FALSE] + rmat[,"(Intercept)"]
+        intcp = rmat[,colnames(rmat) == "b_sf" | is_covar, drop=FALSE]
         sd_intcp = mean(apply(intcp, 2, sd))
         eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
         pseudo_p = pnorm(abs((mean(intcp) - mean(eup_eq)) / sd_intcp), lower.tail=F)
@@ -66,8 +64,8 @@ sys$run({
 
     cna_cmq = function(data, cna) {
         clustermq::Q(do_fit, df=data,
-                     const = list(cna=cna, et=cfg$euploid_tol),
-                     pkgs = c("dplyr", "rstanarm"),
+                     const = list(cna=cna, et=cfg$euploid_tol, mods=mods),
+                     pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
 #                     max_calls_worker = 142, # 72h job / 0.5h max run - 1h
@@ -86,7 +84,15 @@ sys$run({
         mutate(eup_dev = eup_equiv - 1) %>%
         group_by(gene) %>%
             tidyr::nest() %>%
-        ungroup() %>%
+        ungroup()
+    testd = df$data[[1]] %>% mutate(covar = sample(letters[1:2], nrow(df$data[[1]]), replace=TRUE))
+    mods = list(
+        simple = brm(expr ~ 0 + sf + eup_dev:sf, family=negbinomial(link="identity"),
+                     data=testd, chains=1, iter=1, control=list(adapt_delta=0.99)),
+        covar = brm(expr ~ 0 + sf + covar:sf + eup_dev:sf, family=negbinomial(link="identity"),
+                    data=testd, chains=1, iter=1, control=list(adapt_delta=0.99))
+    )
+    df = df %>%
         mutate(amp = cna_cmq(data, "amp"))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

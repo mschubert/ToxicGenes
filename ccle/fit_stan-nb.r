@@ -38,17 +38,16 @@ do_fit = function(df, cna, mods, mod_covar, et=0.15, min_aneup=3, timeout=1800) 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
         intcp = rmat[,colnames(rmat) == "b_eup_equiv:sf" | is_covar, drop=FALSE]
-        eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)] # term can be: eup_dev:sf, sf:eup_dev
+        eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
+        z_comp = mean(eup_eq) / sd(eup_eq)
 
         tibble(estimate = mean(eup_eq) / mean(intcp),
+               z_comp = z_comp,
                n_aneup = n_aneup,
                n_genes = 1,
                eup_reads = mean(intcp),
                slope_diff = mean(eup_eq) - mean(intcp),
-               cv_intcp = mean(apply(intcp, 2, sd)) / mean(intcp),
-               cv_copy = sd(eup_eq) / mean(eup_eq),
-#               rsq = hdist, # not rsq, but [0,1]
-               p.value = pnorm(abs(mean(eup_eq)) / sd(eup_eq), lower.tail=F))
+               p.value = pnorm(abs(z_comp), lower.tail=F))
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)

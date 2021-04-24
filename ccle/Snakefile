@@ -32,7 +32,7 @@ rule fit:
         walltime = lambda wc: [ time[wc.tissue] if wc.tissue in time.keys() else time['*'] ][0]
     group: "fit_and_plot"
     shell:
-        "Rscript {input.rscript}"
+        "nice -n 10 Rscript {input.rscript}"
             " --infile {input.infile}"
             " --tissue {wildcards.tissue}"
             " --cores {resources.cores}"

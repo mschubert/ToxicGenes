@@ -26,11 +26,15 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
 
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
-        res = update(mod, newdata=df, chains=4, iter=2000, seed=2380719)
+
+        init_vars = sum(grepl("eup_equiv", prior_summary(mod)$coef)) + 1
+        init_fun = function() list(b=runif(init_vars, 0.5, 2))
+
+        res = update(mod, newdata=df, chains=4, iter=2000, seed=2380719, init=init_fun)
 
         rmat = as.matrix(res)
-        is_covar = grepl("covar", colnames(rmat))
-        intcp = rmat[,colnames(rmat) == "b_eup_equiv:sf" | is_covar, drop=FALSE]
+        is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
+        intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
         eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
         z_comp = mean(eup_eq) / sd(eup_eq)
 
@@ -38,9 +42,9 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
                z_comp = z_comp,
                n_aneup = n_aneup,
                n_genes = 1,
-               eup_reads = mean(intcp),
-               slope_diff = mean(eup_eq) - mean(intcp),
-               p.value = pnorm(abs(z_comp), lower.tail=F))
+               eup_reads = mean(intcp) * mean(df$expr),
+               slope_diff = (mean(eup_eq) - mean(intcp))/2 * mean(df$expr),
+               p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
@@ -81,11 +85,15 @@ sys$run({
             tidyr::nest() %>%
         ungroup()
     if (length(unique(df$data[[1]]$covar)) == 1) {
-        mod = brm(expr ~ 0 + eup_equiv:sf + eup_dev:sf, family=negbinomial(link="identity"),
-                  data=df$data[[1]], chains=0, prior = prior(normal(0,0.5), coef="sf:eup_dev"))
+        mod = brm(expr ~ 0 + sf:eup_equiv + sf:eup_dev, family=negbinomial(link="identity"),
+                  data=df$data[[1]], chains=0, cores=1,
+                  prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                          prior(normal(1,5), class="b"))
     } else {
-        mod = brm(expr ~ 0 + covar:sf + eup_dev:sf, family=negbinomial(link="identity"),
-                  data=df$data[[1]], chains=0, prior = prior(normal(0,0.5), coef="sf:eup_dev"))
+        mod = brm(expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev, family=negbinomial(link="identity"),
+                  data=df$data[[1]], chains=0, cores=1,
+                  prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                          prior(normal(1,5), class="b"))
     }
     df = df %>%
         mutate(amp = cna_cmq(data, "amp"))

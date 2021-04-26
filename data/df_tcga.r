@@ -35,8 +35,12 @@ df = inner_join(reshape2::melt(reads, value.name="expr"),
     inner_join(purity) %>%
     inner_join(as.data.frame(SummarizedExperiment::colData(eset))) %>%
     na.omit() %>%
+    dplyr::rename(sf = sizeFactor) %>%
     mutate(covar = tcga$barcode2study(sample),
            cancer_copies = pmax(0, (copies-2) / purity + 2),
-           eup_equiv = (cancer_copies - 2) / 2)
+           eup_dev = (copies - 2) / 2,
+           eup_equiv = eup_dev + 1,
+           eup_dev_cancer = (cancer_copies - 2) / 2,
+           eup_equiv_cancer = eup_dev_cancer + 1)
 
 saveRDS(df, file=args$outfile)

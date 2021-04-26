@@ -13,9 +13,9 @@ sys = import('sys')
 do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
-        df = df %>% filter(copies > 2-et)
+        df = df %>% dplyr::filter(copies > 2-et)
     } else if (cna == "del") {
-        df = df %>% filter(copies < 2+et)
+        df = df %>% dplyr::filter(copies < 2+et)
     }
 
     df$sf = df$sf * mean(df$expr) # parameterize so prior SD is constant

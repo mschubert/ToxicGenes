@@ -34,7 +34,7 @@ rule fit:
     wildcard_constraints:
         fit = "[a-z0-9-]+"
     shell:
-        "Rscript {input.rscript}"
+        "nice -n 10 Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --type {wildcards.type}"
             " --cores {resources.cores}"

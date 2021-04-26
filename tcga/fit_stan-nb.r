@@ -15,9 +15,9 @@ tcga = import('data/tcga')
 do_fit = function(df, cna, mods, type="pur", et=0.15, min_aneup=5, timeout=7200) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
-        df = df %>% filter(copies > 2-et)
+        df = df %>% dplyr::filter(copies > 2-et)
     } else if (cna == "del") {
-        df = df %>% filter(copies < 2+et)
+        df = df %>% dplyr::filter(copies < 2+et)
     }
 
     df$sf = df$sf * mean(df$expr)
@@ -72,7 +72,7 @@ sys$run({
                      const = list(cna=cna, mods=mods, type=args$type,
                                   et=cfg$euploid_tol, timeout=round(to*3600)),
                      pkgs = c("dplyr", "brms"),
-                     n_jobs = 0,#as.integer(args$cores),
+                     n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
 #                     max_calls_worker = 25, #round(72 / to) - 1, # 72h job / 2h max run - 1
                      chunk_size = 1)

@@ -27,7 +27,7 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
 
-        init_vars = sum(grepl("eup_equiv", prior_summary(mod)$coef)) + 1
+        init_vars = with(prior_summary(mod), sum(class == "b" & coef != ""))
         init_fun = function() list(b=runif(init_vars, 0.5, 2))
 
         res = update(mod, newdata=df, chains=4, iter=2000, seed=2380719, init=init_fun)
@@ -35,15 +35,14 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
         intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
-        eup_eq = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
-        z_comp = mean(eup_eq) / sd(eup_eq)
+        eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
+        z_comp = mean(eup_dev) / sd(eup_dev)
 
-        tibble(estimate = mean(eup_eq) / mean(intcp),
+        tibble(estimate = mean(eup_dev) / mean(intcp),
                z_comp = z_comp,
                n_aneup = n_aneup,
                n_genes = 1,
                eup_reads = mean(intcp) * mean(df$expr),
-               slope_diff = (mean(eup_eq) - mean(intcp))/2 * mean(df$expr),
                p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 
     }, error = function(e) {

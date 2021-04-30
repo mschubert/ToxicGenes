@@ -27,10 +27,10 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
     tryCatch({
         setTimeLimit(elapsed=timeout, transient=TRUE)
 
-        init_vars = with(prior_summary(mod), sum(class == "b" & coef != ""))
-        init_fun = function() list(b=runif(init_vars, 0.5, 2))
+        init_vars = with(prior_summary(mod), coef[class == "b" & coef != ""])
+        init_fun = function() list(b=runif(length(init_vars), 0.5, 1.5))
 
-        res = update(mod, newdata=df, chains=4, iter=2000, seed=2380719, init=init_fun)
+        res = update(mod, newdata=df, chains=4, iter=2000, init=init_fun)
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat), fixed=TRUE)

@@ -100,10 +100,10 @@ sys$run({
                         data = df$data[[1]], chains = 0, cores = 1,
                         prior = prior(normal(0,0.5), coef="sf:eup_dev") +
                                 prior(gamma(1.5,1), class="b")),
-            pur = brm(expr ~ 0 + sf:purity:eup_equiv_cancer + sf:stroma + sf:eup_dev_cancer,
+            pur = brm(expr ~ 0 + sf:purity:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer,
                       family = negbinomial(link="identity"),
                       data = df$data[[1]], chains = 0, cores = 1,
-                      prior = prior(normal(0,0.5), coef="sf:eup_dev_cancer") +
+                      prior = prior(normal(0,0.5), coef="sf:purity:eup_dev_cancer") +
                               prior(gamma(1.5,1), class="b"))
         )
     } else {
@@ -113,10 +113,10 @@ sys$run({
                         data = df$data[[1]], chains = 0, cores = 1,
                         prior = prior(normal(0,0.5), coef="sf:eup_dev") +
                                 prior(gamma(1.5,1), class="b")),
-            pur = brm(expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:stroma + sf:eup_dev_cancer,
+            pur = brm(expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer,
                       family = negbinomial(link="identity"),
                       data = df$data[[1]], chains = 0, cores = 1,
-                      prior = prior(normal(0,0.5), coef="sf:eup_dev_cancer") +
+                      prior = prior(normal(0,0.5), coef="sf:purity:eup_dev_cancer") +
                               prior(gamma(1.5,1), class="b")) #todo: stroma expr per type?
         )
     }

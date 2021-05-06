@@ -39,10 +39,11 @@ p = ggplot(data=both %>% filter(!is.na(orf_dir)), aes(x=comp, y=meth)) +
     geom_point(aes(size=n_aneup), data=both %>% filter(is.na(orf_dir)), alpha=0.05) +
     geom_point(aes(size=n_aneup, color=orf_dir), alpha=0.3) +
     geom_density2d(aes(color=orf_dir), size=0.1, show.legend=FALSE) +
+    geom_density2d(color="black", size=0.1, show.legend=FALSE) +
     geom_smooth(method="lm", se=FALSE, color="black") +
     geom_smooth(aes(color=orf_dir), method="lm", se=FALSE) +
     ggrepel::geom_text_repel(aes(label=gene), data=both %>% filter(orf_dir == -1), size=1.8,
-                             max.overlaps=15, segment.alpha=0.3) +
+                             max.overlaps=20, segment.alpha=0.3) +
     scale_size(range=c(0.1, 5)) +
     labs(subtitle = sprintf("%.2f (p=%.2g) [hyper: %.2f (p=%.2g) | comp: %.2f (p=%.2g)]",
                             m1$estimate, m1$p.value,

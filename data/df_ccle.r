@@ -21,8 +21,6 @@ copies2 = reshape2::melt(copies, value.name="copies")
 df = inner_join(cnts, copies2) %>%
     inner_join(sfs) %>%
     inner_join(cv) %>%
-    na.omit() %>%
-    mutate(eup_dev = ((copies - 2) / 2),
-           eup_equiv = eup_dev + 1)
+    na.omit()
 
 saveRDS(df, file=args$outfile)

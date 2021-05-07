@@ -1,3 +1,4 @@
+library(igraph)
 library(dplyr)
 sys = import('sys')
 tcga = import('data/tcga')
@@ -14,6 +15,10 @@ purity = tcga$purity() %>%
     filter(!is.na(estimate)) %>%
     transmute(sample = Sample,
               purity = estimate)
+
+#mut = tcga$mutations()
+#net = OmnipathR::interaction_graph(OmnipathR::import_all_interactions())
+#as_ids(neighbors(net, "CDKN1A", "total"))
 
 reads = lapply(cohorts, tcga$rna_seq) %>%
     narray::stack(along=2) %>%
@@ -37,10 +42,6 @@ df = inner_join(reshape2::melt(reads, value.name="expr"),
     na.omit() %>%
     dplyr::rename(sf = sizeFactor) %>%
     mutate(covar = tcga$barcode2study(sample),
-           cancer_copies = pmax(0, (copies-2) / purity + 2),
-           eup_dev = (copies - 2) / 2,
-           eup_equiv = eup_dev + 1,
-           eup_dev_cancer = (cancer_copies - 2) / 2,
-           eup_equiv_cancer = eup_dev_cancer + 1)
+           cancer_copies = pmax(0, (copies-2) / purity + 2))
 
 saveRDS(df, file=args$outfile)

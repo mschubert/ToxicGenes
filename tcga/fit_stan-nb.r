@@ -81,6 +81,31 @@ make_mod = function(data, type="naive") {
                 prior(gamma(1.5,1), class="b"))
 }
 
+#' Prepare common TCGA data.frame to serve as model input
+#'
+#' @param tcga_df
+#' @param tissue
+prep_data = function(tcga_df, tissue) {
+    if (tissue == "pan") {
+        tissue = tcga$cohorts()
+    } else if (args$tissue == "COADREAD") {
+        tissue = c("COAD", "READ")
+    } else if (args$tissue == "NSCLC") {
+        tissue = c("LUAD", "LUSC")
+    }
+
+    tcga_df %>%
+        filter(covar %in% tissue) %>%
+        mutate(stroma = 1 - purity,
+               eup_dev = (copies - 2) / 2,
+               eup_equiv = eup_dev + 1,
+               eup_dev_cancer = (cancer_copies - 2) / 2,
+               eup_equiv_cancer = eup_dev_cancer + 1) %>%
+        group_by(gene) %>%
+            tidyr::nest() %>%
+        ungroup()
+}
+
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
@@ -102,20 +127,9 @@ sys$run({
     }
 
     cfg = yaml::read_yaml(args$config)
-    if (args$tissue == "pan") {
-        args$tissue = tcga$cohorts()
-    } else if (args$tissue == "COADREAD") {
-        args$tissue = c("COAD", "READ")
-    } else if (args$tissue == "NSCLC") {
-        args$tissue = c("LUAD", "LUSC")
-    }
 
-    df = readRDS(args$infile) %>%
-        filter(covar %in% args$tissue) %>%
-        mutate(stroma = 1 - purity) %>%
-        group_by(gene) %>%
-            tidyr::nest() %>%
-        ungroup() %>%
+    td = readRDS(args$infile) %>%
+        prep_data(args$tissue) %>%
         mutate(amp = cna_cmq(data, "amp", make_mod(data[[1]], args$type)))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))

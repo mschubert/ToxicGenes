@@ -8,9 +8,9 @@ sys = import('sys')
 #' @param cna  Character string of either: "amp", "del", or "all"
 #' @param mod  Precompiled brms model
 #' @param et   Tolerance in ploidies to consider sample euploid
-#' @param timeout  Number of seconds that a fit can take before returnin NA
+#' @param min_aneup  Minimum number of aneuploid (triploid minus et) samples
 #' @return     A data.frame with fit statistics
-do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
+do_fit = function(df, cna, mod, et=0.15, min_aneup=3) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
         df = df %>% dplyr::filter(copies > 2-et)
@@ -25,8 +25,6 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
         return(data.frame(n_aneup=n_aneup))
 
     tryCatch({
-        setTimeLimit(elapsed=timeout, transient=TRUE)
-
         init_vars = with(prior_summary(mod), coef[class == "b" & coef != ""])
         init_fun = function() list(b=runif(length(init_vars), 0.5, 1.5))
 
@@ -47,8 +45,25 @@ do_fit = function(df, cna, mod, mod_covar, et=0.15, min_aneup=3, timeout=1800) {
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
-        data.frame(estimate=NA)
+        tibble(estimate=NA)
     })
+}
+
+#' Precompile BRMS model
+#'
+#' @param data  A data.frame with the model data
+#' @return      A brms model object
+make_mod = function(data) {
+    if (length(unique(df$data[[1]]$covar)) == 1) {
+        fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+    } else {
+        fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+    }
+
+    mod = brm(fml, family=negbinomial(link="identity"),
+              data = data, chains = 0, cores = 1,
+              prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                      prior(normal(1,5), class="b"))
 }
 
 sys$run({
@@ -61,13 +76,12 @@ sys$run({
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb.xlsx')
     )
 
-    cna_cmq = function(data, cna) {
+    cna_cmq = function(data, cna, mod) {
         clustermq::Q(do_fit, df=data,
                      const = list(cna=cna, et=cfg$euploid_tol, mod=mod),
                      pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-#                     max_calls_worker = 142, # 72h job / 0.5h max run - 1h
                      chunk_size = 1)
     }
 
@@ -82,20 +96,8 @@ sys$run({
     df = df %>%
         group_by(gene) %>%
             tidyr::nest() %>%
-        ungroup()
-    if (length(unique(df$data[[1]]$covar)) == 1) {
-        mod = brm(expr ~ 0 + sf:eup_equiv + sf:eup_dev, family=negbinomial(link="identity"),
-                  data=df$data[[1]], chains=0, cores=1,
-                  prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                          prior(normal(1,5), class="b"))
-    } else {
-        mod = brm(expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev, family=negbinomial(link="identity"),
-                  data=df$data[[1]], chains=0, cores=1,
-                  prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                          prior(normal(1,5), class="b"))
-    }
-    df = df %>%
-        mutate(amp = cna_cmq(data, "amp"))
+        ungroup() %>%
+        mutate(amp = cna_cmq(data, "amp", make_mod(data[[1]])))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))
 

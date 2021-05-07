@@ -5,14 +5,13 @@ tcga = import('data/tcga')
 
 #' Fit a negative binomial model using a stan glm
 #'
-#' @param df    A data.frame with columns: purity, expr, copies, sf, covar, eup_equiv
-#' @param cna   Character string of either: "amp", "del", or "all"
-#' @param mods  A named list of precompiled brms models (names: "naive", "pur")
-#' @param type  Character string of either: "naive", "pur"
-#' @param et    Tolerance in ploidies to consider sample euploid
-#' @param timeout  Number of seconds that a fit can take before returnin NA
+#' @param df   A data.frame with columns: purity, expr, copies, sf, covar, eup_equiv
+#' @param cna  Character string of either: "amp", "del", or "all"
+#' @param mod  A precompiled brms model (depending on fit type)
+#' @param et   Tolerance in ploidies to consider sample euploid
+#' @param min_aneup  Minimum number of aneuploid (triploid minus et) samples
 #' @return     A data.frame with fit statistics
-do_fit = function(df, cna, mods, type="pur", et=0.15, min_aneup=5, timeout=7200) {
+do_fit = function(df, cna, mod, et=0.15, min_aneup=5) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
         df = df %>% dplyr::filter(copies > 2-et)
@@ -27,12 +26,10 @@ do_fit = function(df, cna, mods, type="pur", et=0.15, min_aneup=5, timeout=7200)
         return(data.frame(n_aneup=n_aneup))
 
     tryCatch({
-        setTimeLimit(elapsed=timeout, transient=TRUE)
-
-        init_vars = with(prior_summary(mods[[type]]), coef[class == "b" & coef != ""])
+        init_vars = with(prior_summary(mod), coef[class == "b" & coef != ""])
         init_fun = function() list(b=runif(length(init_vars), 0.5, 1.5))
 
-        res = update(mods[[type]], newdata=df, chains=4, iter=2000, init=init_fun)
+        res = update(mod, newdata=df, chains=4, iter=2000, init=init_fun)
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
@@ -51,8 +48,37 @@ do_fit = function(df, cna, mods, type="pur", et=0.15, min_aneup=5, timeout=7200)
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
-        data.frame(estimate = NA)
+        tibble(estimate = NA)
     })
+}
+
+#' Precompile BRMS model
+#'
+#' @param data  A data.frame with the model data
+#' @param type  Character string of model type, i.e. 'naive' or 'pur'
+#' @return      A brms model object
+make_mod = function(data, type="naive") {
+    if (type == "naive") {
+        ex = "sf:eup_dev"
+        if (length(unique(data$covar)) == 1) {
+            fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+        } else {
+            fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+        }
+    } else if (type == "pur") {
+        ex = "sf:purity:eup_dev_cancer"
+        if (length(unique(data$covar)) == 1) {
+            fml = expr ~ 0 + sf:purity:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer
+        } else {
+            fml = expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer
+        }
+    } else
+        stop("invalid model 'type'") #todo: stroma expr per type?
+
+    brm(fml, family = negbinomial(link="identity"),
+        data = data, chains = 0, cores = 1,
+        prior = prior_string("normal(0,0.2)", coef=ex) +
+                prior(gamma(1.5,1), class="b"))
 }
 
 sys$run({
@@ -66,15 +92,12 @@ sys$run({
         opt('o', 'outfile', 'xlsx', 'COADREAD/stan-nb_pur.xlsx')
     )
 
-    cna_cmq = function(data, cna) {
-        to = 3 # hours
+    cna_cmq = function(data, cna, mod) {
         clustermq::Q(do_fit, df=data,
-                     const = list(cna=cna, mods=mods, type=args$type,
-                                  et=cfg$euploid_tol, timeout=round(to*3600)),
+                     const = list(cna=cna, mod=mod, et=cfg$euploid_tol),
                      pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-#                     max_calls_worker = 25, #round(72 / to) - 1, # 72h job / 2h max run - 1
                      chunk_size = 1)
     }
 
@@ -92,36 +115,8 @@ sys$run({
         mutate(stroma = 1 - purity) %>%
         group_by(gene) %>%
             tidyr::nest() %>%
-        ungroup()
-    if (length(unique(df$data[[1]]$covar)) == 1) {
-        mods = list(
-            naive = brm(expr ~ 0 + sf:eup_equiv + sf:eup_dev,
-                        family = negbinomial(link="identity"),
-                        data = df$data[[1]], chains = 0, cores = 1,
-                        prior = prior(normal(0,0.2), coef="sf:eup_dev") +
-                                prior(gamma(1.5,1), class="b")),
-            pur = brm(expr ~ 0 + sf:purity:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer,
-                      family = negbinomial(link="identity"),
-                      data = df$data[[1]], chains = 0, cores = 1,
-                      prior = prior(normal(0,0.2), coef="sf:purity:eup_dev_cancer") +
-                              prior(gamma(1.5,1), class="b"))
-        )
-    } else {
-        mods = list(
-            naive = brm(expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev,
-                        family = negbinomial(link="identity"),
-                        data = df$data[[1]], chains = 0, cores = 1,
-                        prior = prior(normal(0,0.2), coef="sf:eup_dev") +
-                                prior(gamma(1.5,1), class="b")),
-            pur = brm(expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer,
-                      family = negbinomial(link="identity"),
-                      data = df$data[[1]], chains = 0, cores = 1,
-                      prior = prior(normal(0,0.2), coef="sf:purity:eup_dev_cancer") +
-                              prior(gamma(1.5,1), class="b")) #todo: stroma expr per type?
-        )
-    }
-    df = df %>%
-        mutate(amp = cna_cmq(data, "amp"))
+        ungroup() %>%
+        mutate(amp = cna_cmq(data, "amp", make_mod(data[[1]], args$type)))
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))
 

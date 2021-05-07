@@ -1,0 +1,58 @@
+configfile: "../config.yaml"
+
+subworkflow data_ccle:
+    workdir: "../data/ccle"
+
+subworkflow genesets:
+    workdir: "../data/genesets"
+
+subworkflow ccle:
+    workdir: "../ccle"
+
+subworkflow orf:
+    workdir: "../orf"
+
+subworkflow tcga:
+    workdir: "../tcga"
+
+tissues = config['ccle_tissues']
+#sets = set(config['genesets']) - set('genes')
+
+rule all:
+    input:
+        expand("{tissue}.pdf", tissue=tissues),
+#        expand("{tissue}/{fit}/{gset}.pdf",
+#                tissue=tissues, gset=config['genesets'], fit=fits)
+
+rule gset:
+    input:
+        rscript = "gset.r",
+        infile = "{tissue}/{fit}.xlsx",
+        setfile = genesets("{gset}.rds")
+    output:
+        plotfile = "{tissue}/{fit}/{gset}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"
+
+rule cor:
+    input:
+        rscript = "dset-cor.r",
+#        orf = lambda wc: orf([wc.tissue if wc.tissue in config['orf_tissues'] else 'pan'][0] + "/genes.xlsx"),
+        orf_naive = orf("fits_naive.xlsx"),
+        orf_corr = orf("fits_corrected.xlsx"),
+        ccle = ccle("{tissue}/stan-nb.xlsx"),
+        tcga_naive = tcga("{tissue}/stan-nb_naive.xlsx"),
+        tcga_pur = tcga("{tissue}/stan-nb_pur.xlsx")
+    output:
+        plotfile = "{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --orf_naive {input.orf_naive}"
+            " --orf_corr {input.orf_corr}"
+            " --ccle {input.ccle}"
+            " --tcga_naive {input.tcga_naive}"
+            " --tcga_pur {input.tcga_pur}"
+            " --plotfile {output.plotfile}"

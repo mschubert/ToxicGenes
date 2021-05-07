@@ -5,21 +5,20 @@ sys = import('sys')
 args = sys$cmd$parse(
     opt('o', 'orf_naive', 'xlsx', '../orf/fits_naive.xlsx'),
     opt('z', 'orf_corr', 'xlsx', '../orf/fits_corrected.xlsx'),
-    opt('c', 'ccle', 'xlsx', '../ccle/pan/rlm3.xlsx'),
-    opt('t', 'tcga_naive', 'xlsx', '../tcga/pan/rlm3_naive.xlsx'),
-    opt('p', 'tcga_pur', 'xlsx', '../tcga/pan/rlm3_pur.xlsx'),
+    opt('c', 'ccle', 'xlsx', '../ccle/pan/stan-nb.xlsx'),
+    opt('t', 'tcga_naive', 'xlsx', '../tcga/pan/stan-nb_naive.xlsx'),
+    opt('p', 'tcga_pur', 'xlsx', '../tcga/pan/stan-nb_pur.xlsx'),
     opt('l', 'plotfile', 'pdf', 'pan.pdf')
 )
 
 orf1 = readxl::read_xlsx(args$orf_naive) %>% dplyr::rename(gene=`GENE SYMBOL`)
 orf2 = readxl::read_xlsx(args$orf_corr) %>% dplyr::rename(gene=`GENE SYMBOL`)
-ccle = readxl::read_xlsx(args$ccle, "amp") %>% dplyr::rename(gene=name) %>%
+ccle = readxl::read_xlsx(args$ccle) %>%
     filter(adj.p < 1) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
-tcga1 = readxl::read_xlsx(args$tcga_naive, "amp") %>% dplyr::rename(gene=name) %>%
+tcga1 = readxl::read_xlsx(args$tcga_naive) %>%
     filter(adj.p < 1) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
-tcga2 = readxl::read_xlsx(args$tcga_pur, "amp") %>% dplyr::rename(gene=name) %>%
+tcga2 = readxl::read_xlsx(args$tcga_pur) %>%
     filter(adj.p < 1) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
-#tcga3 = readxl::read_xlsx("tcga/pan/rlm3_puradj.xlsx", "amp")
 
 hl = c("RBM12", "RBM14", "SNRPA", "HNRNPL", "CDKN1A", "H3F3C", "DAZAP1", "BANP", "HHEX",
        "CEBPE", "HNRNPL", "HNRNPA2B1", "KLF2", "KLF4", "IRF2", "SOX15", "ELK3", "ADORA2A",

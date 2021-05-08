@@ -14,11 +14,11 @@ args = sys$cmd$parse(
 orf1 = readxl::read_xlsx(args$orf_naive) %>% dplyr::rename(gene=`GENE SYMBOL`)
 orf2 = readxl::read_xlsx(args$orf_corr) %>% dplyr::rename(gene=`GENE SYMBOL`)
 ccle = readxl::read_xlsx(args$ccle) %>%
-    filter(p.value < 1e-3) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
+    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 tcga1 = readxl::read_xlsx(args$tcga_naive) %>%
-    filter(p.value < 1e-5) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
+    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 tcga2 = readxl::read_xlsx(args$tcga_pur) %>%
-    filter(p.value < 1e-5) %>% mutate(estimate = pmax(-2, pmin(estimate, 2.5)))
+    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 
 hl = c("RBM12", "RBM14", "SNRPA", "HNRNPL", "CDKN1A", "H3F3C", "DAZAP1", "BANP", "HHEX",
        "CEBPE", "HNRNPL", "HNRNPA2B1", "KLF2", "KLF4", "IRF2", "SOX15", "ELK3", "ADORA2A",
@@ -34,7 +34,7 @@ p1 = ggplot(both, aes(x=tcga_naive, y=tcga_pur)) +
     geom_point(data=both %>% filter(gene %in% hl), color="red") +
     geom_point(data=both %>% filter(gene %in% hl2), color="blue") +
     geom_text(data=both %>% filter(gene %in% hl2), aes(label=gene), size=1.5) +
-    geom_density2d(color="green", size=0.2, breaks=c(0.05, 0.1,0.2,0.9)) +
+    geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
     ggrepel::geom_label_repel(data=both %>% filter(gene %in% hl), aes(label=gene), size=2.5)
 
 # tcga-ccle cor
@@ -44,9 +44,9 @@ both = ccle %>% transmute(gene=gene, ccle=estimate) %>%
 m0 = broom::glance(lm(ccle ~ tcga_naive, data=both)); m0
 p2 = ggplot(both, aes(x=ccle, y=tcga_naive)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
-    geom_point(data=both %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red") +
+    geom_point(data=both %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red", alpha=0.7) +
     scale_size_area() +
-    geom_density2d(color="green", size=0.2, breaks=c(0.05, 0.1,0.2,0.9)) +
+    geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
     geom_smooth(method="lm") +
     ggrepel::geom_label_repel(data=both %>% filter(gene %in% hl), aes(label=gene), size=2.5, max.overlaps=Inf) +
     labs(title = "stan-nb", subtitle=sprintf("p=%.2g (R^2=%.2g)", m0$p.value, m0$r.squared))
@@ -54,9 +54,9 @@ p2 = ggplot(both, aes(x=ccle, y=tcga_naive)) +
 m0 = broom::glance(lm(ccle ~ tcga_pur, data=both)); m0
 p3 = ggplot(both, aes(x=ccle, y=tcga_pur)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
-    geom_point(data=both %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red") +
+    geom_point(data=both %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red", alpha=0.7) +
     scale_size_area() +
-    geom_density2d(color="green", size=0.2, breaks=c(0.05, 0.1,0.2,0.9)) +
+    geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
     geom_smooth(method="lm") +
     ggrepel::geom_label_repel(data=both %>% filter(gene %in% hl), aes(label=gene), size=2.5, max.overlaps=Inf) +
     labs(title = "stan-nb", subtitle=sprintf("p=%.2g (R^2=%.2g)", m0$p.value, m0$r.squared))
@@ -72,9 +72,9 @@ m2 = broom::glance(lm(orf2 ~ tcga_ccle, data=cmp)); m2
 p4 = ggplot(cmp, aes(x=tcga_ccle, y=orf2)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
     scale_size_area() +
-    geom_density2d(color="green", size=0.2, breaks=c(0.05, 0.1,0.2,0.9)) +
+    geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
     geom_smooth(method="lm") +
-    geom_point(data=cmp %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red") +
+    geom_point(data=cmp %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red", alpha=0.7) +
     ggrepel::geom_label_repel(data=cmp %>% filter(gene %in% hl), #filter(tcga_ccle < -0.5, orf2 < -1),
                               aes(label=gene), size=2.5, max.overlaps = Inf) +
     labs(title = "stan-nb", subtitle=sprintf("p=%.2g [R^2 = %.2g (z), %.2g (loess z)]",

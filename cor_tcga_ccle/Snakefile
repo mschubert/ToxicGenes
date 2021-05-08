@@ -45,7 +45,8 @@ rule cor:
         orf_corr = orf("fits_corrected.xlsx"),
         ccle = ccle("{tissue}/stan-nb.xlsx"),
         tcga_naive = tcga("{tissue}/stan-nb_naive.xlsx"),
-        tcga_pur = tcga("{tissue}/stan-nb_pur.xlsx")
+        tcga_pur = tcga("{tissue}/stan-nb_pur.xlsx"),
+        tcga_puradj = tcga("{tissue}/stan-nb_puradj.xlsx")
     output:
         plotfile = "{tissue}.pdf"
     shell:
@@ -55,4 +56,5 @@ rule cor:
             " --ccle {input.ccle}"
             " --tcga_naive {input.tcga_naive}"
             " --tcga_pur {input.tcga_pur}"
+            " --tcga_puradj {input.tcga_puradj}"
             " --plotfile {output.plotfile}"

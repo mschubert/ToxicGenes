@@ -8,6 +8,7 @@ args = sys$cmd$parse(
     opt('c', 'ccle', 'xlsx', '../ccle/pan/stan-nb.xlsx'),
     opt('t', 'tcga_naive', 'xlsx', '../tcga/pan/stan-nb_naive.xlsx'),
     opt('p', 'tcga_pur', 'xlsx', '../tcga/pan/stan-nb_pur.xlsx'),
+    opt('q', 'tcga_puradj', 'xlsx', '../tcga/pan/stan-nb_puradj.xlsx'),
     opt('l', 'plotfile', 'pdf', 'pan.pdf')
 )
 
@@ -18,6 +19,8 @@ ccle = readxl::read_xlsx(args$ccle) %>%
 tcga1 = readxl::read_xlsx(args$tcga_naive) %>%
     mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 tcga2 = readxl::read_xlsx(args$tcga_pur) %>%
+    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+tcga3 = readxl::read_xlsx(args$tcga_puradj) %>%
     mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 
 hl = c("RBM12", "RBM14", "SNRPA", "HNRNPL", "CDKN1A", "H3F3C", "DAZAP1", "BANP", "HHEX",
@@ -40,7 +43,8 @@ p1 = ggplot(both, aes(x=tcga_naive, y=tcga_pur)) +
 # tcga-ccle cor
 both = ccle %>% transmute(gene=gene, ccle=estimate) %>%
     left_join(tcga1 %>% transmute(gene=gene, tcga_naive=estimate, tcga_aneup=n_aneup)) %>%
-    left_join(tcga2 %>% transmute(gene=gene, tcga_pur=estimate))
+    left_join(tcga2 %>% transmute(gene=gene, tcga_pur=estimate)) %>%
+    left_join(tcga3 %>% transmute(gene=gene, tcga_puradj=estimate))
 m0 = broom::glance(lm(ccle ~ tcga_naive, data=both)); m0
 p2 = ggplot(both, aes(x=ccle, y=tcga_naive)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
@@ -61,15 +65,25 @@ p3 = ggplot(both, aes(x=ccle, y=tcga_pur)) +
     ggrepel::geom_label_repel(data=both %>% filter(gene %in% hl), aes(label=gene), size=2.5, max.overlaps=Inf) +
     labs(title = "stan-nb", subtitle=sprintf("p=%.2g (R^2=%.2g)", m0$p.value, m0$r.squared))
 
+m0 = broom::glance(lm(ccle ~ tcga_puradj, data=both)); m0
+p4 = ggplot(both, aes(x=ccle, y=tcga_puradj)) +
+    geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
+    geom_point(data=both %>% filter(gene %in% hl), aes(size=pmin(500, tcga_aneup)), color="red", alpha=0.7) +
+    scale_size_area() +
+    geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
+    geom_smooth(method="lm") +
+    ggrepel::geom_label_repel(data=both %>% filter(gene %in% hl), aes(label=gene), size=2.5, max.overlaps=Inf) +
+    labs(title = "stan-nb", subtitle=sprintf("p=%.2g (R^2=%.2g)", m0$p.value, m0$r.squared))
+
 # tcga+ccle vs orf screen
-cmp = both %>% mutate(gene=gene, tcga_ccle = (tcga_pur + ccle)/2) %>%
+cmp = both %>% mutate(gene=gene, tcga_ccle = (tcga_puradj + ccle)/2) %>%
 #    inner_join(orf1 %>% transmute(gene=gene, orf1=estimate)) %>%
 #    inner_join(orf2 %>% transmute(gene=gene, orf2=estimate))
     inner_join(orf1 %>% transmute(gene=gene, orf1=statistic)) %>%
     inner_join(orf2 %>% transmute(gene=gene, orf2=statistic))
 m1 = broom::glance(lm(orf1 ~ tcga_ccle, data=cmp)); m1
 m2 = broom::glance(lm(orf2 ~ tcga_ccle, data=cmp)); m2
-p4 = ggplot(cmp, aes(x=tcga_ccle, y=orf2)) +
+p5 = ggplot(cmp, aes(x=tcga_ccle, y=orf2)) +
     geom_point(aes(size=pmin(500, tcga_aneup)), alpha=0.1) +
     scale_size_area() +
     geom_density2d(color="green", size=0.2, breaks=c(0.02,0.05, 0.1,0.2,0.9), adjust=c(3,3)) +
@@ -85,4 +99,5 @@ print(p1)
 print(p2)
 print(p3)
 print(p4)
+print(p5)
 dev.off()

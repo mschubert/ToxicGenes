@@ -8,13 +8,14 @@ gset = import('genesets')
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../../config.yaml'),
 #    opt('i', 'infile', 'txt', './210331_VR8768_viper/STAR/H838_luc_1/H838_luc_1.counts.tab'),
-    opt('o', 'outfile', 'rds', 'dset.rds'),
-    opt('p', 'plotfile', 'pdf', 'dset.pdf')
+    opt('o', 'outfile', 'rds', 'dset_both.rds'),
+    opt('p', 'plotfile', 'pdf', 'dset_both.pdf')
 )
 
 cfg = yaml::read_yaml(args$config)
 
-smps = c("H838_luc_1", "H838_RBM14_1", "H838_RBM14_2")
+smps = c("H838_luc_1", "H838_luc_2", "H838_RBM14_1", "H838_RBM14_2")
+stypes = sub(".*(luc|RBM14).*", "\\1", smps)
 reads = sprintf("./210331_VR8768_viper/STAR/%s/%s.counts.tab", smps, smps) %>%
     lapply(readr::read_tsv, skip=4, col_names=FALSE) %>%
     lapply(. %$% setNames(X2, X1)) %>%
@@ -22,7 +23,7 @@ reads = sprintf("./210331_VR8768_viper/STAR/%s/%s.counts.tab", smps, smps) %>%
     narray::stack(along=2)
 reads = reads[rowSums(reads) != 0,]
 
-meta = data.frame(condition = factor(c("luc", "RBM14", "RBM14"), levels=c("luc", "RBM14")))
+meta = data.frame(condition = factor(stypes, levels=c("luc", "RBM14")))
 eset = DESeq2::DESeqDataSetFromMatrix(reads, meta, ~condition)
 res = DESeq2::DESeq(eset) %>%
     DESeq2::results(name = "condition_RBM14_vs_luc") %>%

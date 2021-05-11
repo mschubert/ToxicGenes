@@ -14,7 +14,7 @@ dset = readxl::read_xlsx(args$infile) %>%
 sets = readRDS(args$setfile) %>%
     gset$filter(min=1, valid=dset$gene)
 
-res = gset$test(dset, sets)
+res = gset$test_lm(dset, sets)
 
 pdf(args$plotfile, 10, 8)
 print(plt$volcano(res, base.size=0.2, text.size=2.5, label_top=30))

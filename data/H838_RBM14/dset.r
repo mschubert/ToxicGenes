@@ -36,7 +36,7 @@ res$size = 1 # fixme @ volcano util
 
 #fixme: gset$get_human better error on invalid set name
 sets = sapply(cfg$genesets, function(s) readRDS(paste0("../genesets/", s, ".rds")), simplify=FALSE)
-scores = lapply(sets, gset$test, genes=res)
+scores = lapply(sets, gset$test_lm, genes=res)
 
 pdf(args$plotfile, 10, 8)
 print(plt$volcano(res) + ggtitle("genes"))

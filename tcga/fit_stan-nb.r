@@ -65,15 +65,16 @@ make_mod = function(data, type="naive") {
         } else {
             fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
         }
-    } else if (type == "pur") {
+    } else {
         ex = "sf:purity:eup_dev_cancer"
         if (length(unique(data$covar)) == 1) {
             fml = expr ~ 0 + sf:purity:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer
-        } else {
+        } else if (type == "pur") {
             fml = expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:stroma + sf:purity:eup_dev_cancer
+        } else if (type == "puradj") {
+            fml = expr ~ 0 + sf:purity:covar:eup_equiv_cancer + sf:covar:stroma + sf:purity:eup_dev_cancer
         }
-    } else
-        stop("invalid model 'type'") #todo: stroma expr per type?
+    }
 
     brm(fml, family = negbinomial(link="identity"),
         data = data, chains = 0, cores = 1,

@@ -135,7 +135,7 @@ sys$run({
 #               del = cna_cmq(data, "del"),
 #               all = cna_cmq(data, "all"))
 
-    res = df %>%
+    res = td %>%
         select(-data) %>%
         tidyr::unnest("amp") %>%
         mutate(adj.p = p.adjust(p.value, method="fdr")) %>%

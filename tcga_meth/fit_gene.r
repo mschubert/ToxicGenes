@@ -4,6 +4,7 @@ sys = import('sys')
 plt = import('plot')
 tcga = import('data/tcga')
 
+#TODO: covar per cohort:purity + island_id?
 fit_beta = function(df) {
     df$meth = pmin(df$meth, 1 - 1e-3)
     df$meth = pmax(df$meth, 1e-3)

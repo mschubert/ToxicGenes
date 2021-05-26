@@ -7,14 +7,15 @@ seq = import('seq')
 gdsc = import('data/gdsc')
 tcga = import('data/tcga')
 
-rmean_noNA = function(x) {
+rmean_noNA = function(x, size=3) {
     nona = ! is.na(x)
-    x[nona] = zoo::rollapply(x[nona], 5, mean, partial=TRUE, fill=0)
+    x[nona] = zoo::rollapply(x[nona], size, mean, partial=TRUE, fill=0)
     x
 }
 
 # needs objs: genes_hg38, racs, copies
 plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/100) {
+    message(gene)
     pos = as.data.frame(genes_hg38) %>%
         filter(external_gene_name == gene)
     center_pos = round(mean(with(pos, c(start, end))))
@@ -40,20 +41,21 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
                        start = max(0, center_pos-len/2)) %>%
         mutate(end = start + len) %>%
         GenomicRanges::makeGRangesFromDataFrame() %>%
-        join_overlap_intersect(genes_hg38 %>% select(external_gene_name, driver, comp_pct, comp_pct_rmean)) %>%
+        join_overlap_intersect(genes_hg38 %>% select(external_gene_name, driver, comp_tcga_rmean, comp_ccle_rmean)) %>%
         as.data.frame() %>%
         as_tibble() %>%
-        mutate(external_gene_name = ifelse(end < center_pos-hl/2 | start > center_pos+hl/2,
+        mutate(midpoint = (start+end)/2,
+               external_gene_name = ifelse(end < center_pos-hl/2 | start > center_pos+hl/2,
                                            NA, external_gene_name))
-
     comp = genes %>%
-        filter(!is.na(comp_pct_rmean)) %>%
-        transmute(midpoint = (start+end)/2, comp_pct, comp_pct_rmean)
+        select(seqnames, midpoint, comp_tcga_rmean, comp_ccle_rmean) %>%
+        tidyr::gather("type", "rmean", -seqnames, -midpoint) %>%
+        na.omit()
 
     arws = c(Amplification="▲", Deletion="▼")
     ys = c(Amplification=max(dset$num)/2, Deletion=min(dset$num)/2)
-    cracs = data_frame(seqnames = pos$seqnames,
-                       start=max(0, center_pos - len/2)) %>%
+    cracs = tibble(seqnames = pos$seqnames,
+                   start=max(0, center_pos - len/2)) %>%
         mutate(end = start + len) %>%
         GenomicRanges::makeGRangesFromDataFrame() %>%
         join_overlap_inner_within(racs %>% select(racs, cna), .) %>%
@@ -75,8 +77,8 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
     p0 = ggplot(dset, aes(x=start)) +
-        geom_rect(data=fras, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="grey35", alpha=0.1) +
-        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.1) +
+#        geom_rect(data=fras, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="grey35", alpha=0.1) +
+#        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.1) +
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
@@ -87,15 +89,17 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         theme(axis.title.x = element_blank())
 
     p1 = p0 +
-        geom_line(data=comp, aes(x=midpoint, y=comp_pct_rmean)) +
-        ggrepel::geom_text_repel(data=labs, aes(x=x, y=y, label=label), size=2, hjust=0.5) +
+        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean), color="#7cae00", size=0.2) +
+        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean), color="#c77cff", size=0.2) +
+#        ggrepel::geom_text_repel(data=labs, aes(x=x, y=y, label=label), size=2, hjust=0.5) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=driver), min.segment.length=0,
             label.size=NA, fill="#ffffff80", segment.color="white") +
         ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6))
 
     p2 = p0 +
-        geom_line(data=comp, aes(x=midpoint, y=comp_pct)) +
+        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean), color="#7cae00", size=0.2) +
+        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean), color="#c77cff", size=0.2) +
         coord_cartesian(xlim=c(center_pos-hl/2, center_pos+hl/2)) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=external_gene_name),
@@ -107,7 +111,8 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
 args = sys$cmd$parse(
     opt('c', 'cohort', 'chr', 'pan'),
-    opt('m', 'compensation', 'tcga xlsx', '../tcga/pan/stan-nb_puradj.xlsx'),
+    opt('m', 'comp_tcga', 'tcga xlsx', '../tcga/pan/stan-nb_puradj.xlsx'),
+    opt('n', 'comp_ccle', 'ccle xlsx', '../ccle/pan/stan-nb.xlsx'),
     opt('p', 'plotfile', 'pdf', 'gctx_pan.pdf')
 )
 
@@ -121,9 +126,12 @@ if (args$cohort == "pan") {
     racs_cohort = args$cohort
 }
 
-tcga_comp = readxl::read_xlsx(args$compensation) %>% #, "amp") %>%
+tcga_comp = readxl::read_xlsx(args$comp_tcga) %>% #, "amp") %>%
     transmute(external_gene_name = gene,
-              comp_pct = estimate)
+              comp_tcga = estimate * 50)
+ccle_comp = readxl::read_xlsx(args$comp_ccle) %>%
+    transmute(external_gene_name = gene,
+              comp_ccle = estimate * 50)
 fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 seqlevelsStyle(fra) = "Ensembl"
@@ -132,12 +140,14 @@ genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38") %>%
     filter(gene_biotype %in% c("protein_coding", "miRNA")) %>%
     mutate(driver = ifelse(external_gene_name %in% drivers, external_gene_name, NA)) %>%
     left_join(tcga_comp) %>%
+    left_join(ccle_comp) %>%
     mutate(strand = setNames(c("+", "-"), c(1, -1))[as.character(strand)]) %>%
     GenomicRanges::makeGRangesFromDataFrame(start.field="start_position",
             end.field="end_position", keep.extra.columns=TRUE) %>%
     arrange(seqnames, (start+end)/2) %>%
     group_by(seqnames) %>%
-        mutate(comp_pct_rmean = rmean_noNA(comp_pct)) %>%
+        mutate(comp_tcga_rmean = rmean_noNA(comp_tcga),
+               comp_ccle_rmean = rmean_noNA(comp_ccle)) %>%
     ungroup()
 purity = tcga$purity() %>%
     select(Sample, purity=consensus) %>%
@@ -166,6 +176,6 @@ racs = racs2
 
 cairo_pdf(args$plotfile, 10, 4, onefile=TRUE)
 for (g in c("EGFR", "ERBB2", "MYC", "CDKN1A", "RBM14", "RBM12", "HES1",
-            "SNRPA", "NSF", "BANP", "H3F3C", "IRF2", "ZBTB14"))
+            "SNRPA", "NSF", "BANP", "IRF2", "ZBTB14"))
     print(plot_gene_track(g))
 dev.off()

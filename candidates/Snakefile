@@ -110,7 +110,7 @@ rule plot_tissue_with_pan_yaml:
 rule genomic_context:
     input:
         rscript = "genomic_context.r",
-        compensation = tcga("{tissue}/rlm3_pur.xlsx")
+        compensation = tcga("{tissue}/stan-nb_puradj.xlsx")
     output:
         plotfile = "gctx_{tissue}.pdf"
     shell:

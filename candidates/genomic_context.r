@@ -107,20 +107,23 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
 
 args = sys$cmd$parse(
     opt('c', 'cohort', 'chr', 'pan'),
-    opt('m', 'compensation', 'tcga xlsx', '../tcga/pan/rlm3_naive.xlsx'),
+    opt('m', 'compensation', 'tcga xlsx', '../tcga/pan/stan-nb_puradj.xlsx'),
     opt('p', 'plotfile', 'pdf', 'gctx_pan.pdf')
 )
 
 if (args$cohort == "pan") {
     args$cohort = c("BRCA", "LUAD", "LUSC", "OV", "PRAD", "SKCM")
     racs_cohort = "PANCAN"
+} else if (args$cohort == "COADREAD") {
+    args$cohort = c("COAD", "READ")
+    racs_cohort = "COADREAD"
 } else {
     racs_cohort = args$cohort
 }
 
-tcga_comp = readxl::read_xlsx(args$compensation, "amp") %>%
-    transmute(external_gene_name = name,
-              comp_pct = statistic)
+tcga_comp = readxl::read_xlsx(args$compensation) %>% #, "amp") %>%
+    transmute(external_gene_name = gene,
+              comp_pct = estimate)
 fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 seqlevelsStyle(fra) = "Ensembl"
@@ -137,7 +140,7 @@ genes_hg38 = seq$coords$gene(idtype="hgnc_symbol", assembly="GRCh38") %>%
         mutate(comp_pct_rmean = rmean_noNA(comp_pct)) %>%
     ungroup()
 purity = tcga$purity() %>%
-    select(Sample, purity=estimate) %>%
+    select(Sample, purity=consensus) %>%
     na.omit()
 copies = lapply(args$cohort, tcga$cna_segments) %>%
     bind_rows() %>%

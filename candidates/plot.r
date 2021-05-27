@@ -11,12 +11,15 @@ args = sys$cmd$parse(
     opt('y', 'yaml', 'yaml', 'LUAD/top-genes.yaml'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'LUAD'),
     opt('o', 'outfile', 'xlsx', '/dev/null'),
-    opt('p', 'plotfile', 'pdf', 'LUAD/top-genes.pdf'))
+    opt('p', 'plotfile', 'pdf', 'LUAD/top-genes.pdf')
+)
 
 select = yaml::read_yaml(args$yaml)
 fits = select$methods
 genes = select$genes #TODO: use right set if not only genes
 et = yaml::read_yaml(args$config)$euploid_tol
+tcga_ccle_fit = setdiff(select$methods, "lm")
+stopifnot(length(tcga_ccle_fit) == 1)
 
 comp_cols = c(full="brown", none="brown", amp="red", del="blue", all="darkviolet")
 
@@ -61,7 +64,7 @@ for (i in seq_along(genes)) {
     cd = util$load_ccle(top, et=et)
     fracs = util$frac_labels(cd, copies, et=et)
     ccle_assocs = assocs %>%
-        filter(name %in% top, dset=="ccle", fit=="rlm3") %>%
+        filter(name %in% top, dset=="ccle", fit==tcga_ccle_fit) %>%
         mutate(name = factor(name, levels=top))
     if (args$tissue == "pan") {
         cd$Name = NA # do not label cell lines in pan-can plots (too many)
@@ -108,11 +111,11 @@ for (i in seq_along(genes)) {
     td = util$load_tcga(args$tissue, top, et=et)
     fracs = util$frac_labels(td, cancer_copies, et=et)
     tcga_assocs = assocs %>%
-        filter(name %in% top, dset=="tcga", fit=="rlm3", adj=="pur") %>%
+        filter(name %in% top, dset=="tcga", fit==tcga_ccle_fit, adj=="pur") %>% #TODO: why pur?
         mutate(name = factor(name, levels=top))
     abl = util$comp_summary(tcga_assocs)
     stats = util$comp_stats(td, cancer_copies, tcga_assocs, fracs)
-    ptcga = ggplot(td, aes(x=cancer_copies, y=expr)) +
+    ptcga = ggplot(td, aes(x=cancer_copies, y=expr, group=gene)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
         geom_density2d(bins=20, color="#000000b0") +

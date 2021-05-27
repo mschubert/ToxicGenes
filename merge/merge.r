@@ -7,35 +7,37 @@ args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
     opt('o', 'outfile', 'rds', 'pan.rds'),
-    opt('p', 'plotfile', 'pdf', 'pan.pdf'))
+    opt('p', 'plotfile', 'pdf', 'pan.pdf')
+)
 
 cfg = yaml::read_yaml(args$config)
+#cnas = c("amp", "del", "all")
+cnas = "amp"
 
 orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, "genes")) %>%
     mutate(adj = "none", fit = "lm", cna = "oe")
 
-ccle = tidyr::crossing(adj = "none",
-                       fit = cfg$fits,
-                       cna = c("amp", "del", "all")) %>%
+ccle = tidyr::crossing(adj = "none", fit = cfg$fits, cna = cnas) %>%
     mutate(data = purrr::pmap(list(fit, cna), function(fit, cna) {
         fname = sprintf("../ccle/%s/%s.xlsx", args$tissue, fit)
         message(fname)
-        readxl::read_xlsx(fname, sheet = cna)
+        readxl::read_xlsx(fname) #, sheet = cna)
     })) %>%
-    tidyr::unnest("data")
+    tidyr::unnest("data") %>%
+    dplyr::rename(name = gene)
 
-tcga = tidyr::crossing(adj = cfg$tcga_adj, fit = cfg$fits,
-                       cna = c("amp", "del", "all")) %>%
+tcga = tidyr::crossing(adj = cfg$tcga_adj, fit = cfg$fits, cna = cnas) %>%
     mutate(data = purrr::pmap(list(adj, fit, cna), function(adj, fit, cna) {
         fname = sprintf("../tcga/%s/%s_%s.xlsx", args$tissue, fit, adj)
         message(fname)
-        readxl::read_xlsx(fname, sheet = cna)
+        readxl::read_xlsx(fname) #, sheet = cna)
     })) %>%
-    tidyr::unnest("data")
+    tidyr::unnest("data") %>%
+    dplyr::rename(name = gene)
 
 dset = list(orf=orf, ccle=ccle, tcga=tcga) %>%
     bind_rows(.id="dset") %>%
-    select(name, dset, cna, fit, adj, estimate, eup_reads, rsq, statistic, p.value, adj.p) %>%
+    select(name, dset, cna, fit, adj, estimate, eup_reads, statistic, p.value, adj.p) %>%
     group_by(dset, cna, fit, adj) %>%
         mutate(pctile = 100 * (1-rank(statistic)/n())) %>%
     ungroup() %>%

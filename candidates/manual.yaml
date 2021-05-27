@@ -15,4 +15,4 @@ genes:
     - ZBTB14
 methods:
     - lm
-    - rlm3
+    - stan-nb

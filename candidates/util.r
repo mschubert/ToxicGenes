@@ -106,12 +106,16 @@ comp_stats = function(dset, dset_x, assocs, fracs) {
     dx = dset %>%
         group_by(gene) %>%
         summarize(x = mean(range({{ dset_x }}, na.rm=TRUE)))
+    if (!"rsq" %in% colnames(assocs)) # currently not present in stan-nb
+        assocs$rsq = NA
     assocs %>%
         select(name, cna, estimate, rsq) %>%
         mutate(estimate = -100*estimate) %>%
         tidyr::pivot_wider(names_from=cna, values_from=c(estimate, rsq)) %>%
-        transmute(gene=name, label=sprintf("comp/R^2 ▲ %.0f%% %.2f ▼ %.0f%% %.2f ◆ %.0f%% %.2f",
-               estimate_amp, rsq_amp, estimate_del, rsq_del, estimate_all, rsq_all)) %>%
+#        transmute(gene=name, label=sprintf("comp/R^2 ▲ %.0f%% %.2f ▼ %.0f%% %.2f ◆ %.0f%% %.2f",
+#               estimate_amp, rsq_amp, estimate_del, rsq_del, estimate_all, rsq_all)) %>%
+        transmute(gene=name, label=sprintf("comp ▲ %.0f%%",
+               estimate_amp, rsq_amp)) %>%
         inner_join(fracs %>% select(gene, min_reads)) %>%
         inner_join(dx)
 }
@@ -258,6 +262,7 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
 #' @param se_size   Size of tiles corresponds to confidence (default: FALSE)
 #' @param cap_z     Only allow gradient as extreme as data (default: TRUE)
 #' @param by        Variable to condition on (prediction will be on 1)
+#' @param ...       Passed to ggplot layer
 stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
         position = "identity", na.rm = FALSE, show.legend = NA,
         inherit.aes = TRUE, bins = 20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE, ...) {
@@ -269,10 +274,10 @@ stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
                              y = seq(ry[1], ry[2], length.out=bins))
 
             if ("by" %in% colnames(data)) {
-                lsurf = mgcv::gam(fill ~ s(x, y, by=by), data=data, select=TRUE)
+                lsurf = mgcv::gam(fill ~ s(x, y, by=by), data=data, gamma=10)
                 df$by = 1
             } else {
-                lsurf = mgcv::gam(fill ~ s(x, y), data=data, select=TRUE)
+                lsurf = mgcv::gam(fill ~ s(x, y), data=data, gamma=10)
             }
             pred = predict(lsurf, newdata=df, se=TRUE)
             df$fill = c(pred$fit)

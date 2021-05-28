@@ -144,10 +144,9 @@ frac_labels = function(dset, copies, et=0.15) {
 #' @param cohort  TCGA cohort identifier or "pan"
 #' @param genes   Character vector of genes of interest
 load_tcga = function(cohort, top, et=0.15) {
+    if (cohort == "pan") cohort2 = tcga$cohorts() else cohort2 = cohort
     load_expr = function(cohort, genes) {
-        if (cohort == "pan")
-            cohort = tcga$cohorts()
-        mat = lapply(cohort, tcga$rna_seq) %>%
+        mat = lapply(cohort2, tcga$rna_seq) %>%
             narray::stack(along=2) %>%
             DESeq2::DESeqDataSetFromMatrix(data.frame(id=colnames(.)), ~1) %>%
                 DESeq2::estimateSizeFactors() %>%
@@ -157,26 +156,24 @@ load_tcga = function(cohort, top, et=0.15) {
         mat[intersect(genes, rownames(mat)),,drop=FALSE]
     }
     load_copies = function(cohort, genes) {
-        if (cohort == "pan")
-            cohort = tcga$cohorts()
-        lapply(cohort, function(x) {
+        lapply(cohort2, function(x) {
             cns = tcga$cna_genes(x, gene="external_gene_name")
             cns[intersect(genes, rownames(cns)),,drop=FALSE]
         }) %>% narray::stack(along=2)
     }
     tcga_expr = load_expr(cohort, top) # only primary because purity() only
     tcga_cns = load_copies(cohort, top) # has those samples
-    if (cohort == "pan")
-        tcga_meth = tcga$meth(tcga$cohorts(), cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
-    else
-        tcga_meth = tcga$meth(cohort, cpg="avg", mvalues=TRUE, genes=top) # cpg=stdev too many NAs
-    tcga_meth = tcga_meth %>%
+    tcga_meth = tcga$meth(cohort2, cpg="avg", mvalues=TRUE, genes=top) %>% # cpg=stdev too many NAs
         reshape2::melt() %>%
         transmute(sample = Var2, gene = Var1, meth = value)
     tcga_mut = tcga$mutations() %>%
         transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
     names(dimnames(tcga_expr)) = c("gene", "sample")
     names(dimnames(tcga_cns)) = c("gene", "sample")
+
+    surv = tcga$clinical() %>%
+        transmute(sample = paste0(submitter_id, "-01A"),
+                  log_days_death = log2(days_to_death + 1))
 
     scale_ref = function(x, ref) {
         medref = median(x[ref], na.rm=TRUE)
@@ -200,6 +197,7 @@ load_tcga = function(cohort, top, et=0.15) {
         left_join(tcga_mut) %>%
         left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%
         left_join(tcga_meth) %>%
+        left_join(surv) %>%
         group_by(gene, cohort) %>%
             mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
                    meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%

@@ -193,6 +193,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
 pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity", from=0, to=1, by="constant"))
 print(plot_l2d(dset, "expr", from=0, by="constant"))
+print(plot_l2d(dset, "log_days_death", by="constant"))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))

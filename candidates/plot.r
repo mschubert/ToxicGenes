@@ -29,6 +29,8 @@ if (!is.list(genes))
 cairo_pdf(args$plotfile, 16, 12, onefile=TRUE)
 for (i in seq_along(genes)) {
     top = genes[[i]]
+    if (length(top) == 0)
+        next
     print(plt$text(names(genes)[i], size=20))
 
     assocs = readRDS(args$dset)
@@ -118,7 +120,7 @@ for (i in seq_along(genes)) {
     ptcga = ggplot(td, aes(x=cancer_copies, y=expr, group=gene)) +
         annotate("rect", xmin=2-et, xmax=2+et, ymin=-Inf, ymax=Inf, fill="#dedede") +
         stat_bin2d(aes(fill=after_stat(count)), bins=30) +
-        geom_density2d(bins=20, color="#000000b0") +
+        geom_density2d(color="#000000b0", breaks=c(0.5,0.15,0.05), size=0.7, contour_var="ndensity") +
         scale_fill_distiller(palette="Spectral", trans="log10") +
         geom_vline(xintercept=c(2-et,2+et,1+et,3-et), color="black", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +

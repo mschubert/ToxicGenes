@@ -134,37 +134,22 @@ dset = narray::stack(list(exons, cpg, mirna, immune), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset, constant=1)
 
-### plot ###
-densVals <- function(x, y = NULL, nbin = 128, bandwidth, range.x) {
-  dat <- cbind(x, y)
-  # limit dat to strictly finite values
-  sel <- is.finite(x) & is.finite(y)
-  dat.sel <- dat[sel, ]
-  # density map with arbitrary graining along x and y
-  map   <- grDevices:::.smoothScatterCalcDensity(dat.sel, nbin, bandwidth)
-  map.x <- findInterval(dat.sel[, 1], map$x1)
-  map.y <- findInterval(dat.sel[, 2], map$x2)
-  # weighted mean of the fitted density map according to how close x and y are
-  # to the arbitrary grain of the map
-  den <- mapply(function(x, y) weighted.mean(x = c(
-    map$fhat[x, y], map$fhat[x + 1, y + 1],
-    map$fhat[x + 1, y], map$fhat[x, y + 1]), w = 1 / c(
-    map$x1[x] + map$x2[y], map$x1[x + 1] + map$x2[y + 1],
-    map$x1[x + 1] + map$x2[y], map$x1[x] + map$x2[y + 1])),
-    map.x, map.y)
-  # replace missing density estimates with NaN
-  res <- rep(NaN, length(sel))
-  res[sel] <- den
-  res
-}
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
-    # to draw pts below iff a certain density
-    #fixme: this density should be absolute (pt crowding), not relative (eg. high value with few pts total)
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", pts=TRUE) {
+    # https://slowkow.com/notes/ggplot2-color-by-density/
+    get_density = function(x, y, ...) {
+        dens = MASS::kde2d(x, y, ...)
+        ix = findInterval(x, dens$x)
+        iy = findInterval(y, dens$y)
+        ii = cbind(ix, iy)
+        dens$z[ii]
+    }
     lowdens = dset %>%
+        select(sample, cohort, p53_mut, cancer_copies, expr) %>%
+        na.omit() %>%
         group_by(cohort, p53_mut) %>%
-            mutate(dens = densVals(cancer_copies, expr)) %>%
-        ungroup() #%>%
-    #    filter(dens < 10)
+            mutate(dens = get_density(cancer_copies, expr)) %>%
+            filter(dens < quantile(dens, 0.2)) %>%
+        ungroup()
 
     if (all(na.omit(dset[[variable]]) >= 0)) {
         fill = scale_fill_viridis_c(option="magma", direction=-1, limits=c(from, to))
@@ -174,13 +159,17 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
                                 limits=c(from, to))
         ptcol = "magenta"
     }
+    if (pts) {
+        pts = geom_point(data=lowdens, color=ptcol, alpha=0.6, shape=1, size=3)
+    } else {
+        pts = list()
+    }
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_gam2d(aes_string(fill=variable, by=by), se_alpha=TRUE, gamma=30) +
-        geom_density2d(bins=20, color="chartreuse4", size=0.7) +
+        geom_density2d(breaks=c(0.5,0.1,0.05), color="chartreuse4", size=0.7, contour_var="ndensity") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +
-        fill +
-        geom_point(data=lowdens, aes(color=dens<10), alpha=0.6, shape=1, size=3) +
+        fill + pts +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
@@ -193,7 +182,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
 pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity", from=0, to=1, by="constant"))
 print(plot_l2d(dset, "expr", from=0, by="constant"))
-print(plot_l2d(dset, "log_days_death", by="constant"))
+print(plot_l2d(dset, "log_days_death", by="constant", pts=FALSE))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))

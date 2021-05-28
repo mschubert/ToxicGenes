@@ -27,7 +27,7 @@ ccle_tissues:
     - BRCA
     - LUAD
     - LUSC
-    - NSCLC
+#    - NSCLC
     - SCLC
     - SKCM
     - COADREAD
@@ -39,7 +39,7 @@ tcga_tissues:
     - BRCA
     - LUAD
     - LUSC
-    - NSCLC
+#    - NSCLC
     - HNSC
     - KIRC
     - SKCM
@@ -70,8 +70,9 @@ fits:
 # which fits are plotted in top hit comparisons
 fit_compare:
 #    - rlm2
-    - rlm3
-    - lm3
+#    - rlm3
+    - stan-nb
+#    - lm3
 #    - lm3r
 
 cna:
@@ -82,6 +83,6 @@ cna:
 tcga_adj:
     - naive
     - pur
-#    - puradj # only required for rlm<3
+    - puradj
 
 euploid_tol: 0.15

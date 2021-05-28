@@ -18,12 +18,11 @@ subworkflow merge_rank:
 import glob
 manual = [ x[:-5] for x in glob.glob("*.yaml") ]
 
-fits = ['rlm3', 'lm3']
-types = ['naive', 'pur']
+fit = config['fits'][0]
 sets = ['genes']
 
 yaml_src = {
-    "top" : lambda wc: merge_rank("rank_top/" + wc.tissue + "_rlm3.xlsx"),
+    "top" : lambda wc: merge_rank("rank_top/" + wc.tissue + "_" + fit + ".xlsx"),
 #    "cutoff-all" : ,
 #    "cutoff-amp" : ,
 }
@@ -40,7 +39,7 @@ rule all:
 rule make_yaml:
     input:
         rscript = "yaml_top.r",
-        infile = merge_rank("rank_top/{tissue}_rlm3.xlsx")
+        infile = merge_rank("rank_top/{tissue}_" + fit + ".xlsx")
     output:
         outfile = "{tissue}/top-genes.yaml"
     params:

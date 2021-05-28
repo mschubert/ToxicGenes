@@ -6,18 +6,16 @@ subworkflow merge:
 subworkflow genesets:
     workdir: "../data/genesets"
 
-fits = ['rlm', 'rlm2', 'rlm3', 'lm3']
-
 rule all:
     input:
 #        "rank_overview.pdf",
-        expand("rank_top/{tissue}_{fit}.xlsx", tissue=config['cor_tissues'], fit=fits),
+        expand("rank_top/{tissue}_{fit}.xlsx", tissue=config['cor_tissues'], fit=config['fits']+['lm']),
         expand("gset_{fit}/{tissue}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'], fit=['rlm3', 'lm3']),
+                tissue=config['cor_tissues'], gset=config['genesets'], fit=config['fits']),
         expand("bionet/{tissue}/{fit}.pdf",
-                tissue=config['cor_tissues'], fit=['rlm3', 'lm3']),
+                tissue=config['cor_tissues'], fit=config['fits']),
         expand("compare_genomic/{tissue}_{fit}.pdf",
-                tissue=config['cor_tissues'], fit=['rlm3', 'lm3'])
+                tissue=config['cor_tissues'], fit=config['fits'])
 
 rule rank:
     input:

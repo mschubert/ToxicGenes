@@ -134,7 +134,7 @@ dset = narray::stack(list(exons, cpg, mirna, immune), along=2)
 tcga$intersect(td$sample, dset, along=1)
 dset = cbind(td, dset, constant=1)
 
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", pts=TRUE) {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
     # https://slowkow.com/notes/ggplot2-color-by-density/
     get_density = function(x, y, ...) {
         dens = MASS::kde2d(x, y, ...)
@@ -148,7 +148,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", pts=TR
         na.omit() %>%
         group_by(cohort, p53_mut) %>%
             mutate(dens = get_density(cancer_copies, expr)) %>%
-            filter(dens < quantile(dens, 0.2)) %>%
+            filter(dens < quantile(dens, 0.25)) %>%
         ungroup()
 
     if (all(na.omit(dset[[variable]]) >= 0)) {
@@ -159,17 +159,13 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", pts=TR
                                 limits=c(from, to))
         ptcol = "magenta"
     }
-    if (pts) {
-        pts = geom_point(data=lowdens, color=ptcol, alpha=0.6, shape=1, size=3)
-    } else {
-        pts = list()
-    }
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
         util$stat_gam2d(aes_string(fill=variable, by=by), se_alpha=TRUE, gamma=30) +
         geom_density2d(breaks=c(0.5,0.1,0.05), color="chartreuse4", size=0.7, contour_var="ndensity") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +
-        fill + pts +
+        fill +
+        geom_point(data=lowdens, color=ptcol, alpha=0.6, shape=1, size=3) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +
@@ -182,7 +178,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", pts=TR
 pdf(args$plotfile, 24, 8)
 print(plot_l2d(dset, "purity", from=0, to=1, by="constant"))
 print(plot_l2d(dset, "expr", from=0, by="constant"))
-print(plot_l2d(dset, "log_days_death", by="constant", pts=FALSE))
+print(plot_l2d(dset, "log_days_death", by="constant"))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))

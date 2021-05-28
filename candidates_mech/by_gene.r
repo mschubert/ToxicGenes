@@ -132,7 +132,7 @@ colnames(immune) = make.names(colnames(immune))
 ### assemble dataset ###
 dset = narray::stack(list(exons, cpg, mirna, immune), along=2)
 tcga$intersect(td$sample, dset, along=1)
-dset = cbind(td, dset)
+dset = cbind(td, dset, constant=1)
 
 ### plot ###
 densVals <- function(x, y = NULL, nbin = 128, bandwidth, range.x) {
@@ -157,7 +157,7 @@ densVals <- function(x, y = NULL, nbin = 128, bandwidth, range.x) {
   res[sel] <- den
   res
 }
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
     # to draw pts below iff a certain density
     #fixme: this density should be absolute (pt crowding), not relative (eg. high value with few pts total)
     lowdens = dset %>%
@@ -175,7 +175,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
         ptcol = "magenta"
     }
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
-        util$stat_gam2d(aes_string(fill=variable, by="purity"), se_alpha=TRUE, gamma=30) +
+        util$stat_gam2d(aes_string(fill=variable, by=by), se_alpha=TRUE, gamma=30) +
         geom_density2d(bins=20, color="chartreuse4", size=0.7) +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +
@@ -191,8 +191,8 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA) {
 }
 
 pdf(args$plotfile, 24, 8)
-print(plot_l2d(dset, "purity"), from=0, to=1)
-print(plot_l2d(dset, "expr", from=0))
+print(plot_l2d(dset, "purity", from=0, to=1, by="constant"))
+print(plot_l2d(dset, "expr", from=0, by="constant"))
 
 print(plt$text(sprintf("Exon expression (%i)", nc(exons)), size=20))
 for (v in colnames(exons))

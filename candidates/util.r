@@ -258,26 +258,27 @@ stat_loess2d = function(mapping = NULL, data = NULL, geom = "tile",
 #' 2D GAM plot showing gradient on a third variable
 #'
 #' @param bins      Number of bins to partition data in x and y axis (default: 20)
+#' @param gamma     Parameter to control smoothness of the surface (higher: more smooth)
 #' @param se_alpha  Alpha of tiles corresponds to confidence (default: FALSE)
 #' @param se_size   Size of tiles corresponds to confidence (default: FALSE)
 #' @param cap_z     Only allow gradient as extreme as data (default: TRUE)
 #' @param by        Variable to condition on (prediction will be on 1)
 #' @param ...       Passed to ggplot layer
 stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
-        position = "identity", na.rm = FALSE, show.legend = NA,
+        position = "identity", na.rm = FALSE, show.legend = NA, gamma=10,
         inherit.aes = TRUE, bins = 20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE, ...) {
     gam2d = ggproto("gam2d", Stat, # also: sd/se as alpha?; pts<=density?
-        compute_group = function(data, scales, bins=20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE) {
+        compute_group = function(data, scales, gamma=10, bins=20, se_alpha=FALSE, se_size=FALSE, cap_z=TRUE) {
             rx = range(data$x, na.rm=TRUE)
             ry = range(data$y, na.rm=TRUE)
             df = expand.grid(x = seq(rx[1], rx[2], length.out=bins),
                              y = seq(ry[1], ry[2], length.out=bins))
 
             if ("by" %in% colnames(data)) {
-                lsurf = mgcv::gam(fill ~ s(x, y, by=by), data=data, gamma=10)
+                lsurf = mgcv::gam(fill ~ s(x, y, by=by), data=data, gamma=gamma)
                 df$by = 1
             } else {
-                lsurf = mgcv::gam(fill ~ s(x, y), data=data, gamma=10)
+                lsurf = mgcv::gam(fill ~ s(x, y), data=data, gamma=gamma)
             }
             pred = predict(lsurf, newdata=df, se=TRUE)
             df$fill = c(pred$fit)
@@ -306,7 +307,7 @@ stat_gam2d = function(mapping = NULL, data = NULL, geom = "tile",
     layer(
         stat = gam2d, data = data, mapping = mapping, geom = geom,
         position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-        params = list(bins = bins, se_alpha=se_alpha, se_size=se_size, cap_z=cap_z,
+        params = list(bins = bins, gamma=gamma, se_alpha=se_alpha, se_size=se_size, cap_z=cap_z,
                       na.rm = na.rm, ...)
     )
 }

@@ -184,8 +184,9 @@ load_tcga = function(cohort, top, et=0.15) {
     td = reshape2::melt(tcga_expr, value.name="expr") %>%
         mutate(cohort = tcga$barcode2study(sample)) %>%
         inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
-        inner_join(tcga$purity() %>% transmute(sample=Sample, purity=estimate)) %>%
-        mutate(cancer_copies = (copies - 2) / purity + 2) %>%
+        inner_join(tcga$purity() %>% transmute(sample=Sample, purity=consensus)) %>%
+        mutate(expr = expr / purity,
+               cancer_copies = (copies - 2) / purity + 2) %>%
         group_by(gene) %>%
 #            filter(expr > quantile(expr, 0.01) & expr < quantile(expr, 0.99)) %>%
             mutate(expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),

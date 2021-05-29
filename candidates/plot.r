@@ -113,7 +113,7 @@ for (i in seq_along(genes)) {
     td = util$load_tcga(args$tissue, top, et=et)
     fracs = util$frac_labels(td, cancer_copies, et=et)
     tcga_assocs = assocs %>%
-        filter(name %in% top, dset=="tcga", fit==tcga_ccle_fit, adj=="pur") %>% #TODO: why pur?
+        filter(name %in% top, dset=="tcga", fit==tcga_ccle_fit, adj=="pur") %>%
         mutate(name = factor(name, levels=top))
     abl = util$comp_summary(tcga_assocs)
     stats = util$comp_stats(td, cancer_copies, tcga_assocs, fracs)

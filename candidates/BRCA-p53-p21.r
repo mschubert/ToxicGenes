@@ -7,10 +7,9 @@ tcga = import('data/tcga')
 idmap = import('process/idmap')
 util = import('./util')
 
-cpg = tcga$meth_summary("BRCA", "external_gene_name") %>%
-    lapply(function(x) x[rownames(x) != "",]) %>% narray::stack()
+cpg = tcga$meth_summary("BRCA", "external_gene_name") %>% narray::stack()
 cpg = as.data.frame(cpg["CDKN1A",,]) %>% tibble::rownames_to_column("sample") %>%
-    as_tibble() %>%select(sample, meth=gene)
+    as_tibble() %>% select(-core) %>% dplyr::rename(whole_gene = gene)
 
 p53_targets = c("CDKN1A", "GADD45A", "FAS", "BAX", "CDKN2A", "TP53",
                 "PERP", "CCNG1", "SESN1", "APAF1", "MDM2", "SERPINB5", "PIDD1", "ZMAT3")
@@ -88,9 +87,8 @@ ggplot(td, aes(x=cancer_copies, y=prog_p53)) +
     facet_grid(PAM50 ~ p53_mut) +
     ggtitle("p53 signature activity (progeny method)")
 
-td2 = cbind(td, cpg)
-for (cp in colnames(cpg)) {
-    p = ggplot(td2, aes_string(x="cancer_copies", y=cp)) +
+for (cp in c("ext", "whole_gene", "body")) {
+    p = ggplot(td, aes_string(x="cancer_copies", y=cp)) +
         geom_point(aes(alpha=purity), size=2) +
         geom_smooth(method="lm", se=FALSE, color="blue") +
         facet_grid(PAM50 ~ p53_mut) +

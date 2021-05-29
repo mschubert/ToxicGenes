@@ -79,47 +79,8 @@ mirna = tryCatch(error = muffle,
         tcga$map_id("specimen") %>% t())
 
 ### cpg methylation ###
-load_cpg = function(cohort, gene) {
-    cpgs = tcga$meth_cpg(cohort, annot=TRUE)
-    idx = cpgs@rowRanges %>%
-        filter(Gene_Symbol == gene)
-    mat = SummarizedExperiment::assay(cpgs)[names(idx),]
-}
-cpg = tryCatch(error = muffle, { # in case no meth data
-    re = lapply(cohorts, load_cpg, gene=args$gene) %>%
-        narray::stack(along=2) %>%
-        tcga$filter(primary=TRUE, cancer=TRUE) %>%
-        tcga$map_id("specimen") %>% t()
-    re = narray::map(re, along=1, subsets=tcga$barcode2study(rownames(re)),
-    function(x) if (!all(is.na(x)) && sd(x, na.rm=TRUE)>0.05) x
-        else rep(NA, length(x)))
-    re = re[,narray::map(re, along=1, function(x) !all(is.na(x)))]
-})
-
-promoter_wanding = tcga$cpg_gene() %>%
-    mutate(cg = names(.)) %>%
-    select(cg)
-transcript_annots = seq$gene_table() %>%
-    filter(external_gene_name == args$gene) %>%
-    mutate(chromosome_name = paste0("chr", chromosome_name),
-           strand = setNames(c("+","-"),c(1,-1))[as.character(strand)]) %>%
-    GenomicRanges::makeGRangesFromDataFrame()
-cgs = list(
-    core = transcript_annots %>% anchor_5p() %>% mutate(width=400) %>% shift_upstream(200) %>%
-        join_overlap_intersect(promoter_wanding),
-    ext = transcript_annots %>% anchor_5p() %>% mutate(width=3000) %>% shift_upstream(1500) %>%
-        join_overlap_intersect(promoter_wanding),
-    body = transcript_annots %>% filter(width > 1500) %>% anchor_3p() %>% stretch(-1500) %>%
-        join_overlap_intersect(promoter_wanding)
-)
-summarize_cgs = function(gr_ids) {
-    cg = intersect(colnames(cpg), gr_ids$cg)
-    if (length(cg) > 0)
-        narray::map(cpg[,cg,drop=FALSE], along=2, function(x) mean(x, na.rm=TRUE))
-}
-cgs2 = lapply(cgs, summarize_cgs) %>% do.call(cbind, .)
-if (!is.null(cgs2) && ncol(cgs2) > 0)
-    cpg = cbind(cgs2, cpg)
+cpg = tcga$meth_summary(cohorts, "external_gene_name")[args$gene,,]
+cpg = cpg[,colSums(!is.na(cpg)) >= 50]
 
 ### cell types ###
 immune_df = tcga$immune() %>%

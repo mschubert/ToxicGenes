@@ -6,6 +6,8 @@ candidates/*/*.yaml
 *.bai
 **/seqdata
 data/genome/*
+*.gtf
+*.fa
 
 ### general
 *.xls

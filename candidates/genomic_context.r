@@ -74,6 +74,8 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
                      fras %>% select(x, y, label)) %>% na.omit()
 
     cols = c(gain="tomato", amp="firebrick", loss="lightblue", del="blue")
+    cna_range = diff(range(dset$num))
+    comp_mult = cna_range / 2
     p0 = ggplot(dset, aes(x=start)) +
 #        geom_rect(data=fras, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="grey35", alpha=0.1) +
 #        geom_rect(data=cracs, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf, fill="gold", alpha=0.1) +
@@ -81,13 +83,15 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
         geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5) +
-        geom_density(data=genes, aes(y=..scaled..*500 + 50), alpha=0.1, fill="#ffffff00", bw=2e5, size=0.4) +
-        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean*20),
+        geom_density(data=genes, aes(y=..scaled..*(cna_range/5) + (cna_range/50)),
+                     alpha=0.1, fill="#ffffff00", bw=1.5e5, size=0.4) +
+        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean*comp_mult),
                   color="#7cae00", size=0.2) +
-        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean*20),
+        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean*comp_mult),
                   color="#c77cff", size=0.2) +
         scale_fill_manual(values=cols, guide=FALSE) +
         scale_color_manual(values=cols, guide=FALSE) +
+        scale_y_continuous(name="# samples", sec.axis = sec_axis(~./comp_mult, name="compensation")) +
         theme_classic() +
         theme(axis.title.x = element_blank())
 
@@ -127,11 +131,9 @@ if (args$cohort == "pan") {
 }
 
 tcga_comp = readxl::read_xlsx(args$comp_tcga) %>% #, "amp") %>%
-    transmute(external_gene_name = gene,
-              comp_tcga = estimate * 50)
+    transmute(external_gene_name = gene, comp_tcga = estimate)
 ccle_comp = readxl::read_xlsx(args$comp_ccle) %>%
-    transmute(external_gene_name = gene,
-              comp_ccle = estimate * 50)
+    transmute(external_gene_name = gene, comp_ccle = estimate)
 fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 seqlevelsStyle(fra) = "Ensembl"

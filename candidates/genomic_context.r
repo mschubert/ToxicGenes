@@ -133,9 +133,9 @@ if (args$cohort == "pan") {
 }
 
 tcga_comp = readxl::read_xlsx(args$comp_tcga) %>% #, "amp") %>%
-    transmute(external_gene_name = gene, comp_tcga = estimate)
+    transmute(external_gene_name = gene, comp_tcga = pmax(pmin(estimate, 3), -3))
 ccle_comp = readxl::read_xlsx(args$comp_ccle) %>%
-    transmute(external_gene_name = gene, comp_ccle = estimate)
+    transmute(external_gene_name = gene, comp_ccle = pmax(pmin(estimate, 3), -3))
 fra = readr::read_tsv("../data/fragile_sites/fra.txt") %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 seqlevelsStyle(fra) = "Ensembl"

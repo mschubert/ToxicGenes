@@ -4,15 +4,11 @@ sys = import('sys')
 plt = import('plot')
 tcga = import('data/tcga')
 
-#TODO: covar per cohort:purity + island_id?
 fit_beta = function(df) {
-    df$meth = pmin(df$meth, 1 - 1e-3)
-    df$meth = pmax(df$meth, 1e-3)
-
     if (length(unique(df$cohort)) == 1)
         fml = meth ~ purity + avg_meth_sample + copies
     else
-        fml = meth ~ cohort + purity + avg_meth_sample + copies
+        fml = meth ~ cohort:purity + avg_meth_sample + copies
 
     tryCatch({
             betareg(fml, data=df) %>%
@@ -28,8 +24,8 @@ args = sys$cmd$parse(
     opt('e', 'euploid_tol', 'numeric copy dev from euploid', '0.15'),
     opt('c', 'cores', 'parallel cores', '5'),
     opt('m', 'memory', 'mem per core', '1024'),
-    opt('o', 'outfile', 'rds', 'pan/betareg.rds'),
-    opt('p', 'plotfile', 'pdf', 'pan/betareg.pdf')
+    opt('o', 'outfile', 'rds', 'pan/gene.xlsx'),
+    opt('p', 'plotfile', 'pdf', 'pan/gene.pdf')
 )
 
 cfg = yaml::read_yaml(args$config)
@@ -44,15 +40,17 @@ if (args$tissue == "pan") {
 
 copies = lapply(args$tissue, tcga$cna_genes, gene="external_gene_name") %>%
     narray::stack(along=2)
-meth = tcga$meth(args$tissue, cpg="avg")
+meth = tcga$meth_summary(args$tissue, gene="external_gene_name")[,,"ext"] %>% na.omit()
 names(dimnames(copies)) = names(dimnames(meth)) = c("gene", "sample")
 avg_meth_sample = tibble(sample = colnames(meth),
                          cohort = tcga$barcode2study(colnames(meth)),
                          avg_meth_sample = colMeans(meth, na.rm=TRUE))
-purity = tcga$purity() %>% select(sample=Sample, cohort, purity=estimate) %>% na.omit()
+purity = tcga$purity() %>% select(sample=Sample, cohort, purity=consensus) %>% na.omit()
+aneup = lapply(args$tissue, tcga$aneuploidy) %>% bind_rows() %>% select(sample=Sample, aneup=aneuploidy)
 
 cdf = purity %>%
     inner_join(avg_meth_sample) %>%
+    left_join(aneup) %>%
     left_join(reshape2::melt(copies, value.name="copies") %>% filter(copies > 2-et)) %>%
     left_join(reshape2::melt(meth, value.name="meth")) %>%
     na.omit() %>%

@@ -173,7 +173,8 @@ load_tcga = function(cohort, top, et=0.15) {
 
     surv = tcga$clinical() %>%
         transmute(sample = paste0(submitter_id, "-01A"),
-                  log_days_death = log2(days_to_death + 1))
+                  os_status = factor(vital_status, levels=c("alive", "dead")),
+                  os_days = pmax(days_to_last_follow_up, days_to_death, na.rm=TRUE))
 
     scale_ref = function(x, ref) {
         medref = median(x[ref], na.rm=TRUE)

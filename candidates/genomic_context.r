@@ -82,7 +82,9 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
-        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5) +
+        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5, color="black") +
+        geom_segment(data=genes %>% filter(external_gene_name == gene), aes(xend=end),
+                     y=0, yend=0, size=2, alpha=1, color="deeppink") +
         geom_density(data=genes, aes(y=..scaled..*(cna_range/5) + (cna_range/50)),
                      alpha=0.1, fill="#ffffff00", bw=1.5e5, size=0.4) +
         geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean*comp_mult),

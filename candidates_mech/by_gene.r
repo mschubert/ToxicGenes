@@ -111,11 +111,11 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
         dens$z[ii]
     }
     lowdens = dset %>%
-        select(sample, cohort, p53_mut, cancer_copies, expr) %>%
-        na.omit() %>%
+        select(sample, cohort, mut, p53_mut, cancer_copies, expr) %>%
+        filter(!is.na(cancer_copies) & !is.na(expr)) %>%
         group_by(cohort, p53_mut) %>%
             mutate(dens = get_density(cancer_copies, expr)) %>%
-            filter(dens < quantile(dens, 0.25)) %>%
+            filter(dens < quantile(dens, 0.25) | !is.na(mut)) %>%
         ungroup()
 
     if (all(na.omit(dset[[variable]]) >= 0)) {
@@ -130,7 +130,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +
         fill +
-        geom_point(data=lowdens, color="magenta", alpha=0.6, shape=1, size=3) +
+        geom_point(data=lowdens, aes(shape=mut), color="magenta", alpha=0.6, size=3) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(td$mut))[-1]),
                            labels=levels(td$mut)) +

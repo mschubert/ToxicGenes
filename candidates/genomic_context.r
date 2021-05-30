@@ -31,9 +31,7 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
                   amp = n_distinct(Sample[ploidy>3-et]),
                   loss = -n_distinct(Sample[ploidy<2-et & ploidy>1+et]),
                   del = -n_distinct(Sample[ploidy<1+et])) %>%
-        as.data.frame() %>%
-        as_tibble() %>%
-        mutate(gain = 100*gain/eup, amp=100*amp/eup, loss=100*loss/eup, del=100*del/eup) %>%
+        as.data.frame() %>% as_tibble() %>%
         select(-eup) %>%
         tidyr::gather("type", "num", -start, -end)
 
@@ -82,24 +80,26 @@ plot_gene_track = function(gene="CDKN1A", et=0.15, len=1e8, bins=1000, hl=len/10
         geom_vline(xintercept=c(center_pos-hl/2, center_pos+hl/2), linetype="dotted") +
         geom_ribbon(aes(ymax=num, group=type, fill=type), ymin=0, alpha=0.2) +
         geom_line(aes(y=num, color=type)) +
+        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5) +
+        geom_density(data=genes, aes(y=..scaled..*500 + 50), alpha=0.1, fill="#ffffff00", bw=2e5, size=0.4) +
+        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean*20),
+                  color="#7cae00", size=0.2) +
+        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean*20),
+                  color="#c77cff", size=0.2) +
         scale_fill_manual(values=cols, guide=FALSE) +
         scale_color_manual(values=cols, guide=FALSE) +
         theme_classic() +
-        geom_segment(data=genes, aes(xend=end), y=0, yend=0, size=2, alpha=0.5) +
         theme(axis.title.x = element_blank())
 
     p1 = p0 +
-        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean), color="#7cae00", size=0.2) +
-        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean), color="#c77cff", size=0.2) +
 #        ggrepel::geom_text_repel(data=labs, aes(x=x, y=y, label=label), size=2, hjust=0.5) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=driver), min.segment.length=0,
             label.size=NA, fill="#ffffff80", segment.color="white") +
+        coord_cartesian(expand=FALSE) +
         ggtitle(sprintf("%s chr%i:%.0f-%.0f Mb", gene, pos$seqnames, min(dset$start)/1e6, max(dset$end)/1e6))
 
     p2 = p0 +
-        geom_line(data=comp %>% filter(type=="comp_tcga_rmean"), aes(x=midpoint, y=rmean), color="#7cae00", size=0.2) +
-        geom_line(data=comp %>% filter(type=="comp_ccle_rmean"), aes(x=midpoint, y=rmean), color="#c77cff", size=0.2) +
         coord_cartesian(xlim=c(center_pos-hl/2, center_pos+hl/2)) +
         ggrepel::geom_label_repel(data=genes, size=2, max.iter=1e5, segment.alpha=0.5,
             aes(x=0.5*(start+end), y=0, label=external_gene_name),

@@ -79,8 +79,14 @@ mirna = tryCatch(error = muffle,
         tcga$map_id("specimen") %>% t())
 
 ### cpg methylation ###
-cpg = tcga$meth_summary(cohorts, "external_gene_name")[args$gene,,]
-cpg = cpg[,colSums(!is.na(cpg)) >= 50]
+cg1 = tcga$meth_summary(cohorts, "external_gene_name")[args$gene,,]
+cg1 = cg1[,colSums(!is.na(cg1)) >= 50]
+map = tcga$meth_mapping("external_gene_name")$pgene %>% filter(external_gene_name == args$gene)
+cg2 = lapply(cohorts, function(c) {
+    m = tcga$meth_cpg(c)
+    m = m[intersect(rownames(m),map$probe_id),,drop=FALSE]
+}) %>% narray::stack(along=2) %>% t()
+cpg = narray::stack(cg1, cg2, along=2)
 
 ### cell types ###
 immune_df = tcga$immune() %>%
@@ -152,7 +158,7 @@ if (sum(!is.na(dset$meth_eup_scaled)) > 0)
     print(plot_l2d(dset, "meth_eup_scaled"))
 
 for (v in colnames(cpg))
-    print(plot_l2d(dset, v, from=0, to=1))
+    print(plot_l2d(dset, v))
 
 print(plt$text(sprintf("Immune subtypes (%i)", nc(immune)), size=20))
 for (v in colnames(immune))

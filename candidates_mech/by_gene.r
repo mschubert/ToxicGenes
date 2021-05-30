@@ -26,7 +26,7 @@ cohorts = c(setdiff(cfg$cor_tissues, c("pan", "NSCLC", "COADREAD")), "LUSC", "HN
 # p53: some drop issues, should fix
 td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
     bind_rows() %>%
-    filter(cohort %in% cohorts, gene == args$gene) %>%
+    filter(gene == args$gene) %>%
     mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", "p53_mut")) %>%
     group_by(cohort, gene) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
@@ -79,14 +79,16 @@ mirna = tryCatch(error = muffle,
         tcga$map_id("specimen") %>% t())
 
 ### cpg methylation ###
-cg1 = tcga$meth_summary(cohorts, "external_gene_name")[args$gene,,]
-cg1 = cg1[,colSums(!is.na(cg1)) >= 50]
-map = tcga$meth_mapping("external_gene_name")$pgene %>% filter(external_gene_name == args$gene)
-cg2 = lapply(cohorts, function(c) {
-    m = tcga$meth_cpg(c)
-    m = m[intersect(rownames(m),map$probe_id),,drop=FALSE]
-}) %>% narray::stack(along=2) %>% t()
-cpg = narray::stack(cg1, cg2, along=2)
+cpg = tryCatch(error = muffle, {
+    cg1 = tcga$meth_summary(cohorts, "external_gene_name")[args$gene,,]
+    cg1 = cg1[,colSums(!is.na(cg1)) >= 50]
+    map = tcga$meth_mapping("external_gene_name")$pgene %>% filter(external_gene_name == args$gene)
+    cg2 = lapply(cohorts, function(c) {
+        m = tcga$meth_cpg(c)
+        m[intersect(rownames(m),map$probe_id),,drop=FALSE]
+    }) %>% narray::stack(along=2) %>% t()
+    narray::stack(cg1, cg2, along=2)
+})
 
 ### cell types ###
 immune_df = tcga$immune() %>%

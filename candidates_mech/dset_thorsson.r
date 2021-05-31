@@ -9,8 +9,9 @@ util2 = import('./util')
 load_thorsson = function() {
     immune_df = tcga$immune() %>%
         filter(cohort %in% cohorts) %>%
-        select(-cohort, -`Immune Subtype`, -`TCGA Subtype`, -OS, -`OS Time`, -PFI, -`PFI Time`)
-    immune = data.matrix(immune_df[-1])
+        select(-cohort, -OS, -`OS Time`, -PFI, -`PFI Time`) %>%
+        as.data.frame()
+    immune = immune_df[-1]
     rownames(immune) = paste0(immune_df$barcode, "-01A")
     colnames(immune) = make.names(colnames(immune))
     immune
@@ -25,14 +26,21 @@ sys$run({
 
     td = readRDS(args$infile)
     cohorts = unique(td$cohort)
-    immune = load_thorsson()
 
-    tcga$intersect(td$sample, immune, along=1)
-    dset = cbind(td, immune, constant=1)
+    immune = load_thorsson()
+    isubs = narray::mask(na.omit(setNames(immune$Immune.Subtype, rownames(immune)))) + 0
+    measures = data.matrix(immune[!colnames(immune) %in% c("Immune.Subtype", "TCGA.Subtype")])
+
+    tcga$intersect(td$sample, isubs, measures, along=1)
+    dset = cbind(td, isubs, measures, constant=1)
 
     pdf(args$plotfile, 24, 8)
-    print(plt$text(sprintf("Immune subtypes (%i)", util2$nc(immune)), size=20))
-    for (v in colnames(immune))
+    print(plt$text(sprintf("Immune measures (%i)", util2$nc(measures)), size=20))
+    for (v in colnames(measures))
         print(util2$plot_l2d(dset, v))
     dev.off()
+
+    print(plt$text(sprintf("Immune subtypes (%i)", util2$nc(isubs)), size=20))
+    for (v in colnames(isubs))
+        print(util2$plot_l2d(dset, v))
 })

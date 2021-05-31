@@ -8,9 +8,10 @@ muffle = function(e) { warning(e, immediate.=TRUE); NULL }
 #' Get number of cases in matrix
 nc = function(mat) { re = ncol(mat); if (is.null(re)) 0 else re }
 
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=30, RdBu=NULL) {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=30, RdBu=NULL, facet=c("p53_mut", "cohort")) {
+    fs = rlang::syms(facet)
     dset = dset %>%
-        group_by(cohort, p53_mut) %>%
+        group_by(!!!fs) %>%
             filter(n() >= min_n) %>%
         ungroup()
 
@@ -23,9 +24,9 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=
         dens$z[ii]
     }
     lowdens = dset %>%
-        select(sample, cohort, mut, p53_mut, cancer_copies, expr) %>%
+        select(sample, !!!fs, mut, cancer_copies, expr) %>%
         filter(!is.na(cancer_copies) & !is.na(expr)) %>%
-        group_by(cohort, p53_mut) %>%
+        group_by(!!!fs) %>%
             mutate(dens = get_density(cancer_copies, expr)) %>%
             filter(dens < quantile(dens, 0.25) | !is.na(mut)) %>%
         ungroup()
@@ -40,7 +41,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=
         util$stat_gam2d(aes_string(fill=variable, by=by), se_size=TRUE) +
         geom_density2d(breaks=c(0.5,0.15,0.05), color="chartreuse4", size=0.7, contour_var="ndensity") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
-        facet_grid(p53_mut ~ cohort, scales="free") +
+        facet_grid(facet, scales="free") +
         fill +
         geom_point(data=lowdens, aes(shape=mut), color="magenta", alpha=0.6, size=3) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,

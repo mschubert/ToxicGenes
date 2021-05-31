@@ -30,11 +30,21 @@ sys$run({
     immune = load_thorsson()
     isubs = narray::mask(na.omit(setNames(immune$Immune.Subtype, rownames(immune)))) + 0
     measures = data.matrix(immune[!colnames(immune) %in% c("Immune.Subtype", "TCGA.Subtype")])
+    td = td %>% left_join(data.frame(sample=rownames(immune), TCGA.Subtype=immune$TCGA.Subtype))
 
     tcga$intersect(td$sample, isubs, measures, along=1)
     dset = cbind(td, isubs, measures, constant=1)
+    tsubs = split(dset, dset$cohort)
 
     pdf(args$plotfile, 24, 8)
+    print(plt$text(sprintf("TCGA subtypes (%i)", length(tsubs), size=20)))
+    for (cur in tsubs) {
+        all = lapply(unique(cur$TCGA.Subtype),
+                     function(x) cur %>% mutate(is_subtype=(TCGA.Subtype == x) + 0)) %>%
+            bind_rows(.id="subtype")
+        print(util2$plot_l2d(all, "is_subtype", facet=c("constant", "TCGA.Subtype")))
+    }
+
     print(plt$text(sprintf("Immune measures (%i)", util2$nc(measures)), size=20))
     for (v in colnames(measures))
         print(util2$plot_l2d(dset, v))

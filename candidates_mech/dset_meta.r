@@ -31,9 +31,16 @@ sys$run({
     td = readRDS(args$infile)
     cohorts = unique(td$cohort)
 
-    aneup = lapply(cohorts, tcga$aneuploidy) %>%
+    aneup1 = lapply(cohorts, tcga$aneuploidy) %>%
         bind_rows() %>%
-        select(sample=Sample, aneuploidy)
+        select(Sample, aneuploidy)
+    aneup2 = tcga$cna_absolute(cohorts) %>%
+        mutate(cohort = tcga$barcode2study(Sample)) %>%
+        group_by(cohort, Sample) %>%
+            summarize(abs_ploidy = weighted.mean(Modal_HSCN_1 + Modal_HSCN_2, Length),
+                      abs_aneup = weighted.mean(abs(Modal_HSCN_1 + Modal_HSCN_2 - 2), Length)) %>%
+        ungroup()
+    aneup = full_join(aneup1, aneup2) %>% dplyr::rename(sample=Sample)
 
     dset = td %>%
         mutate(constant = 1) %>%
@@ -49,5 +56,7 @@ sys$run({
     print(util2$plot_l2d(dset, "death50_k5", by="constant"))
     print(util2$plot_l2d(dset, "death50_k20", by="constant"))
     print(util2$plot_l2d(dset, "aneuploidy", by="purity", RdBu=TRUE))
+    print(util2$plot_l2d(dset, "abs_ploidy", by="purity", RdBu=TRUE))
+    print(util2$plot_l2d(dset, "abs_aneup", by="purity", RdBu=TRUE))
     dev.off()
 })

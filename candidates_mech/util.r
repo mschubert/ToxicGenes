@@ -8,7 +8,7 @@ muffle = function(e) { warning(e, immediate.=TRUE); NULL }
 #' Get number of cases in matrix
 nc = function(mat) { re = ncol(mat); if (is.null(re)) 0 else re }
 
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=30) {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=30, RdBu=NULL) {
     dset = dset %>%
         group_by(cohort, p53_mut) %>%
             filter(n() >= min_n) %>%
@@ -30,7 +30,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=
             filter(dens < quantile(dens, 0.25) | !is.na(mut)) %>%
         ungroup()
 
-    if (all(na.omit(dset[[variable]]) >= 0)) {
+    if (all(na.omit(dset[[variable]]) >= 0) && (!is.null(RdBu) && !RdBu)) {
         fill = scale_fill_viridis_c(option="magma", direction=-1, limits=c(from, to))
     } else {
         fill = scale_fill_gradientn(colours=rev(RColorBrewer::brewer.pal(11,"RdBu")),

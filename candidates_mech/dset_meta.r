@@ -28,17 +28,26 @@ sys$run({
         opt('p', 'plotfile', 'pdf', 'CDKN1A/meta.pdf')
     )
 
-    dset = readRDS(args$infile) %>%
+    td = readRDS(args$infile)
+    cohorts = unique(td$cohort)
+
+    aneup = lapply(cohorts, tcga$aneuploidy) %>%
+        bind_rows() %>%
+        select(sample=Sample, aneuploidy)
+
+    dset = td %>%
         mutate(constant = 1) %>%
         group_by(cohort, p53_mut) %>%
             mutate(death50_k5 = surv_knn(expr, cancer_copies, os_status, os_days, k=5),
                    death50_k20 = surv_knn(expr, cancer_copies, os_status, os_days, k=20)) %>%
-        ungroup()
+        ungroup() %>%
+        left_join(aneup)
 
     pdf(args$plotfile, 24, 8)
     print(util2$plot_l2d(dset, "purity", from=0, to=1, by="constant"))
     print(util2$plot_l2d(dset, "expr", from=0, by="constant"))
     print(util2$plot_l2d(dset, "death50_k5", by="constant"))
     print(util2$plot_l2d(dset, "death50_k20", by="constant"))
+    print(util2$plot_l2d(dset, "aneuploidy", by="purity", RdBu=TRUE))
     dev.off()
 })

@@ -12,9 +12,10 @@ subworkflow tcga:
 import glob
 manual = [ x[:-5] for x in glob.glob("../candidates/*.yaml") ]
 
+# H3F3C: excluded because pseudogene in new run
 bygene = [ "CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", "HNRNPL", # all 3
            "DAZAP1", "BANP", "PKNOX1", "PTBP1", "SFPQ", "ATXN1",
-           "DHX9", "FUBP1", "FUS", "GTF2H2C", "H3F3C", # cutoff
+           "DHX9", "FUBP1", "FUS", "GTF2H2C", #"H3F3C", # cutoff
            "HNRNPM", "HSP90AB2P", "ITGA10", "KHDRBS1", "LRRC37A2", "MNT",
            "NSF", "PA2G4P4", "PPP1R10", "PRDM10", "RPL23AP7", "FAM86FP",
            "RPS9", "RREB1", "SAFB", "TRA2B", "SELP", "CHD4", "RPL23P8",

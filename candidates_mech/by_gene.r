@@ -23,10 +23,8 @@ args = sys$cmd$parse(
 cfg = yaml::read_yaml(args$config)
 cohorts = c(setdiff(cfg$cor_tissues, c("pan", "NSCLC", "COADREAD")), "LUSC", "HNSC", "COAD")
 
-# p53: some drop issues, should fix
-td = lapply(cohorts, util$load_tcga, top=c("TP53", args$gene)) %>%
+td = lapply(cohorts, util$load_tcga, top=args$gene) %>%
     bind_rows() %>%
-    filter(gene == args$gene) %>%
     mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", "p53_mut")) %>%
     group_by(cohort, gene) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
@@ -127,7 +125,7 @@ plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
                                 limits=c(from, to))
     }
     ggplot(dset, aes(x=cancer_copies, y=expr)) +
-        util$stat_gam2d(aes_string(fill=variable, by=by), se_alpha=TRUE) +
+        util$stat_gam2d(aes_string(fill=variable, by=by), se_size=TRUE) +
         geom_density2d(breaks=c(0.5,0.15,0.05), color="chartreuse4", size=0.7, contour_var="ndensity") +
         geom_vline(xintercept=c(2-et,2+et), color="springgreen4", linetype="dotted", size=1.5) +
         facet_grid(p53_mut ~ cohort, scales="free") +

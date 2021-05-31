@@ -11,6 +11,7 @@ subworkflow tcga:
 
 import glob
 manual = [ x[:-5] for x in glob.glob("../candidates/*.yaml") ]
+dsets = [ x.replace("dset_", "").replace(".r", "") for x in glob.glob("dset_*.r") ]
 
 # H3F3C: excluded because pseudogene in new run
 bygene = [ "CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", "HNRNPL", # all 3
@@ -24,18 +25,31 @@ bygene = [ "CDKN1A", "SNRPA", "RBM12", "RBM14", "SNRPA", "HES1", "HNRNPL", # all
 
 rule all:
     input:
-        expand("{gene}.pdf", gene=bygene)
+        expand("{gene}/{dset}.pdf", gene=bygene, dset=dsets)
 
 rule by_gene:
     input:
         rscript = "by_gene.r"
     output:
-        plotfile = "{gene}.pdf"
+        outfile = "by_gene/{gene}.rds"
     resources:
-        mem = 40960,
-        walltime = 60
+        mem = 10240
     shell:
         "Rscript {input.rscript}"
             " --config ../config.yaml"
             " --gene {wildcards.gene}"
+            " --outfile {output.outfile}"
+
+rule dset:
+    input:
+        rscript = "dset_{dset}.r",
+        infile = "by_gene/{gene}.rds"
+    output:
+        plotfile = "{gene}/{dset}.pdf"
+    resources:
+        mem = 15360
+    shell:
+        "Rscript {input.rscript}"
+            " --gene {wildcards.gene}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"

@@ -8,7 +8,12 @@ muffle = function(e) { warning(e, immediate.=TRUE); NULL }
 #' Get number of cases in matrix
 nc = function(mat) { re = ncol(mat); if (is.null(re)) 0 else re }
 
-plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity") {
+plot_l2d = function(dset, variable, et=0.15, from=NA, to=NA, by="purity", min_n=30) {
+    dset = dset %>%
+        group_by(cohort, p53_mut) %>%
+            filter(n() >= min_n) %>%
+        ungroup()
+
     # https://slowkow.com/notes/ggplot2-color-by-density/
     get_density = function(x, y, ...) {
         dens = MASS::kde2d(x, y, ...)

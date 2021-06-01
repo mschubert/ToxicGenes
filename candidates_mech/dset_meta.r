@@ -39,8 +39,7 @@ sys$run({
         group_by(cohort, Sample) %>%
             summarize(abs_ploidy = weighted.mean(Modal_HSCN_1 + Modal_HSCN_2, Length),
                       abs_aneup = weighted.mean(abs(Modal_HSCN_1 + Modal_HSCN_2 - 2), Length)) %>%
-        ungroup() %>%
-        mutate(abs_ploidy = pmin(abs_ploidy, 4), abs_aneup = pmin(abs_aneup, 2))
+        ungroup()
     aneup = full_join(aneup1, aneup2) %>% dplyr::rename(sample=Sample)
 
     dset = td %>%
@@ -52,12 +51,12 @@ sys$run({
         left_join(aneup)
 
     pdf(args$plotfile, 24, 12)
-    print(util2$plot_l2d(dset, "purity", from=0, to=1, by="constant"))
+    print(util2$plot_l2d(dset, "purity", from=0.5, to=1, by="constant"))
     print(util2$plot_l2d(dset, "expr", from=0, by="constant"))
     print(util2$plot_l2d(dset, "death50_k5", by="constant"))
     print(util2$plot_l2d(dset, "death50_k20", by="constant"))
     print(util2$plot_l2d(dset, "aneuploidy", by="purity", RdBu=TRUE))
-    print(util2$plot_l2d(dset, "abs_ploidy", by="purity", RdBu=TRUE))
-    print(util2$plot_l2d(dset, "abs_aneup", by="purity", RdBu=TRUE))
+    print(util2$plot_l2d(dset, "abs_ploidy", to=4, by="purity", RdBu=TRUE))
+    print(util2$plot_l2d(dset, "abs_aneup", to=2, by="purity", RdBu=TRUE))
     dev.off()
 })

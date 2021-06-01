@@ -42,7 +42,7 @@ sys$run({
     tcga$intersect(td$sample, mirna, along=1)
     dset = cbind(td, mirna, constant=1)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(plt$text(sprintf("miRNA expression (%i)", util2$nc(mirna)), size=20))
     for (v in colnames(mirna))
         print(util2$plot_l2d(dset, v, from=0))

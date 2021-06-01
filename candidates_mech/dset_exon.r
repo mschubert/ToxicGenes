@@ -39,7 +39,7 @@ sys$run({
     tcga$intersect(td$sample, exons, along=1)
     dset = cbind(td, exons, constant=1)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(plt$text(sprintf("Exon expression (%i)", util2$nc(exons)), size=20))
     for (v in colnames(exons))
         print(util2$plot_l2d(dset, v, from=0))

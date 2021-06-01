@@ -36,7 +36,7 @@ sys$run({
     dset = cbind(td, isubs, measures, constant=1)
     tsubs = split(dset, dset$cohort)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(plt$text(sprintf("TCGA subtypes (%i)", length(tsubs), size=20)))
     for (cur in tsubs) {
         all = lapply(unique(cur$TCGA.Subtype),

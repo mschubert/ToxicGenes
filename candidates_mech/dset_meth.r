@@ -31,7 +31,7 @@ sys$run({
     tcga$intersect(td$sample, cpg, along=1)
     dset = cbind(td, cpg, constant=1)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(plt$text(sprintf("Methylation (%i CpG)", util2$nc(cpg)), size=20))
     if (sum(!is.na(dset$meth_eup_scaled)) > 0)
         print(util2$plot_l2d(dset, "meth_eup_scaled"))

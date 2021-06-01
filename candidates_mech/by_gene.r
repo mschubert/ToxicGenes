@@ -18,4 +18,8 @@ td = lapply(cohorts, util$load_tcga, top=args$gene) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
 
-saveRDS(td, file=args$outfile)
+td2 = td %>%
+    mutate(p53_mut = "all") %>%
+    bind_rows(td)
+
+saveRDS(td2, file=args$outfile)

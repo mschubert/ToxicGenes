@@ -31,7 +31,7 @@ sys$run({
     tcga$intersect(td$sample, scores, along=1)
     dset = cbind(td, scores, constant=1)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(plt$text(sprintf("MSigDB Hallmarks (%i)", util2$nc(scores)), size=20))
     for (v in colnames(scores))
         print(util2$plot_l2d(dset, v))

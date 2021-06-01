@@ -50,7 +50,7 @@ sys$run({
         ungroup() %>%
         left_join(aneup)
 
-    pdf(args$plotfile, 24, 8)
+    pdf(args$plotfile, 24, 12)
     print(util2$plot_l2d(dset, "purity", from=0, to=1, by="constant"))
     print(util2$plot_l2d(dset, "expr", from=0, by="constant"))
     print(util2$plot_l2d(dset, "death50_k5", by="constant"))

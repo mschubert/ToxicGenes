@@ -39,7 +39,8 @@ sys$run({
         group_by(cohort, Sample) %>%
             summarize(abs_ploidy = weighted.mean(Modal_HSCN_1 + Modal_HSCN_2, Length),
                       abs_aneup = weighted.mean(abs(Modal_HSCN_1 + Modal_HSCN_2 - 2), Length)) %>%
-        ungroup()
+        ungroup() %>%
+        mutate(abs_ploidy = pmin(abs_ploidy, 4), abs_aneup = pmin(abs_aneup, 2))
     aneup = full_join(aneup1, aneup2) %>% dplyr::rename(sample=Sample)
 
     dset = td %>%

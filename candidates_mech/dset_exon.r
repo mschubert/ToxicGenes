@@ -25,7 +25,7 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
 
     ### exon expression ###
     exons = tryCatch(error = util2$muffle, { # in case no exon data
@@ -40,7 +40,7 @@ sys$run({
     exons = exons[td$sample,]
     dset = cbind(td, exons, constant=1)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("Exon expression (%i)", util2$nc(exons)), size=20))
     for (v in colnames(exons))
         print(util2$plot_l2d(dset, v, from=0))

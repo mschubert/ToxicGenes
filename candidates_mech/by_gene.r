@@ -18,8 +18,19 @@ td = lapply(cohorts, util$load_tcga, top=args$gene) %>%
         mutate(expr = expr / max(expr, na.rm=TRUE)) %>%
     ungroup()
 
-td2 = td %>%
-    mutate(p53_mut = "all") %>%
-    bind_rows(td)
+brca_sub = td %>%
+    filter(cohort == "BRCA") %>%
+    mutate(cohort = case_when(
+        subtype %in% c("BRCA.LumA", "BRCA.LumB") ~ "BRCA.LumAB",
+        subtype %in% c("BRCA.Basal") ~ "BRCA.Basal",
+        TRUE ~ "other"
+    )) %>%
+    filter(cohort != "other")
 
-saveRDS(td2, file=args$outfile)
+td2 = bind_rows(td, brca_sub)
+
+td3 = td2 %>%
+    mutate(p53_mut = "all") %>%
+    bind_rows(td2)
+
+saveRDS(td3, file=args$outfile)

@@ -182,6 +182,10 @@ load_tcga = function(cohort, top, et=0.15) {
         (x - medref) / sdref
     }
 
+    subtype = tcga$immune() %>%
+        transmute(sample=paste0(barcode, "-01A"), subtype=`TCGA Subtype`) %>%
+        na.omit()
+
     td = reshape2::melt(tcga_expr, value.name="expr") %>%
         mutate(cohort = tcga$barcode2study(sample)) %>%
         inner_join(reshape2::melt(tcga_cns, value.name="copies")) %>%
@@ -200,6 +204,7 @@ load_tcga = function(cohort, top, et=0.15) {
         left_join(tcga_mut %>% filter(gene == "TP53") %>% transmute(sample=sample, p53_mut=mut)) %>%
         left_join(tcga_meth) %>%
         left_join(surv) %>%
+        left_join(subtype) %>%
         group_by(gene, cohort) %>%
             mutate(meth_eup_scaled = scale_ref(meth, abs(cancer_copies-2)<et),
                    meth_eup_scaled = pmax(pmin(meth_eup_scaled, 2), -2)) %>%

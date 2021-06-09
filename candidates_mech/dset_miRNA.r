@@ -32,7 +32,7 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
 
     mirna = tryCatch(error = util2$muffle,
         lapply(cohorts, load_mirnas, gene=args$gene) %>%
@@ -43,7 +43,7 @@ sys$run({
     mirna = mirna[td$sample,]
     dset = cbind(td, mirna, constant=1)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("miRNA expression (%i)", util2$nc(mirna)), size=20))
     for (v in colnames(mirna))
         print(util2$plot_l2d(dset, v, from=0))

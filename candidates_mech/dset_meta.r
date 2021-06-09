@@ -29,7 +29,7 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
 
     aneup1 = lapply(cohorts, tcga$aneuploidy) %>%
         bind_rows() %>%
@@ -50,7 +50,7 @@ sys$run({
         ungroup() %>%
         left_join(aneup)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(util2$plot_l2d(dset, "purity", from=0.5, to=1, by="constant"))
     print(util2$plot_l2d(dset, "expr", from=0, by="constant"))
     print(util2$plot_l2d(dset, "death50_k5", by="constant"))

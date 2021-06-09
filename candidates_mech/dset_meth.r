@@ -25,14 +25,14 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
     cpg = tryCatch(meth_for_gene(cohorts, args$gene), error=util2$muffle)
 
     td = td %>% filter(sample %in% rownames(cpg))
     cpg = cpg[td$sample,]
     dset = cbind(td, cpg, constant=1)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("Methylation (%i CpG)", util2$nc(cpg)), size=20))
     if (sum(!is.na(dset$meth_eup_scaled)) > 0)
         print(util2$plot_l2d(dset, "meth_eup_scaled"))

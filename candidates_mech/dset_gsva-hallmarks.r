@@ -21,7 +21,7 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
 
     sets = gset$get_human("MSigDB_Hallmark_2020")
     scores = lapply(cohorts, gsva_cohort, sets=sets) %>%
@@ -32,7 +32,7 @@ sys$run({
     scores = scores[td$sample,]
     dset = cbind(td, scores, constant=1)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("MSigDB Hallmarks (%i)", util2$nc(scores)), size=20))
     for (v in colnames(scores))
         print(util2$plot_l2d(dset, v))

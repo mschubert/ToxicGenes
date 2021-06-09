@@ -25,7 +25,7 @@ sys$run({
     )
 
     td = readRDS(args$infile)
-    cohorts = unique(td$cohort)
+    cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
 
     immune = load_thorsson()
     isubs = narray::mask(na.omit(setNames(immune$Immune.Subtype, rownames(immune)))) + 0
@@ -39,7 +39,7 @@ sys$run({
     dset = cbind(td, isubs, measures, constant=1)
     tsubs = split(dset, dset$cohort)
 
-    pdf(args$plotfile, 24, 12)
+    pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("TCGA subtypes (%i)", length(tsubs), size=20)))
     for (cur in tsubs) {
         all = lapply(unique(cur$TCGA.Subtype),

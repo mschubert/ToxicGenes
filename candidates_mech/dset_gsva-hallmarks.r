@@ -28,7 +28,8 @@ sys$run({
         narray::stack(along=2) %>% t()
     colnames(scores) = make.names(colnames(scores))
 
-    tcga$intersect(td$sample, scores, along=1)
+    td = td %>% filter(sample %in% rownames(scores))
+    scores = scores[td$sample,]
     dset = cbind(td, scores, constant=1)
 
     pdf(args$plotfile, 24, 12)

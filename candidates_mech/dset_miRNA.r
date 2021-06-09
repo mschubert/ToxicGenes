@@ -39,7 +39,8 @@ sys$run({
             narray::stack(along=2) %>%
             tcga$map_id("specimen") %>% t())
 
-    tcga$intersect(td$sample, mirna, along=1)
+    td = td %>% filter(sample %in% rownames(mirna))
+    mirna = mirna[td$sample,]
     dset = cbind(td, mirna, constant=1)
 
     pdf(args$plotfile, 24, 12)

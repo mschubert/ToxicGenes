@@ -36,7 +36,8 @@ sys$run({
         re
     })
 
-    tcga$intersect(td$sample, exons, along=1)
+    td = td %>% filter(sample %in% rownames(exons))
+    exons = exons[td$sample,]
     dset = cbind(td, exons, constant=1)
 
     pdf(args$plotfile, 24, 12)

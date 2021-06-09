@@ -30,9 +30,12 @@ sys$run({
     immune = load_thorsson()
     isubs = narray::mask(na.omit(setNames(immune$Immune.Subtype, rownames(immune)))) + 0
     measures = data.matrix(immune[!colnames(immune) %in% c("Immune.Subtype", "TCGA.Subtype")])
-    td = td %>% left_join(data.frame(sample=rownames(immune), TCGA.Subtype=immune$TCGA.Subtype))
+    td = td %>%
+        inner_join(data.frame(sample=rownames(immune), TCGA.Subtype=immune$TCGA.Subtype)) %>%
+        filter(sample %in% rownames(isubs), sample %in% rownames(measures))
 
-    tcga$intersect(td$sample, isubs, measures, along=1)
+    isubs = isubs[td$sample,]
+    measures = measures[td$sample,]
     dset = cbind(td, isubs, measures, constant=1)
     tsubs = split(dset, dset$cohort)
 

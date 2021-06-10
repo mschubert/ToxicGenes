@@ -40,4 +40,4 @@ genes:
     - NCBP2
 methods:
     - lm
-    - rlm3
+    - stan-nb

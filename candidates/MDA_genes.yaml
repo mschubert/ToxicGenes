@@ -18,4 +18,4 @@ genes:
     - XPO5
 methods:
     - lm
-    - rlm3
+    - stan-nb

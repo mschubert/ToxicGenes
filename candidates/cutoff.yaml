@@ -49,4 +49,4 @@ genes:
     - ZNF143
 methods:
     - lm
-    - rlm3
+    - stan-nb

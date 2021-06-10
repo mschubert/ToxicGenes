@@ -27,7 +27,7 @@ ccle_tissues:
     - BRCA
     - LUAD
     - LUSC
-#    - NSCLC
+    - NSCLC
     - SCLC
     - SKCM
     - COADREAD

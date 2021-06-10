@@ -10,4 +10,4 @@ genes:
     - ZNF341
 methods:
     - lm
-    - rlm3
+    - stan-nb

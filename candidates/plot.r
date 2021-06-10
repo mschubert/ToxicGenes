@@ -31,7 +31,7 @@ for (i in seq_along(genes)) {
     top = genes[[i]]
     if (length(top) == 0)
         next
-    print(plt$text(names(genes)[i], size=20))
+    print(plt$text(names(genes)[i], size=pmin(20, 100/sqrt(nchar(names(genes)[i])))))
 
     assocs = readRDS(args$dset)
     dset = assocs %>%

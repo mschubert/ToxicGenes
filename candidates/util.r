@@ -5,8 +5,7 @@ idmap = import('process/idmap')
 tcga = import('data/tcga')
 
 quantile = function(x, ..., na.rm=TRUE) stats::quantile(x, ..., na.rm=na.rm)
-shapes = c("amp", "del", "all", "oe")
-shape_i = c(24, 25, 23, 21)
+shapes = c("amp"=24, "del"=25, "all"=23, "oe"=21)
 
 #' Plot summary statistics of associations using FDR and percentiles
 #'
@@ -14,17 +13,16 @@ shape_i = c(24, 25, 23, 21)
 #' @param gene  Character string which gene to plot
 #' @return      ggplot2 object
 plot_stats = function(dset, gene) {
-    yaxis_floor = dset %>% filter(name %in% gene) %>% pull(statistic) %>% min(na.rm=TRUE)
+    yaxis_floor = dset %>% filter(name %in% gene) %>% pull(estimate) %>% min(na.rm=TRUE)
     cur = filter(dset, name == gene) %>%
-        mutate(cna = factor(cna, levels=shapes),
-               label = ifelse(adj %in% c("none", "pur"),
+        mutate(label = ifelse(adj %in% c("none", "pur"),
                               sprintf("%.2f th\nFDR %.1g", pctile, adj.p), NA))
-    ggplot(dset, aes(x=1, y = statistic, color=adj)) +
+    ggplot(dset, aes(x=1, y = estimate, color=adj)) +
         geom_hline(yintercept=0, linetype="dashed", color="grey") +
         geom_violin(position="identity", alpha=0) +
         geom_point(data=cur, aes(fill=adj, shape=cna),
                    color="black", size=3, alpha=0.5) +
-        scale_shape_manual(values=shape_i) +
+        scale_shape_manual(values=shapes) +
         ggrepel::geom_text_repel(data=cur, size=2, box.padding=unit(7, "pt"),
             aes(label=label), color="black", direction="y", segment.alpha=0.3) +
         facet_wrap(~ dset + fit, scale="free_x", nrow=1) +

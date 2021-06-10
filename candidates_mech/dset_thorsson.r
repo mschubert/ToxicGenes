@@ -31,6 +31,8 @@ sys$run({
     isubs = narray::mask(na.omit(setNames(immune$Immune.Subtype, rownames(immune)))) + 0
     measures = data.matrix(immune[!colnames(immune) %in% c("Immune.Subtype", "TCGA.Subtype")])
     td = td %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort)) %>%
         inner_join(data.frame(sample=rownames(immune), TCGA.Subtype=immune$TCGA.Subtype)) %>%
         filter(sample %in% rownames(isubs), sample %in% rownames(measures))
 

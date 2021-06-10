@@ -44,6 +44,8 @@ sys$run({
 
     dset = td %>%
         mutate(constant = 1) %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort)) %>%
         group_by(cohort, p53_mut) %>%
             mutate(death50_k5 = surv_knn(expr, cancer_copies, os_status, os_days, k=5),
                    death50_k20 = surv_knn(expr, cancer_copies, os_status, os_days, k=20)) %>%

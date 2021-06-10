@@ -28,7 +28,9 @@ sys$run({
         narray::stack(along=2) %>% t()
     colnames(scores) = make.names(colnames(scores))
 
-    td = td %>% filter(sample %in% rownames(scores))
+    td = td %>% filter(sample %in% rownames(scores)) %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort))
     scores = scores[td$sample,]
     dset = cbind(td, scores, constant=1)
 

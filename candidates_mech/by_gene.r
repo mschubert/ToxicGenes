@@ -9,7 +9,7 @@ args = sys$cmd$parse(
 )
 
 cfg = yaml::read_yaml(args$config)
-cohorts = c(setdiff(cfg$cor_tissues, c("pan", "NSCLC", "COADREAD")), "LUSC", "HNSC", "COAD")
+cohorts = c("BRCA", "COAD", "READ", "LUAD", "LUSC", "HNSC", "PRAD", "SKCM", "OV")
 
 td = lapply(cohorts, util$load_tcga, top=args$gene) %>%
     bind_rows() %>%

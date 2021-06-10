@@ -39,7 +39,9 @@ sys$run({
             narray::stack(along=2) %>%
             tcga$map_id("specimen") %>% t())
 
-    td = td %>% filter(sample %in% rownames(mirna))
+    td = td %>% filter(sample %in% rownames(mirna)) %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort))
     mirna = mirna[td$sample,]
     dset = cbind(td, mirna, constant=1)
 

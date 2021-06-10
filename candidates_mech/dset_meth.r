@@ -28,7 +28,9 @@ sys$run({
     cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
     cpg = tryCatch(meth_for_gene(cohorts, args$gene), error=util2$muffle)
 
-    td = td %>% filter(sample %in% rownames(cpg))
+    td = td %>% filter(sample %in% rownames(cpg)) %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort))
     cpg = cpg[td$sample,]
     dset = cbind(td, cpg, constant=1)
 

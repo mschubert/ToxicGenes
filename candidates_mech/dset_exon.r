@@ -36,7 +36,9 @@ sys$run({
         re
     })
 
-    td = td %>% filter(sample %in% rownames(exons))
+    td = td %>% filter(sample %in% rownames(exons)) %>%
+        mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
+               cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort))
     exons = exons[td$sample,]
     dset = cbind(td, exons, constant=1)
 

@@ -86,7 +86,7 @@ for (i in seq_along(genes)) {
         geom_vline(xintercept=2, color="grey") +
         geom_vline(xintercept=c(2-et,2+et,1+et,3-et), color="grey", linetype="dotted") +
         geom_abline(data=abl, aes(intercept=intcp, slope=slope, color=type), size=1, linetype="dashed") +
-        geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth_class), color="black") +
+        geom_point(aes(shape=mut, size=is.na(mut), alpha=is.na(mut), fill=meth), color="black") +
         ggrepel::geom_text_repel(aes(label=Name), size=1, alpha=0.5, segment.alpha=0.2) +
         geom_label(data=fracs, aes(x=x, y=max_reads, label=label, hjust=hjust),
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
@@ -94,8 +94,7 @@ for (i in seq_along(genes)) {
                    label.size=NA, fill="#ffffff80", size=2.5, fontface="bold") +
         facet_wrap(~ gene, scales="free") +
         scale_color_manual(name="Compensation", guide="legend", values=comp_cols) +
-        scale_fill_brewer(palette="RdBu", direction=-1,
-                          labels=c("lowest", "low", "high", "highest")) +
+        scale_fill_distiller(palette="RdBu", direction=-1) +
         guides(fill = guide_legend(override.aes=list(shape=21, size=5))) +
         scale_shape_manual(name="Mutation", guide="legend", na.value=21,
                            values=c(0, seq_along(levels(cd$mut))[-1]),

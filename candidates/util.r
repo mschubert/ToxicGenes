@@ -67,11 +67,6 @@ load_ccle = function(top, et=0.15) {
                    expr = pmax(pmin(expr, quantile(expr, 0.98)), quantile(expr, 0.02)),
                    copies = pmin(copies, max(3+et, quantile(copies, 0.99))) %>%
                                  pmax(min(1-et, quantile(copies, 0.01)))) %>%
-        ungroup() %>%
-        group_by(gene) %>%
-            mutate(meth_class = rank(meth, ties="min", na="keep") / sum(!is.na(meth)),
-                   meth_class = cut(meth_class, c(0, 0.25, 0.5, 0.75, 1), labels=FALSE),
-                   meth_class = factor(meth_class)) %>%
         ungroup()
 }
 

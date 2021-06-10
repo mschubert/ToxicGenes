@@ -39,7 +39,7 @@ tcga_tissues:
     - BRCA
     - LUAD
     - LUSC
-#    - NSCLC
+    - NSCLC
     - HNSC
     - KIRC
     - SKCM

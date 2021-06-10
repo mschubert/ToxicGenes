@@ -6,6 +6,7 @@ plt = import('plot')
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
     opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
+    opt('f', 'orf', 'orf file rds', '../orf/pan/genes.xlsx'),
     opt('o', 'outfile', 'rds', 'pan.rds'),
     opt('p', 'plotfile', 'pdf', 'pan.pdf')
 )
@@ -14,7 +15,7 @@ cfg = yaml::read_yaml(args$config)
 #cnas = c("amp", "del", "all")
 cnas = "amp"
 
-orf = readxl::read_xlsx(sprintf("../orf/%s/%s.xlsx", args$tissue, "genes")) %>%
+orf = readxl::read_xlsx(args$orf) %>%
     mutate(adj = "none", fit = "lm", cna = "oe")
 
 ccle = tidyr::crossing(adj = "none", fit = cfg$fits, cna = cnas) %>%

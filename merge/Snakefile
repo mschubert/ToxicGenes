@@ -21,7 +21,8 @@ rule all:
 rule merge_one:
     input:
         rscript = "merge.r",
-        orf = lambda wc: orf(wc.tissue + "/genes.xlsx"),
+#        orf = lambda wc: orf([wc.tissue if wc.tissue in config['orf_tissues'] else 'pan'][0] + "/genes.xlsx"),
+        orf = orf("pan/genes.xlsx"),
         ccle = lambda wc: ccle(expand(wc.tissue + "/{fit}.xlsx", fit=config['fits'])),
         tcga = lambda wc: tcga(expand(wc.tissue + "/{fit}_{type}.xlsx",
             fit=config['fits'], type=config['tcga_adj']))
@@ -31,6 +32,7 @@ rule merge_one:
         "Rscript {input.rscript}"
             " --config ../config.yaml"
             " --tissue {wildcards.tissue}"
+            " --orf {input.orf}"
             " --outfile {output.outfile}"
             " --plotfile {output.outfile}"
 

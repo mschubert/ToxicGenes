@@ -32,9 +32,17 @@ plot_gene_annot = function(gene_name, cpg) {
         transmute(label=probeID, start=CpG_beg, end=CpG_end) %>%
         left_join(tibble(label=colnames(cpg), cg_sd=apply(cpg, 2, sd)))
 
+    islands = tcga$meth_cg2island() %>% filter(probeID %in% probes) %>%
+        mutate(changed = cumsum(CGIposition != c(CGIposition[1], CGIposition[-nrow(.)]))) %>%
+        filter(CGIposition == "Island") %>%
+        group_by(changed) %>%
+        summarize(start=min(CpG_beg), end=max(CpG_end))
+
     both = bind_rows(list(transcript=trs2, cgs=cgs), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
+        geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,
+                  inherit.aes=FALSE, fill="black", alpha=0.1) +
         geom_segment(aes(xend=end, yend=label), size=1) +
         geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
         geom_point(aes(size=cg_sd)) +

@@ -20,6 +20,11 @@ genes = select$genes #TODO: use right set if not only genes
 et = yaml::read_yaml(args$config)$euploid_tol
 tcga_ccle_fit = setdiff(select$methods, "lm")
 stopifnot(length(tcga_ccle_fit) == 1)
+if (args$tissue == "COADREAD") {
+    args$tissue = c("COAD", "READ")
+} else if (args$tissue == "NSCLC") {
+    args$tissue = c("LUAD", "LUSC")
+}
 
 comp_cols = c(full="brown", none="brown", amp="red", del="blue", all="darkviolet")
 
@@ -73,7 +78,7 @@ for (i in seq_along(genes)) {
         sizes = c(3, 1.5) # mut, wt
         alphas = c(0.5, 0.5)
     } else {
-        cd = filter(cd, cohort == args$tissue) %>%
+        cd = filter(cd, cohort %in% args$tissue) %>%
             mutate(Name = ifelse(expr == expr_orig & copies == copies_orig, Name,
                         sprintf("%s\n%.1f;%.1g", Name, copies_orig, expr_orig)))
         sizes = c(2, 3) # mut, wt

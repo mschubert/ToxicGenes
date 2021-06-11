@@ -43,7 +43,9 @@ sys$run({
         mutate(cohort = ifelse(cohort %in% c("COAD", "READ"), "COADREAD", cohort),
                cohort = ifelse(cohort %in% c("LUAD", "LUSC"), "NSCLC", cohort))
     mirna = mirna[td$sample,]
-    dset = cbind(td, mirna, constant=1)
+    dset = cbind(td, mirna)
+    if (nrow(dset) > 0)
+        dset$constant=1
 
     pdf(args$plotfile, 28, 12)
     print(plt$text(sprintf("miRNA expression (%i)", util2$nc(mirna)), size=20))

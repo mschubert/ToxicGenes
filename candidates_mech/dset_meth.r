@@ -6,9 +6,24 @@ tcga = import('data/tcga')
 util = import('../candidates/util')
 util2 = import('./util')
 
+get_ensembl_rest_info = function(gene_id) {
+    query = sprintf("https://rest.ensembl.org/lookup/id/%s?expand=1", gene_id)
+    r = httr::GET(query, httr::content_type("application/json"))
+    httr::stop_for_status(r)
+    res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
+
+    res$Transcript %>% select(ensembl_transcript_id=id, Exon) %>% tidyr::unnest(Exon) %>%
+        lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
+}
+
 plot_gene_annot = function(gene_name, cpg) {
     trs = seq$coords$transcript() %>%
-        filter(external_gene_name == gene_name) %>%
+        filter(external_gene_name == gene_name)
+    strand = setNames(c("-", "+"), c("-1","1"))[as.character(trs$strand[1])]
+    adds = get_ensembl_rest_info(trs$ensembl_gene_id[1]) %>%
+        select(label=ensembl_transcript_id, exon_id=id, start, end) %>%
+        mutate(type="transcript")
+    trs2 = trs %>%
         transmute(label=ensembl_transcript_id, start=transcript_start, end=transcript_end)
 
     probes = grep("^cg", colnames(cpg), value=TRUE)
@@ -17,11 +32,13 @@ plot_gene_annot = function(gene_name, cpg) {
         transmute(label=probeID, start=CpG_beg, end=CpG_end) %>%
         left_join(tibble(label=colnames(cpg), cg_sd=apply(cpg, 2, sd)))
 
-    both = bind_rows(list(transcript=trs, cgs=cgs), .id="type")
+    both = bind_rows(list(transcript=trs2, cgs=cgs), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_segment(aes(xend=end, yend=label), size=1) +
-        geom_point(aes(size=cg_sd))
+        geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
+        geom_point(aes(size=cg_sd)) +
+        ggtitle(sprintf("%s (%s)", gene_name, strand))
 }
 
 meth_for_gene = function(cohorts, gene_name, gene_id="external_gene_name") {

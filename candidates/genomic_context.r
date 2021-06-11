@@ -127,7 +127,9 @@ if (args$cohort == "pan") {
     racs_cohort = "PANCAN"
 } else if (args$cohort == "COADREAD") {
     args$cohort = c("COAD", "READ")
-    racs_cohort = "COADREAD"
+    racs_cohort = "COAD/READ"
+} else if (args$cohort == "NSCLC") {
+    racs_cohort = args$cohort = c("LUAD", "LUSC")
 } else {
     racs_cohort = args$cohort
 }

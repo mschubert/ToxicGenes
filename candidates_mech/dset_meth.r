@@ -14,13 +14,14 @@ plot_gene_annot = function(gene_name, cpg) {
     probes = grep("^cg", colnames(cpg), value=TRUE)
     cgs = tcga$meth_cg2gene() %>%
         filter(probeID %in% probes) %>%
-        transmute(label=probeID, start=CpG_beg, end=CpG_end)
+        transmute(label=probeID, start=CpG_beg, end=CpG_end) %>%
+        left_join(tibble(label=colnames(cpg), cg_sd=apply(cpg, 2, sd)))
 
     both = bind_rows(list(transcript=trs, cgs=cgs), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_segment(aes(xend=end, yend=label), size=1) +
-        geom_point()
+        geom_point(aes(size=cg_sd))
 }
 
 meth_for_gene = function(cohorts, gene_name, gene_id="external_gene_name") {
@@ -31,6 +32,7 @@ meth_for_gene = function(cohorts, gene_name, gene_id="external_gene_name") {
         m = tcga$meth_cpg(c)
         m[intersect(rownames(m), probe_ids),,drop=FALSE]
     }) %>% narray::stack(along=2) %>% t()
+    cg2 = cg2[,names(sort(-apply(cg2, 2, sd)))]
     re = narray::stack(cg1, cg2, along=2)
     re[,colSums(is.na(re)) < nrow(re)/2]
 }

@@ -40,13 +40,13 @@ plot_gene_annot = function(gene_name, cpg) {
 
     tfs = tcga$meth_cg2tf() %>%
         filter(probeID %in% probes, !is.na(TF)) %>%
-        group_by(label=probeID, TF) %>%
-        summarize(n_clines = n_distinct(sample), avg_peak = mean(loc_summit)) %>%
-#        filter(n_clines > 1) %>%
-        group_by(label) %>%
-            top_n(8, abs(avg_peak)) %>%
-        group_by(TF) %>%
-            top_n(3, abs(avg_peak)) %>%
+        group_by(TF, sample, TFBS_summit) %>% # closest probe to summit
+            slice_min(abs(loc_summit), n=1) %>%
+        group_by(label=probeID, TF) %>% # found in more than one cell line
+            summarize(n_lines = n()) %>%
+            filter(n_lines > 1) %>%
+        group_by(TF) %>% # per TF, 3 probes with most cell lines
+            slice_max(n_lines, n=3) %>%
         ungroup() %>%
         inner_join(cgs)
 

@@ -38,6 +38,18 @@ plot_gene_annot = function(gene_name, cpg) {
         group_by(changed) %>%
         summarize(start=min(CpG_beg), end=max(CpG_end))
 
+    tfs = tcga$meth_cg2tf() %>%
+        filter(probeID %in% probes, !is.na(TF)) %>%
+        group_by(label=probeID, TF) %>%
+        summarize(n_clines = n_distinct(sample), avg_peak = mean(loc_summit)) %>%
+#        filter(n_clines > 1) %>%
+        group_by(label) %>%
+            top_n(8, abs(avg_peak)) %>%
+        group_by(TF) %>%
+            top_n(3, abs(avg_peak)) %>%
+        ungroup() %>%
+        inner_join(cgs)
+
     both = bind_rows(list(transcript=trs2, cgs=cgs), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
@@ -46,6 +58,8 @@ plot_gene_annot = function(gene_name, cpg) {
         geom_segment(aes(xend=end, yend=label), size=1) +
         geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
         geom_point(aes(size=cg_sd)) +
+        ggrepel::geom_text_repel(data=tfs, aes(label=TF), color="black", size=3,
+                                 segment.alpha=0.3, max.overlaps=Inf) +
         ggtitle(sprintf("%s (%s)", gene_name, strand))
 }
 

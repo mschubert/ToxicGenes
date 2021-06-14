@@ -1,4 +1,5 @@
 library(dplyr)
+library(GenomicRanges)
 sys = import('sys')
 seq = import('seq')
 plt = import('plot')
@@ -26,6 +27,25 @@ plot_gene_annot = function(gene_name, cpg) {
     trs2 = trs %>%
         transmute(label=ensembl_transcript_id, start=transcript_start, end=transcript_end)
 
+    depmap_tss = readr::read_tsv("../data/ccle/CCLE_RRBS_TSS_1kb_20180614.txt") %>%
+        filter(gene == gene_name) %>%
+        transmute(label=sprintf("DepMap_TSS_%i", seq_len(nrow(.))), chr=chr, start=fpos, end=tpos)
+    depmap_cpg = readr::read_tsv("../data/ccle/CCLE_RRBS_TSS_CpG_clusters_20180614.txt") %>%
+        dplyr::rename(gene = gene_name) %>%
+        filter(gene == gene_name) %>%
+        rowwise() %>%
+        transmute(chr = paste0("chr", sub("([0-9]+):.*", "\\1", CpG_sites_hg19)),
+                  start = strsplit(CpG_sites_hg19, ";")[[1]] %>% sub("[0-9]+:", "", .) %>% as.numeric() %>% min(),
+                  end = strsplit(CpG_sites_hg19, ";")[[1]] %>% sub("[0-9]+:", "", .) %>% as.numeric() %>% max()) %>%
+        ungroup() %>%
+        mutate(label = sprintf("DepMap_CpG_%i", seq_len(nrow(.))))
+    depmap = bind_rows(depmap_tss, depmap_cpg)
+    gr = GenomicRanges::makeGRangesFromDataFrame(depmap, keep.extra.columns=TRUE)
+    seqlevelsStyle(gr) = "UCSC"
+    hg19_to_hg38 = rtracklayer::import.chain("../data/ccle/hg19ToHg38.over.chain")
+    depmap = rtracklayer::liftOver(gr, hg19_to_hg38) %>% unlist() %>% as.data.frame() %>%
+        mutate(cg_sd = 0.01)
+
     probes = grep("^cg", colnames(cpg), value=TRUE)
     cgs = tcga$meth_cg2gene() %>%
         filter(probeID %in% probes) %>%
@@ -50,7 +70,7 @@ plot_gene_annot = function(gene_name, cpg) {
         ungroup() %>%
         inner_join(cgs)
 
-    both = bind_rows(list(transcript=trs2, cgs=cgs), .id="type")
+    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,
@@ -58,6 +78,7 @@ plot_gene_annot = function(gene_name, cpg) {
         geom_segment(aes(xend=end, yend=label), size=1) +
         geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
         geom_point(aes(size=cg_sd)) +
+        scale_size_area(max_size=8) +
         ggrepel::geom_text_repel(data=tfs, aes(label=TF), color="black", size=3,
                                  segment.alpha=0.3, max.overlaps=Inf) +
         ggtitle(sprintf("%s (%s)", gene_name, strand))

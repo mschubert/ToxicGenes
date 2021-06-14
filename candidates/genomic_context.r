@@ -163,7 +163,7 @@ copies = lapply(args$cohort, tcga$cna_segments) %>%
     inner_join(purity) %>%
     mutate(ploidy = (ploidy-2)/purity + 2) %>% #todo: if purity/SegMean incorrect that can be <0
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
-hg19_to_hg38 = rtracklayer::import.chain(system.file(package="liftOver", "extdata", "hg38ToHg19.over.chain"))
+hg19_to_hg38 = rtracklayer::import.chain("../data/ccle/hg19ToHg38.over.chain")
 racs = readxl::read_xlsx("../data/racs/TableS2D.xlsx", skip=19) %>%
     setNames(make.names(colnames(.))) %>%
     select(racs=Identifier, cohort=Cancer.Type, chr, start, stop,

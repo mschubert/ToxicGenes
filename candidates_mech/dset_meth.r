@@ -70,15 +70,24 @@ plot_gene_annot = function(gene_name, cpg) {
         ungroup() %>%
         inner_join(cgs)
 
-    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
+    mdamb_track = rtracklayer::import(rtracklayer::BigWigFile("merged_file_sample.bw")) %>%
+        as.data.frame() %>% as_tibble() %>%
+        filter(seqnames %in% trs$chromosome_name,
+               start >= min(trs$start_position) - 1000,
+               end <= max(trs$end_position) + 1000) %>%
+        transmute(label="MDA-MB BS-seq", start=start, meth=score)
+
+    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap, bsseq=mdamb_track), .id="type")
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,
                   inherit.aes=FALSE, fill="black", alpha=0.1) +
+        ggridges::geom_ridgeline(aes(height=meth/50, fill=type)) +
         geom_segment(aes(xend=end, yend=label), size=1) +
         geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
         geom_point(aes(size=cg_sd)) +
         scale_size_area(max_size=8) +
+        scale_x_continuous(expand=c(0,0)) +
         ggrepel::geom_text_repel(data=tfs, aes(label=TF), color="black", size=3,
                                  segment.alpha=0.3, max.overlaps=Inf) +
         ggtitle(sprintf("%s (%s)", gene_name, strand))

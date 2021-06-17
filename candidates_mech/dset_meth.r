@@ -70,14 +70,15 @@ plot_gene_annot = function(gene_name, cpg) {
         ungroup() %>%
         inner_join(cgs)
 
+    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
+
     mdamb_track = rtracklayer::import(rtracklayer::BigWigFile("merged_file_sample.bw")) %>%
         as.data.frame() %>% as_tibble() %>%
         filter(seqnames %in% trs$chromosome_name,
-               start >= min(trs$start_position) - 1000,
-               end <= max(trs$end_position) + 1000) %>%
-        transmute(label="MDA-MB BS-seq", start=start, meth=score)
-
-    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap, bsseq=mdamb_track), .id="type")
+               start >= min(both$start) - 1000,
+               end <= max(both$end) + 1000) %>%
+        transmute(label="MDA-MB BS-seq", start=start, meth=score, type="BS-seq")
+    both = bind_rows(both, mdamb_track)
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,

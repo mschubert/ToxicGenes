@@ -72,13 +72,20 @@ plot_gene_annot = function(gene_name, cpg) {
 
     both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
 
+    ccle_track = readr::read_tsv("../data/ccle/methylation.tsv") %>%
+        filter(chr == paste0("chr", unique(trs$chromosome_name)),
+               position >= min(both$start) - 1000,
+               position <= max(both$end) + 1000) %>%
+        group_by(position) %>%
+        summarize(beta = mean(beta), n_clines=n_distinct(cell_line)) %>%
+        transmute(label="CCLE David Wu", start=position, type="BS-seq", cg_sd=n_clines/200)
     mdamb_track = rtracklayer::import(rtracklayer::BigWigFile("merged_file_sample.bw")) %>%
         as.data.frame() %>% as_tibble() %>%
         filter(seqnames %in% trs$chromosome_name,
                start >= min(both$start) - 1000,
                end <= max(both$end) + 1000) %>%
         transmute(label="MDA-MB BS-seq", start=start, meth=score, type="BS-seq")
-    both = bind_rows(both, mdamb_track)
+    both = bind_rows(list(both, mdamb_track, ccle_track))
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,

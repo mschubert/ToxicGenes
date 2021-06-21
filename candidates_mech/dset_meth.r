@@ -78,7 +78,7 @@ plot_gene_annot = function(gene_name, cpg) {
                position <= max(both$end) + 1000) %>%
         group_by(position) %>%
         summarize(beta = mean(beta), n_clines=n_distinct(cell_line)) %>%
-        transmute(label="CCLE David Wu", start=position, type="BS-seq", cg_sd=n_clines/200)
+        transmute(label="CCLE David Wu", start=position, type="BS-seq", cg_sd=n_clines/(max(n_clines)*100))
     mdamb_track = rtracklayer::import(rtracklayer::BigWigFile("merged_file_sample.bw")) %>%
         as.data.frame() %>% as_tibble() %>%
         filter(seqnames %in% trs$chromosome_name,

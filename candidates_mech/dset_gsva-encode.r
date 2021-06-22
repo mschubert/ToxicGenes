@@ -37,7 +37,7 @@ sys$run({
     dset = cbind(td, scores, constant=1)
 
     pdf(args$plotfile, 28, 12)
-    print(plt$text(sprintf("MSigDB Hallmarks (%i)", util2$nc(scores)), size=20))
+    print(plt$text(sprintf("ENCODE TF activity (%i)", util2$nc(scores)), size=20))
     for (v in colnames(scores))
         print(util2$plot_l2d(dset, v))
     dev.off()

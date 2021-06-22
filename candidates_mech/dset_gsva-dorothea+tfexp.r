@@ -16,7 +16,7 @@ sys$run({
     args = sys$cmd$parse(
         opt('g', 'gene', 'HGNC symbol', 'CDKN1A'),
         opt('i', 'infile', 'rds', 'by_gene/CDKN1A.rds'),
-        opt('p', 'plotfile', 'pdf', 'CDKN1A/gsva-dorothea.pdf')
+        opt('p', 'plotfile', 'pdf', 'CDKN1A/gsva-dorothea+tfexp.pdf')
     )
 
     td = readRDS(args$infile)

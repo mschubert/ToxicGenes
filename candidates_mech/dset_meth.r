@@ -72,7 +72,7 @@ plot_gene_annot = function(gene_name, cpg) {
 
     both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
 
-    ccle_track = readr::read_tsv("../data/ccle/methylation.tsv") %>%
+    ccle_track = readr::read_tsv("../data/ccle/methylation_gene_body.tsv") %>%
         filter(chr == paste0("chr", unique(trs$chromosome_name)),
                position >= min(both$start) - 1000,
                position <= max(both$end) + 1000) %>%

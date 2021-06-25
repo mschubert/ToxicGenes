@@ -17,6 +17,16 @@ get_ensembl_rest_info = function(gene_id) {
         lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
 }
 
+get_ensembl_regularoy = function(gene_id) {
+    query = sprintf("https://rest.ensembl.org/overlap/id/%s?feature=regulatory", gene_id)
+    r = httr::GET(query, httr::content_type("application/json"))
+    httr::stop_for_status(r)
+    res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
+
+    res %>% select(label=id, start, end, text=description) %>%
+        lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
+}
+
 plot_gene_annot = function(gene_name, cpg) {
     trs = seq$coords$transcript() %>%
         filter(external_gene_name == gene_name)
@@ -26,6 +36,7 @@ plot_gene_annot = function(gene_name, cpg) {
         mutate(type="transcript")
     trs2 = trs %>%
         transmute(label=ensembl_transcript_id, start=transcript_start, end=transcript_end)
+    reg = get_ensembl_regularoy(trs$ensembl_gene_id[1])
 
     depmap_tss = readr::read_tsv("../data/ccle/CCLE_RRBS_TSS_1kb_20180614.txt") %>%
         filter(gene == gene_name) %>%
@@ -70,7 +81,7 @@ plot_gene_annot = function(gene_name, cpg) {
         ungroup() %>%
         inner_join(cgs)
 
-    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
+    both = bind_rows(list(transcript=trs2, regulatory=reg, cgs=cgs, DepMap=depmap), .id="type")
 
     ccle_track = readr::read_tsv("../data/ccle/methylation_gene_body.tsv") %>%
         filter(chr == paste0("chr", unique(trs$chromosome_name)),
@@ -94,6 +105,7 @@ plot_gene_annot = function(gene_name, cpg) {
         geom_segment(aes(xend=end, yend=label), size=1) +
         geom_segment(data=adds, aes(xend=end, yend=label), size=4, alpha=0.5) +
         geom_point(aes(size=cg_sd)) +
+        geom_text(aes(label=text), size=3, color="black") +
         scale_size_area(max_size=8) +
         scale_x_continuous(expand=c(0,0)) +
         ggrepel::geom_text_repel(data=tfs, aes(label=TF), color="black", size=3,

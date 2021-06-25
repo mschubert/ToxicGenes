@@ -27,14 +27,11 @@ get_ensembl_regularoy = function(gene_id) {
         lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
 }
 
-get_ensembl_motif = function(gene_id) {
-    query = sprintf("https://rest.ensembl.org/overlap/id/%s?feature=motif", gene_id)
+get_ensembl_motif = function(chr, start, stop) {
+    query = sprintf("https://rest.ensembl.org/overlap/region/human/%s:%i-%i?feature=motif", chr, start, stop)
     r = httr::GET(query, httr::content_type("application/json"))
     httr::stop_for_status(r)
     res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
-
-#    valid_tfs = dorothea::dorothea_hs %>% filter(confidence %in% c("A", "B", "C")) %>% pull(tf) %>% unique()
-#    valid_regex = paste(valid_tfs, collapse="|")
 
     res %>% mutate(ev = ifelse(sapply(epigenomes_with_experimental_evidence, is.null),
                                NA, epigenomes_with_experimental_evidence)) %>%
@@ -42,9 +39,7 @@ get_ensembl_motif = function(gene_id) {
         lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble() %>%
         mutate(tf = strsplit(tf, ",|::")) %>%
         tidyr::unnest("tf") %>%
-        group_by(tf) %>% slice_max(score, n=3) %>% ungroup() #%>%
-#        filter(#score >= 5,
-#               grepl(valid_regex, tf))
+        group_by(tf) %>% slice_max(score, n=3) %>% ungroup()
 }
 
 plot_gene_annot = function(gene_name, cpg) {
@@ -89,36 +84,23 @@ plot_gene_annot = function(gene_name, cpg) {
         group_by(changed) %>%
         summarize(start=min(CpG_beg), end=max(CpG_end))
 
-#    tfs = tcga$meth_cg2tf() %>%
-#        filter(probeID %in% probes, !is.na(TF)) %>%
-#        group_by(TF, sample, TFBS_summit) %>% # closest probe to summit
-#            slice_min(abs(loc_summit), n=1) %>%
-#        group_by(label=probeID, TF) %>% # found in more than one cell line
-#            summarize(n_lines = n()) %>%
-#            filter(n_lines > 1) %>%
-#        group_by(TF) %>% # per TF, 3 probes with most cell lines
-#            slice_max(n_lines, n=3) %>%
-#        ungroup() %>%
-#        inner_join(cgs)
-
-    tfs = get_ensembl_motif(trs$ensembl_gene_id[1])
-
     both = bind_rows(list(transcript=trs2, regulatory=reg, cgs=cgs, DepMap=depmap), .id="type")
+    .chr = unique(trs$chromosome_name)
+    .start = min(both$start, na.rm=TRUE) - 1000
+    .stop = max(both$end, na.rm=TRUE) + 1000
 
     ccle_track = readr::read_tsv("../data/ccle/methylation_gene_body.tsv") %>%
-        filter(chr == paste0("chr", unique(trs$chromosome_name)),
-               position >= min(both$start) - 1000,
-               position <= max(both$end) + 1000) %>%
+        filter(chr == paste0("chr", .chr), position >= .start, position <= .stop) %>%
         group_by(position) %>%
         summarize(beta = mean(beta), n_clines=n_distinct(cell_line)) %>%
         transmute(label="CCLE David Wu", start=position, type="BS-seq", cg_sd=n_clines/(max(n_clines)*100))
     mdamb_track = rtracklayer::import(rtracklayer::BigWigFile("merged_file_sample.bw")) %>%
         as.data.frame() %>% as_tibble() %>%
-        filter(seqnames %in% trs$chromosome_name,
-               start >= min(both$start) - 1000,
-               end <= max(both$end) + 1000) %>%
+        filter(seqnames %in% .chr, start >= .start, end <= .stop) %>%
         transmute(label="MDA-MB BS-seq", start=start, meth=score, type="BS-seq")
     both = bind_rows(list(both, mdamb_track, ccle_track))
+
+    tfs = get_ensembl_motif(.chr, .start, .stop)
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,

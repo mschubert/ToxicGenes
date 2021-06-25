@@ -114,7 +114,7 @@ plot_gene_annot = function(gene_name, cpg) {
         scale_x_continuous(expand=c(0,0)) +
         ggrepel::geom_text_repel(data=tfs, aes(y=rank(score)/length(score)*length(unique(both$label)),
                                                label=tf, fontface=ifelse(is.na(ev), "plain", "bold")),
-                                 color="black", size=2.5, alpha=0.7, segment.alpha=0.3, max.overlaps=Inf) +
+            color="black", size=ifelse(is.na(tfs$ev), 1, 2.5), alpha=0.7, segment.alpha=0.1, max.overlaps=Inf) +
         ggtitle(sprintf("%s (%s)", gene_name, strand))
 }
 

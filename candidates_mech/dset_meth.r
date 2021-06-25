@@ -27,6 +27,26 @@ get_ensembl_regularoy = function(gene_id) {
         lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
 }
 
+get_ensembl_motif = function(gene_id) {
+    query = sprintf("https://rest.ensembl.org/overlap/id/%s?feature=motif", gene_id)
+    r = httr::GET(query, httr::content_type("application/json"))
+    httr::stop_for_status(r)
+    res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
+
+#    valid_tfs = dorothea::dorothea_hs %>% filter(confidence %in% c("A", "B", "C")) %>% pull(tf) %>% unique()
+#    valid_regex = paste(valid_tfs, collapse="|")
+
+    res %>% mutate(ev = ifelse(sapply(epigenomes_with_experimental_evidence, is.null),
+                               NA, epigenomes_with_experimental_evidence)) %>%
+        select(start, end, tf=transcription_factor_complex, score, ev) %>%
+        lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble() %>%
+        mutate(tf = strsplit(tf, ",|::")) %>%
+        tidyr::unnest("tf") %>%
+        group_by(tf) %>% slice_max(score, n=3) %>% ungroup() #%>%
+#        filter(#score >= 5,
+#               grepl(valid_regex, tf))
+}
+
 plot_gene_annot = function(gene_name, cpg) {
     trs = seq$coords$transcript() %>%
         filter(external_gene_name == gene_name)
@@ -69,17 +89,19 @@ plot_gene_annot = function(gene_name, cpg) {
         group_by(changed) %>%
         summarize(start=min(CpG_beg), end=max(CpG_end))
 
-    tfs = tcga$meth_cg2tf() %>%
-        filter(probeID %in% probes, !is.na(TF)) %>%
-        group_by(TF, sample, TFBS_summit) %>% # closest probe to summit
-            slice_min(abs(loc_summit), n=1) %>%
-        group_by(label=probeID, TF) %>% # found in more than one cell line
-            summarize(n_lines = n()) %>%
-            filter(n_lines > 1) %>%
-        group_by(TF) %>% # per TF, 3 probes with most cell lines
-            slice_max(n_lines, n=3) %>%
-        ungroup() %>%
-        inner_join(cgs)
+#    tfs = tcga$meth_cg2tf() %>%
+#        filter(probeID %in% probes, !is.na(TF)) %>%
+#        group_by(TF, sample, TFBS_summit) %>% # closest probe to summit
+#            slice_min(abs(loc_summit), n=1) %>%
+#        group_by(label=probeID, TF) %>% # found in more than one cell line
+#            summarize(n_lines = n()) %>%
+#            filter(n_lines > 1) %>%
+#        group_by(TF) %>% # per TF, 3 probes with most cell lines
+#            slice_max(n_lines, n=3) %>%
+#        ungroup() %>%
+#        inner_join(cgs)
+
+    tfs = get_ensembl_motif(trs$ensembl_gene_id[1])
 
     both = bind_rows(list(transcript=trs2, regulatory=reg, cgs=cgs, DepMap=depmap), .id="type")
 
@@ -108,8 +130,9 @@ plot_gene_annot = function(gene_name, cpg) {
         geom_text(aes(label=text), size=3, color="black") +
         scale_size_area(max_size=8) +
         scale_x_continuous(expand=c(0,0)) +
-        ggrepel::geom_text_repel(data=tfs, aes(label=TF), color="black", size=3,
-                                 segment.alpha=0.3, max.overlaps=Inf) +
+        ggrepel::geom_text_repel(data=tfs, aes(y=rank(score)/length(score)*length(unique(both$label)),
+                                               label=tf, fontface=ifelse(is.na(ev), "plain", "bold")),
+                                 color="black", size=2.5, alpha=0.7, segment.alpha=0.3, max.overlaps=Inf) +
         ggtitle(sprintf("%s (%s)", gene_name, strand))
 }
 

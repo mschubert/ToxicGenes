@@ -17,18 +17,20 @@ get_ensembl_rest_info = function(gene_id) {
         lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
 }
 
-get_ensembl_regularoy = function(gene_id) {
-    query = sprintf("https://rest.ensembl.org/overlap/id/%s?feature=regulatory", gene_id)
+get_ensembl_regulatory = function(.chr, .start, .stop) {
+    query = sprintf("https://rest.ensembl.org/overlap/region/human/%s:%i-%i?feature=regulatory", .chr, .start, .stop)
     r = httr::GET(query, httr::content_type("application/json"))
     httr::stop_for_status(r)
     res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
 
     res %>% select(label=id, start, end, text=description) %>%
-        lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble()
+        lapply(unlist) %>% do.call(data.frame, .) %>% as_tibble() %>%
+        mutate(start = pmax(start, .start),
+               end = pmin(end, .stop))
 }
 
-get_ensembl_motif = function(chr, start, stop) {
-    query = sprintf("https://rest.ensembl.org/overlap/region/human/%s:%i-%i?feature=motif", chr, start, stop)
+get_ensembl_motif = function(.chr, .start, .stop) {
+    query = sprintf("https://rest.ensembl.org/overlap/region/human/%s:%i-%i?feature=motif", .chr, .start, .stop)
     r = httr::GET(query, httr::content_type("application/json"))
     httr::stop_for_status(r)
     res = jsonlite::fromJSON(jsonlite::toJSON(httr::content(r)))
@@ -51,7 +53,6 @@ plot_gene_annot = function(gene_name, cpg) {
         mutate(type="transcript")
     trs2 = trs %>%
         transmute(label=ensembl_transcript_id, start=transcript_start, end=transcript_end)
-    reg = get_ensembl_regularoy(trs$ensembl_gene_id[1])
 
     depmap_tss = readr::read_tsv("../data/ccle/CCLE_RRBS_TSS_1kb_20180614.txt") %>%
         filter(gene == gene_name) %>%
@@ -84,10 +85,12 @@ plot_gene_annot = function(gene_name, cpg) {
         group_by(changed) %>%
         summarize(start=min(CpG_beg), end=max(CpG_end))
 
-    both = bind_rows(list(transcript=trs2, regulatory=reg, cgs=cgs, DepMap=depmap), .id="type")
+    both = bind_rows(list(transcript=trs2, cgs=cgs, DepMap=depmap), .id="type")
     .chr = unique(trs$chromosome_name)
     .start = min(both$start, na.rm=TRUE) - 1000
     .stop = max(both$end, na.rm=TRUE) + 1000
+    reg = get_ensembl_regulatory(.chr, .start, .stop) %>% mutate(type="regulatory")
+    tfs = get_ensembl_motif(.chr, .start, .stop)
 
     ccle_track = readr::read_tsv("../data/ccle/methylation_gene_body.tsv") %>%
         filter(chr == paste0("chr", .chr), position >= .start, position <= .stop) %>%
@@ -98,9 +101,7 @@ plot_gene_annot = function(gene_name, cpg) {
         as.data.frame() %>% as_tibble() %>%
         filter(seqnames %in% .chr, start >= .start, end <= .stop) %>%
         transmute(label="MDA-MB BS-seq", start=start, meth=score, type="BS-seq")
-    both = bind_rows(list(both, mdamb_track, ccle_track))
-
-    tfs = get_ensembl_motif(.chr, .start, .stop)
+    both = bind_rows(list(both, reg, mdamb_track, ccle_track))
 
     ggplot(both, aes(x=start, y=label, color=type)) +
         geom_rect(data=islands, aes(xmin=start, xmax=end), ymin=-Inf, ymax=Inf,

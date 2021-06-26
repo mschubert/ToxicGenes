@@ -35,8 +35,7 @@ sys$run({
         bind_rows() %>%
         select(Sample, aneuploidy)
     aneup2 = tcga$cna_absolute(cohorts) %>%
-        mutate(cohort = tcga$barcode2study(Sample)) %>%
-        group_by(cohort, Sample) %>%
+        group_by(Sample) %>%
             summarize(abs_ploidy = weighted.mean(Modal_HSCN_1 + Modal_HSCN_2, Length),
                       abs_aneup = weighted.mean(abs(Modal_HSCN_1 + Modal_HSCN_2 - 2), Length)) %>%
         ungroup()

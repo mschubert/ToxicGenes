@@ -11,6 +11,7 @@ genesets:
     - CORUM
     - HMDB_Metabolites
     - manual
+    - CIN
 
 orf_tissues:
     - pan

@@ -30,16 +30,7 @@ sys$run({
 
     td = readRDS(args$infile)
     cohorts = unique(td$cohort) %>% setdiff(c("BRCA.LumAB", "BRCA.Basal"))
-
-    aneup1 = lapply(cohorts, tcga$aneuploidy) %>%
-        bind_rows() %>%
-        select(Sample, aneuploidy)
-    aneup2 = tcga$cna_absolute(cohorts) %>%
-        group_by(Sample) %>%
-            summarize(abs_ploidy = weighted.mean(Modal_HSCN_1 + Modal_HSCN_2, Length),
-                      abs_aneup = weighted.mean(abs(Modal_HSCN_1 + Modal_HSCN_2 - 2), Length)) %>%
-        ungroup()
-    aneup = full_join(aneup1, aneup2) %>% dplyr::rename(sample=Sample)
+    aneup = tcga$aneuploidy(cohorts) %>% dplyr::rename(sample=Sample)
 
     dset = td %>%
         mutate(constant = 1) %>%

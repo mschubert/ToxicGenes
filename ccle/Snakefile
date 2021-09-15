@@ -7,7 +7,7 @@ subworkflow genesets:
     workdir: "../data/genesets"
 
 mem = { 'pan' : 1024, '*' : 512 }
-cores = { 'pan' : 70, '*' : 70 }
+cores = { 'pan' : 70, '*' : 0 }
 time = { 'pan' : 72*60, '*' : 360 }
 
 rule fits:

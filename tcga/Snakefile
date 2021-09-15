@@ -14,7 +14,7 @@ rule fits:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
                 type=config['tcga_adj'], fit=config['fits'])
 
-rule sets:
+rule gsets:
     input:
         expand("{tissue}/{fit}_{type}/{gset}.pdf", tissue=config['cor_tissues'],
                 type=config['tcga_adj'], gset=config['genesets'], fit=config['fits'])
@@ -63,7 +63,7 @@ rule gset:
     output:
         plotfile = "{tissue}/{fit}_{type}/{gset}.pdf"
     wildcard_constraints:
-        fit = "[a-z0-9]+",
+        fit = "[a-z0-9-]+",
         type = "[a-z0-9-]+"
     shell:
         "Rscript {input.rscript}"

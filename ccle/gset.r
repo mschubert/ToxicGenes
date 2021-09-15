@@ -5,8 +5,8 @@ plt = import('plot')
 
 test_set = function(dset, sets, set, cna) {
     cnv = dset[[cna]]
-    in_set = cnv$name %in% sets[[set]]
-    lm(statistic ~ in_set, data=cnv) %>%
+    in_set = cnv$gene %in% sets[[set]]
+    lm(estimate ~ in_set, data=cnv) %>% # statistic if rlm, 'estimate' if stan-nb
         broom::tidy() %>%
         filter(term == "in_setTRUE") %>%
         select(-term) %>%
@@ -15,17 +15,22 @@ test_set = function(dset, sets, set, cna) {
 }
 
 args = sys$cmd$parse(
-    opt('i', 'infile', 'xlsx', 'pan/rlm3.xlsx'),
-    opt('s', 'setfile', 'rds', '../data/genesets/GO_Biological_Process_2018.rds'),
-    opt('p', 'plotfile', 'pdf', 'GO_Biological_Process_2018.pdf'))
+    opt('c', 'config', 'yaml', '../config.yaml'),
+    opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
+    opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
+    opt('p', 'plotfile', 'pdf', 'CH.HALLMARK.pdf')
+)
+
+cnas = yaml::read_yaml(args$config)$cna
 
 dset = readxl::excel_sheets(args$infile) %>%
     sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
+names(dset) = "amp" #FIXME:
 
 sets = readRDS(args$setfile) %>%
     gset$filter(min=1, valid=dset$all$name)
 
-result = expand.grid(cna=c("all", "amp", "del"), set=names(sets), stringsAsFactors=FALSE) %>%
+result = expand.grid(cna=cnas, set=names(sets), stringsAsFactors=FALSE) %>%
     mutate(result = clustermq::Q_rows(., test_set, const=list(dset=dset, sets=sets), n_jobs=0)) %>%
     tidyr::unnest(cols="result") %>%
     group_by(cna) %>%
@@ -36,7 +41,6 @@ result = expand.grid(cna=c("all", "amp", "del"), set=names(sets), stringsAsFacto
 
 do_plot = . %>%
     mutate(label = set) %>%
-    plt$color$p_effect(pvalue="adj.p", effect="estimate") %>%
     plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE,
                 pos_label_bias=0.2)
 

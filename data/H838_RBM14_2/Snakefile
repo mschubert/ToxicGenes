@@ -1,0 +1,22 @@
+rule all:
+    input:
+        expand("rmats_out/{comp}", comp=['rbm24_vs_luc24', 'rbm72_vs_luc72'])
+
+rule rmats:
+    input:
+        sample1 = "{sample1}.txt",
+        sample2 = "{sample2}.txt"
+    output:
+        tmpdir = directory("rmats_tmp/{sample1}_vs_{sample2}"),
+        outdir = directory("rmats_out/{sample1}_vs_{sample2}")
+    shell:
+        "python ~/rmats-turbo/rmats.py"
+            " --b1 {input.sample1}"
+            " --b2 {input.sample2}"
+            " --gtf ../H838_RBM14/ref_annot.gtf"
+            " --readLength 100"
+            " --allow-clipping"
+            " --nthread 12"
+            " --od rmats_out/{wildcards.sample1}_vs_{wildcards.sample2}"
+            " --tmp rmats_tmp/{wildcards.sample1}_vs_{wildcards.sample2}"
+        #-t paired \

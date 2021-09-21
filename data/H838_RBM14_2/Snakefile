@@ -1,6 +1,6 @@
 rule all:
     input:
-        expand("rmats_out/{comp}", comp=['rbm24_vs_luc24', 'rbm72_vs_luc72'])
+        expand("rmats_out/{comp}", comp=['rbm8_vs_luc8', 'rbm24_vs_luc24', 'rbm72_vs_luc72'])
 
 rule rmats:
     input:
@@ -13,8 +13,8 @@ rule rmats:
         "python ~/rmats-turbo/rmats.py"
             " --b1 {input.sample1}"
             " --b2 {input.sample2}"
-            " --gtf ../H838_RBM14/ref_annot.gtf"
-            " --readLength 100"
+            " --gtf ../H838_RBM14/genes_with_ERCC.gtf"
+            " --readLength 150"
             " --allow-clipping"
             " --nthread 12"
             " --od rmats_out/{wildcards.sample1}_vs_{wildcards.sample2}"

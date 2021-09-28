@@ -1,9 +1,7 @@
 library(dplyr)
-library(magrittr)
+library(ggplot2)
 library(DESeq2)
 sys = import('sys')
-plt = import('plot')
-gset = import('genesets')
 
 plot_pca = function(vst) {
     pcadata = DESeq2::plotPCA(vst, intgroup=colnames(colData(vst)), returnData=TRUE)
@@ -18,8 +16,8 @@ plot_pca = function(vst) {
 
 args = sys$cmd$parse(
     opt('i', 'infile', 'csv', 'STAR_Gene_Counts.csv'),
-    opt('o', 'outfile', 'rds', 'dset_both.rds'),
-    opt('p', 'plotfile', 'pdf', 'dset_both.pdf')
+    opt('o', 'outfile', 'rds', 'eset.rds'),
+    opt('p', 'plotfile', 'pdf', 'eset.pdf')
 )
 
 dset = readr::read_csv(args$infile)
@@ -37,15 +35,11 @@ eset = DESeq2::DESeqDataSetFromMatrix(emat, meta, ~1)
 vs = DESeq2::varianceStabilizingTransformation(eset)
 colData(eset)$RBM14 = assay(vs)["RBM14",]
 
-
 pdf(args$plotfile)
-
 plot_pca(vs)
-
 ggplot(as.data.frame(colData(eset)), aes(x=time, y=RBM14)) +
     geom_point(aes(color=treatment), size=5) +
     facet_wrap(~ treatment)
-
 dev.off()
 
 saveRDS(eset, file=args$outfile)

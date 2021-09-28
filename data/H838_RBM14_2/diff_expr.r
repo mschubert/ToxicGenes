@@ -17,8 +17,10 @@ de_time = function(.time) {
 }
 
 plot_row = function(..., time) {
-    volcs = lapply(list(...), plt$volcano)
-    plt$text(time) / wrap_plots(volcs, nrow=1) + plot_layout(heights=c(1,15))
+    args = list(...)
+    volcs = mapply(function(x, n) plt$volcano(x, label_top=30) + ggtitle(n),
+                   args, names(args), SIMPLIFY=FALSE)
+    plt$text(time) / wrap_plots(volcs, nrow=1, widths=c(1,1,1,2)) + plot_layout(heights=c(1,15))
 }
 
 sys$run({

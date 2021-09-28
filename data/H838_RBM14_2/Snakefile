@@ -1,6 +1,9 @@
+comps = ['rbm8_vs_luc8', 'rbm24_vs_luc24', 'rbm72_vs_luc72']
+
 rule all:
     input:
-        expand("rmats_out/{comp}", comp=['rbm8_vs_luc8', 'rbm24_vs_luc24', 'rbm72_vs_luc72'])
+        expand("rmats_out/{comp}", comp=comps),
+        expand("splice_{comp}.pdf", comp=comps)
 
 rule rmats:
     input:
@@ -45,4 +48,14 @@ rule diff_expr:
         "Rscript {input.rscript}"
             " --eset {input.eset}"
             " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
+rule splice:
+    input:
+        rscript = "splice.r"
+    output:
+        plotfile = "splice_{comp}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --comp {wildcards.comp}"
             " --plotfile {output.plotfile}"

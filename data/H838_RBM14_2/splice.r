@@ -9,6 +9,7 @@ sys = import('sys')
 read_one = function(fname) {
     readr::read_tsv(fname) %>%
         select(gene=geneSymbol, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
+        mutate(stat = -log10(PValue) * sign(IncLevelDifference)) %>%
         arrange(FDR, PValue)
 }
 
@@ -19,6 +20,7 @@ plot_one = function(df, title) {
 }
 
 args = sys$cmd$parse(
+    opt('c', 'comp', 'comparison', 'rbm8_vs_luc8'),
     opt('p', 'plotfile', 'pdf', 'splice.pdf')
 )
 
@@ -31,13 +33,17 @@ U12 = read.table("https://introndb.lerner.ccf.org/static/bed/GRCh38_U12.bed") %>
 sets = gset$get_human(c("MSigDB_Hallmark_2020", "DoRothEA", "GO_Biological_Process_2021"))
 
 stypes = c("A3SS", "A5SS", "MXE", "RI", "SE")
-fnames = file.path("rmats_out/rbm8_vs_luc8", sprintf("%s.MATS.JC.txt", stypes))
+fnames = file.path("rmats_out", args$comp, sprintf("%s.MATS.JC.txt", stypes))
 res = tibble(stype=stypes, genes=lapply(fnames, read_one)) %>%
     rowwise() %>%
-    mutate(GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021,
-                                                          stat="IncLevelDifference")))
+    mutate(GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%
+    ungroup()
 
-plots = mapply(plot_one, res$genes, res$stype, SIMPLIFY=FALSE)
+p1 = mapply(plot_one, res$genes, res$stype, SIMPLIFY=FALSE)
+p2 = mapply(function(x, n) plt$volcano(x, text.size=2.5) + ggtitle(n),
+            res$GO_Biological_Process_2021, res$stype, SIMPLIFY=FALSE)
+
 pdf(args$plotfile, 16, 10)
-wrap_plots(plots)
+plt$text("genes") / wrap_plots(p1) + plot_layout(heights=c(1,15))
+plt$text("GO_Biological_Process_2021") / wrap_plots(p2) + plot_layout(heights=c(1,15))
 dev.off()

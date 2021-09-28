@@ -20,3 +20,29 @@ rule rmats:
             " --od rmats_out/{wildcards.sample1}_vs_{wildcards.sample2}"
             " --tmp rmats_tmp/{wildcards.sample1}_vs_{wildcards.sample2}"
         #-t paired \
+
+rule eset:
+    input:
+        rscript = "eset.r",
+        infile = "STAR_Gene_Counts.csv"
+    output:
+        outfile = "eset.rds",
+        plotfile = "eset.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
+rule diff_expr:
+    input:
+        rscript = "diff_expr.r",
+        eset = "eset.rds"
+    output:
+        outfile = "diff_expr.rds",
+        plotfile = "diff_expr.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --eset {input.eset}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"

@@ -3,7 +3,7 @@ comps = ['rbm8_vs_luc8', 'rbm24_vs_luc24', 'rbm72_vs_luc72']
 rule all:
     input:
         expand("rmats_out/{comp}", comp=comps),
-        expand("splice_{comp}.pdf", comp=comps)
+        expand("splice-{comp}-{junction}.pdf", comp=comps, junction=['JC','JCEC'])
 
 rule rmats:
     input:
@@ -54,8 +54,9 @@ rule splice:
     input:
         rscript = "splice.r"
     output:
-        plotfile = "splice_{comp}.pdf"
+        plotfile = "splice-{comp}-{junction}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --comp {wildcards.comp}"
+            " --junction {wildcards.junction}"
             " --plotfile {output.plotfile}"

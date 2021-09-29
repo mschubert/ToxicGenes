@@ -21,7 +21,8 @@ plot_one = function(df, title) {
 
 args = sys$cmd$parse(
     opt('c', 'comp', 'comparison', 'rbm8_vs_luc8'),
-    opt('p', 'plotfile', 'pdf', 'splice.pdf')
+    opt('j', 'junction', 'JC|JCEC', 'JC'),
+    opt('p', 'plotfile', 'pdf', 'splice-rbm8_vs_luc8-JC.pdf')
 )
 
 U12 = read.table("https://introndb.lerner.ccf.org/static/bed/GRCh38_U12.bed") %>%
@@ -33,7 +34,7 @@ U12 = read.table("https://introndb.lerner.ccf.org/static/bed/GRCh38_U12.bed") %>
 sets = gset$get_human(c("MSigDB_Hallmark_2020", "DoRothEA", "GO_Biological_Process_2021"))
 
 stypes = c("A3SS", "A5SS", "MXE", "RI", "SE")
-fnames = file.path("rmats_out", args$comp, sprintf("%s.MATS.JC.txt", stypes))
+fnames = file.path("rmats_out", args$comp, sprintf("%s.MATS.%s.txt", stypes, args$junction))
 res = tibble(stype=stypes, genes=lapply(fnames, read_one)) %>%
     rowwise() %>%
     mutate(GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%

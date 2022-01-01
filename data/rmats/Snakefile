@@ -1,0 +1,37 @@
+comps = ['H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
+         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24'] #, 'rbm72_vs_luc72']
+
+rule all:
+    input:
+        expand("rmats_out/{comp}", comp=comps),
+        expand("splice-{comp}-{junction}.pdf", comp=comps, junction=['JC','JCEC'])
+
+rule rmats:
+    input:
+        sample1 = "{cline}_{sample1}.txt",
+        sample2 = "{cline}_{sample2}.txt"
+    output:
+        tmpdir = directory("rmats_tmp/{cline}_{sample1}_vs_{sample2}"),
+        outdir = directory("rmats_out/{cline}_{sample1}_vs_{sample2}")
+    shell:
+        "python ~/rmats-turbo/rmats.py"
+            " --b1 {input.sample1}"
+            " --b2 {input.sample2}"
+            " --gtf genes_with_ERCC.gtf"
+            " --readLength 150"
+            " --allow-clipping"
+            " --nthread 4"
+            " --tmp {output.tmpdir}"
+            " --od {output.outdir}"
+        #-t paired \
+
+rule splice:
+    input:
+        rscript = "splice.r"
+    output:
+        plotfile = "splice-{comp}-{junction}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --comp {wildcards.comp}"
+            " --junction {wildcards.junction}"
+            " --plotfile {output.plotfile}"

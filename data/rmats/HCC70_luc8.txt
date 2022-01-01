@@ -1,0 +1,1 @@
+seqdata/HCC70_Luc_8h_1/HCC70_Luc_8h_1.sorted.bam,seqdata/HCC70_Luc_8h_2/HCC70_Luc_8h_2.sorted.bam

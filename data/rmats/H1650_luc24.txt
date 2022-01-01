@@ -1,0 +1,1 @@
+seqdata/H1650_Luc_24h_1/H1650_Luc_24h_1.sorted.bam,seqdata/H1650_Luc_24h_2/H1650_Luc_24h_2.sorted.bam

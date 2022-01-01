@@ -27,7 +27,8 @@ rule rmats:
 
 rule splice:
     input:
-        rscript = "splice.r"
+        rscript = "splice.r",
+        rmats = directory("rmats_out/{comp}")
     output:
         plotfile = "splice-{comp}-{junction}.pdf"
     shell:

@@ -20,7 +20,7 @@ plot_one = function(df, title) {
 }
 
 args = sys$cmd$parse(
-    opt('c', 'comp', 'comparison', 'rbm8_vs_luc8'),
+    opt('c', 'comp', 'comparison', 'HCC70_rbm8_vs_luc8'),
     opt('j', 'junction', 'JC|JCEC', 'JC'),
     opt('p', 'plotfile', 'pdf', 'splice-rbm8_vs_luc8-JC.pdf')
 )
@@ -37,14 +37,14 @@ stypes = c("A3SS", "A5SS", "MXE", "RI", "SE")
 fnames = file.path("rmats_out", args$comp, sprintf("%s.MATS.%s.txt", stypes, args$junction))
 res = tibble(stype=stypes, genes=lapply(fnames, read_one)) %>%
     rowwise() %>%
-    mutate(GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%
+#    mutate(GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%
     ungroup()
 
 p1 = mapply(plot_one, res$genes, res$stype, SIMPLIFY=FALSE)
-p2 = mapply(function(x, n) plt$volcano(x, text.size=2.5) + ggtitle(n),
-            res$GO_Biological_Process_2021, res$stype, SIMPLIFY=FALSE)
+#p2 = mapply(function(x, n) plt$volcano(x, text.size=2.5) + ggtitle(n),
+#            res$GO_Biological_Process_2021, res$stype, SIMPLIFY=FALSE)
 
 pdf(args$plotfile, 16, 10)
 plt$text("genes") / wrap_plots(p1) + plot_layout(heights=c(1,15))
-plt$text("GO_Biological_Process_2021") / wrap_plots(p2) + plot_layout(heights=c(1,15))
+#plt$text("GO_Biological_Process_2021") / wrap_plots(p2) + plot_layout(heights=c(1,15))
 dev.off()

@@ -22,7 +22,7 @@ rule rmats:
         "python ~/rmats-turbo/rmats.py"
             " --b1 {input.sample1}"
             " --b2 {input.sample2}"
-            " --gtf genes_with_ERCC.gtf"
+            " --gtf seqdata/genes_with_ERCC.gtf"
             " --readLength 150"
             " --allow-clipping"
             " --nthread 8"

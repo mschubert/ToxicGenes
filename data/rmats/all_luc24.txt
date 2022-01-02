@@ -1,1 +1,1 @@
-bam/H838_luc_24h_1.sorted.bam,bam/H838_luc_24h_2.sorted.bam,seqdata/H1650_Luc_24h_1/H1650_Luc_24h_1.sorted.bam,seqdata/H1650_Luc_24h_2/H1650_Luc_24h_2.sorted.bam,seqdata/HCC70_Luc_24h_1/HCC70_Luc_24h_1.sorted.bam,seqdata/HCC70_Luc_24h_2/HCC70_Luc_24h_2.sorted.bam
+seqdata/H838_all/H838_luc_24h_1.sorted.bam,seqdata/H838_all/H838_luc_24h_2.sorted.bam,seqdata/H1650_Luc_24h_1/H1650_Luc_24h_1.sorted.bam,seqdata/H1650_Luc_24h_2/H1650_Luc_24h_2.sorted.bam,seqdata/HCC70_Luc_24h_1/HCC70_Luc_24h_1.sorted.bam,seqdata/HCC70_Luc_24h_2/HCC70_Luc_24h_2.sorted.bam

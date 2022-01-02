@@ -1,5 +1,7 @@
 comps = ['H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
-         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24'] #, 'rbm72_vs_luc72']
+         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24',
+         'H838_rbm8_vs_luc8', 'H838_rbm24_vs_luc24', 'H838_rbm72_vs_luc72',
+         'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24']
 
 rule all:
     input:
@@ -20,10 +22,9 @@ rule rmats:
             " --gtf genes_with_ERCC.gtf"
             " --readLength 150"
             " --allow-clipping"
-            " --nthread 4"
+            " --nthread 12"
             " --tmp {output.tmpdir}"
             " --od {output.outdir}"
-        #-t paired \
 
 rule splice:
     input:

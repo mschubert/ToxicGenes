@@ -5,8 +5,8 @@ comps = ['all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
 
 rule all:
     input:
-        expand("splice-{comp}-{junction}.pdf", comp=comps, junction=['JC','JCEC']),
-        expand("paired-{comp}-{junction}.pdf", comp=comps[0:2], junction=['JC','JCEC'])
+        expand("splice-{comp}.pdf", comp=comps),
+        expand("paired-{comp}.pdf", comp=comps[0:2])
 
 rule rmats:
     input:
@@ -32,11 +32,19 @@ rule rmats:
 rule splice:
     input:
         rscript = "splice.r",
-        rmats = directory("rmats_out/{paired}-{comp}")
+        rmats = directory("rmats_out/{paired}-{comp}"),
+        u12 = "GRCh38_U12.bed"
     output:
-        plotfile = "{paired}-{comp}-{junction}.pdf"
+        plotfile = "{paired}-{comp}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --comp {wildcards.paired}-{wildcards.comp}"
-            " --junction {wildcards.junction}"
             " --plotfile {output.plotfile}"
+
+rule U12:
+    output:
+        "GRCh38_U12.bed",
+        "GRCh38_U2.bed"
+    shell:
+        "wget https://introndb.lerner.ccf.org/static/bed/GRCh38_U12.bed && "
+        "wget https://introndb.lerner.ccf.org/static/bed/GRCh38_U2.bed"

@@ -1,13 +1,12 @@
-comps = ['H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
+comps = ['all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
+        'H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
          'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24',
-         'H838_rbm8_vs_luc8', 'H838_rbm24_vs_luc24', 'H838_rbm72_vs_luc72',
-         'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24']
+         'H838_rbm8_vs_luc8', 'H838_rbm24_vs_luc24', 'H838_rbm72_vs_luc72']
 
 rule all:
     input:
-        expand("rmats_out/{paired}-{comp}", paired=['splice','paired'], comp=comps),
-        expand("{paired}-{comp}-{junction}.pdf",
-                paired=['splice','paired'], comp=comps, junction=['JC','JCEC'])
+        expand("splice-{comp}-{junction}.pdf", comp=comps, junction=['JC','JCEC']),
+        expand("paired-{comp}-{junction}.pdf", comp=comps[0:2], junction=['JC','JCEC'])
 
 rule rmats:
     input:
@@ -38,6 +37,6 @@ rule splice:
         plotfile = "{paired}-{comp}-{junction}.pdf"
     shell:
         "Rscript {input.rscript}"
-            " --comp {wildcards.comp}"
+            " --comp {wildcards.paired}-{wildcards.comp}"
             " --junction {wildcards.junction}"
             " --plotfile {output.plotfile}"

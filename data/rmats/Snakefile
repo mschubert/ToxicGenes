@@ -17,10 +17,11 @@ rule rmats:
         outdir = directory("rmats_out/{paired}-{cline}_{sample1}_vs_{sample2}")
     params:
         stats = lambda wc: ["--paired-stats" if wc.paired == "paired" else ""][0]
-    shell:
+    shell: # https://github.com/Xinglab/rmats-turbo#all-arguments
         "python ~/rmats-turbo/rmats.py"
             " --b1 {input.sample1}"
             " --b2 {input.sample2}"
+            " -t paired"
             " --gtf seqdata/genes_with_ERCC.gtf"
             " --readLength 150"
             " --allow-clipping"

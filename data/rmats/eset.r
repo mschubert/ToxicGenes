@@ -35,7 +35,7 @@ sys$run({
     )
 
     bams = list.files("seqdata", "\\.bam$", recursive=TRUE, full.names=TRUE)
-    reads = Rsubread::featureCounts(bams, annot.ext="seqdata/ref_annot_hg38.gtf",
+    reads = Rsubread::featureCounts(bams, annot.ext="seqdata/hg38.refseq.gtf",
                                     isGTFAnnotationFile=TRUE, isPairedEnd=TRUE)
 
     meta = basename(bams) %>%

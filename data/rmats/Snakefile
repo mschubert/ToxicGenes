@@ -23,7 +23,7 @@ rule rmats:
             " --b2 {input.sample2}"
             " -t paired"
 #            " --novelSS"
-            " --gtf seqdata/ref_annot_hg38.gtf"
+            " --gtf seqdata/hg38.refseq.gtf"
             " --readLength 150"
             " --allow-clipping"
             " --nthread 8"

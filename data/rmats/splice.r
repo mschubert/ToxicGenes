@@ -7,7 +7,7 @@ sys = import('sys')
 
 read_one = function(fname) {
     readr::read_tsv(fname) %>%
-        select(gene=geneSymbol, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
+        select(gene=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
         mutate(stat = -log10(PValue) * sign(IncLevelDifference)) %>%
         arrange(FDR, PValue)
 }

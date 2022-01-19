@@ -49,7 +49,9 @@ rule plot:
         plotfile = "{tissue}/{fit}_{type}.pdf"
     group: "fit_and_plot"
     wildcard_constraints:
-        type = "[a-z]+"
+        type = "[a-z]+",
+        fit = "[a-z0-9-]+",
+        tissue = "[a-zA-Z0-9]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

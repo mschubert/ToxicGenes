@@ -1,12 +1,12 @@
 comps = ['all_rbm_vs_luc', 'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
          'H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
-         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24',
+         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24']#,
          'H838_rbm8_vs_luc8', 'H838_rbm24_vs_luc24', 'H838_rbm72_vs_luc72']
 
 rule all:
     input:
-        expand("splice-{comp}.pdf", comp=comps),
-        expand("paired-{comp}.pdf", comp=comps[0:3])
+        expand("splice/splice-{comp}.pdf", comp=comps),
+        expand("splice/paired-{comp}.pdf", comp=comps[0:3])
 
 rule rmats:
     input:
@@ -37,10 +37,12 @@ rule splice:
         rmats = directory("rmats_out/{paired}-{comp}"),
         u12 = "GRCh38_U12.bed"
     output:
-        plotfile = "{paired}-{comp}.pdf"
+        outfile = "splice/{paired}-{comp}.rds",
+        plotfile = "splice/{paired}-{comp}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --comp {wildcards.paired}-{wildcards.comp}"
+            " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
 rule U12:

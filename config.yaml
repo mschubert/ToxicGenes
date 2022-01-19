@@ -1,5 +1,7 @@
 genesets:
     - GO_Biological_Process_2020
+    - GO_Biological_Process_2021
+    - GO_Cellular_Component_2021
     - DoRothEA
     - ChEA_2016
     - ENCODE_and_ChEA_Consensus_TFs_from_ChIP-X
@@ -8,7 +10,9 @@ genesets:
     - miRTarBase_2017
     - MSigDB_Oncogenic_Signatures
     - MSigDB_Hallmark_2020
-    - CORUM
+    - CORUM_core
+    - CORUM_all
+    - CORUM_splice
     - HMDB_Metabolites
     - manual
     - CIN

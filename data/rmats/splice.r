@@ -1,8 +1,4 @@
 library(dplyr)
-library(patchwork)
-library(ggplot2)
-plt = import('plot')
-idmap = import('process/idmap')
 gset = import('genesets')
 sys = import('sys')
 
@@ -23,36 +19,11 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
     tibble(stype=stypes, genes=lapply(fnames, read_one))
 }
 
-#' Assemble panels for different splice events
-#'
-#' @param comp  Name of comparison (common label for all plots)
-#' @param coll  Name of collection (genes, MSigDB_Hallmark, etc.)
-#' @param junc  Splice quantification type (JC, JCEC)
-#' @param df    A data.frame with fields: stype [A3SS, MXE, etc.], diff_splice [df]
-#' @param hl    Character vector of genes to highlight with circles
-#' @return      A patchwork object of volcano plots
-plot_asm = function(comp, coll, junc, df, hl=c()) {
-    plot_one = function(df, title) {
-        plt$volcano(df %>% mutate(circle = label %in% hl, size=3),
-                    x=c("IncLevelDifference", "estimate"), y=c("FDR", "adj.p")) +
-            ggtitle(title)
-    }
-    plots = mapply(plot_one, df$diff_splice, df$stype, SIMPLIFY=FALSE)
-    plt$text(sprintf("%s :: %s (%s)", comp, coll, junc)) / wrap_plots(plots) + plot_layout(heights=c(1,15))
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'comp', 'comparison', 'splice-HCC70_rbm8_vs_luc8'),
-        opt('o', 'outfile', 'rds', 'splice-rbm8_vs_luc8-JC.rds'),
-        opt('p', 'plotfile', 'pdf', 'splice-rbm8_vs_luc8-JC.pdf')
+        opt('o', 'outfile', 'rds', 'splice-rbm8_vs_luc8-JC.rds')
     )
-
-    U12 = read.table("GRCh38_U12.bed") %>%
-        pull(V4) %>%
-        sub("GRCh38-([A-Z0-9]+)@.*", "\\1", .) %>%
-        idmap$gene(to="hgnc_symbol") %>% unname()
-    #U2 = read.table("GRCh38_U2.bed")
 
     sets = gset$get_human(c("MSigDB_Hallmark_2020", "DoRothEA", "GO_Biological_Process_2021"))
 
@@ -65,19 +36,6 @@ sys$run({
                    DoRothEA = list(gset$test_lm(genes, sets$DoRothEA)),
                    GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%
         ungroup()
-
-    plots = res %>%
-        tidyr::gather("collection", "diff_splice", -junction, -stype) %>%
-        group_by(junction, collection) %>%
-            tidyr::nest() %>%
-        rowwise() %>%
-            mutate(plot = list(plot_asm(args$comp, collection, junction, data, U12))) %>%
-        ungroup()
-
-    pdf(args$plotfile, 16, 10)
-    for (p in plots$plot)
-        print(p)
-    dev.off()
 
     saveRDS(res, file=args$outfile)
 })

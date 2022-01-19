@@ -38,11 +38,20 @@ rule splice:
         u12 = "GRCh38_U12.bed"
     output:
         outfile = "splice/{paired}-{comp}.rds",
-        plotfile = "splice/{paired}-{comp}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --comp {wildcards.paired}-{wildcards.comp}"
             " --outfile {output.outfile}"
+
+rule splice_plot:
+    input:
+        rscript = "splice_plot.r",
+        infile = "splice/{paired}-{comp}.rds"
+    output:
+        plotfile = "splice/{paired}-{comp}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"
 
 rule U12:

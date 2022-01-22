@@ -1,6 +1,6 @@
 comps = ['all_rbm_vs_luc', 'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
          'H1650_rbm8_vs_luc8', 'H1650_rbm24_vs_luc24',
-         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24']#,
+         'HCC70_rbm8_vs_luc8', 'HCC70_rbm24_vs_luc24',
          'H838_rbm8_vs_luc8', 'H838_rbm24_vs_luc24', 'H838_rbm72_vs_luc72']
 
 rule all:

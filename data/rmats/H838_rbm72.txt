@@ -1,0 +1,1 @@
+seqdata/H838_RBM14_72h_1/H838_RBM14_72h_1.sorted.bam,seqdata/H838_RBM14_72h_2/H838_RBM14_72h_2.sorted.bam

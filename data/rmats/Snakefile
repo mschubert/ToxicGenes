@@ -31,6 +31,17 @@ rule rmats:
             " --tmp {output.tmpdir}"
             " --od {output.outdir}"
 
+rule eset:
+    input:
+        rscript = "eset.r"
+    output:
+        outfile = "eset.rds",
+        plotfile = "eset.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
 rule splice:
     input:
         rscript = "splice.r",

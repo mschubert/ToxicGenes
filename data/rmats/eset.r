@@ -2,15 +2,36 @@ library(dplyr)
 library(ggplot2)
 sys = import('sys')
 
-read_count_plot = function(eset) {
-    df = as.data.frame(SummarizedExperiment::colData(eset)) %>%
-        mutate(name = sub("(\\.sorted)?\\.bam", "", colnames(eset)),
-               counts = colSums(SummarizedExperiment::assay(eset)))
-    ggplot(df, aes(x=forcats::fct_reorder(name, -counts), y=counts)) +
-        geom_col() +
-        theme(axis.text.x = element_text(angle=45, hjust=1))
+#' Plot read count distributions
+#'
+#' @param reads  Rsubread::featureCounts object
+#' @return       ggplot2 object with bars for total, mapped, assigned reads
+read_count_plot = function(reads) {
+    stats = reads$stat %>%
+        tidyr::gather("bam", "value", -Status) %>%
+        group_by(bam) %>%
+        summarize(total = sum(value),
+                  mapped = sum(value[!grepl("Unmapped", Status)]),
+                  assigned = value[Status == "Assigned"]) %>%
+        mutate(bam = sub("(\\.sorted)?\\.bam$", "", bam))
+
+    long = stats %>%
+        tidyr::gather("type", "value", -bam) %>%
+        mutate(type = factor(type, levels=c("total", "mapped", "assigned")))
+
+    ggplot(long, aes(x=forcats::fct_reorder(bam, -value), y=value)) +
+        geom_col(aes(fill=type), width=2, position=position_dodge(width=0.3)) +
+        scale_fill_manual(values=c(total="#cecece", mapped="#00aedb55", assigned="#d11141ce")) +
+        theme_minimal() +
+        coord_cartesian(expand=FALSE) +
+        theme(axis.text.x = element_text(angle=45, hjust=1),
+              axis.title.x = element_blank())
 }
 
+#' Plot a PCA of samples
+#'
+#' @param eset  DESeq2 expression set object
+#' @return      ggplot2 object
 plot_pca = function(eset) {
     vst = DESeq2::varianceStabilizingTransformation(eset)
 
@@ -23,6 +44,7 @@ plot_pca = function(eset) {
         geom_point(aes(fill=cline, shape=time, size=cond), alpha=0.7) +
         scale_shape_manual(values=shapes) +
         scale_size_manual(values=sizes) +
+        theme_minimal() +
         xlab(paste0("PC1: ", pcavar[1], "% variance")) +
         ylab(paste0("PC2: ", pcavar[2], "% variance")) +
         ggrepel::geom_text_repel(aes(label=group))
@@ -38,8 +60,7 @@ sys$run({
     reads = Rsubread::featureCounts(bams, annot.ext="seqdata/hg38.refseq.gtf",
                                     isGTFAnnotationFile=TRUE, isPairedEnd=TRUE)
 
-    meta = basename(bams) %>%
-        sub(".sorted.bam", "", ., fixed=TRUE) %>%
+    meta = sub(".sorted.bam", "", basename(bams), fixed=TRUE) %>%
         strsplit("_") %>%
         do.call(rbind, .) %>%
         as.data.frame() %>%
@@ -51,9 +72,12 @@ sys$run({
 
     eset = DESeq2::DESeqDataSetFromMatrix(reads$counts, meta, ~1)
 
-    pdf(args$plotfile)
-    print(read_count_plot(eset))
+    pdf(args$plotfile, 10, 8)
+    print(read_count_plot(reads))
     print(plot_pca(eset))
+    print(plot_pca(eset[,eset$cline == "H838"]))
+    print(plot_pca(eset[,eset$cline == "H1650"]))
+    print(plot_pca(eset[,eset$cline == "HCC70"]))
     dev.off()
 
     saveRDS(eset, file=args$outfile)

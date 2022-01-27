@@ -10,13 +10,17 @@ sys = import('sys')
 #' @return          A nested tibble containing different results
 read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction="JC") {
     read_one = function(fname) {
-        readr::read_tsv(fname) %>%
-            select(label=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
-            mutate(stat = -log10(PValue) * sign(IncLevelDifference)) %>%
-            arrange(FDR, PValue)
+        message(fname)
+        try({
+            readr::read_tsv(fname) %>%
+                select(label=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
+                mutate(stat = -log10(PValue) * sign(IncLevelDifference)) %>%
+                arrange(FDR, PValue)
+        })
     }
     fnames = file.path("rmats_out", comp, sprintf("%s.MATS.%s.txt", stypes, junction))
-    tibble(stype=stypes, genes=lapply(fnames, read_one))
+    re = tibble(stype=stypes, genes=lapply(fnames, read_one))
+    re[sapply(re$genes, function(x) class(x)[1]) != "try-error",]
 }
 
 sys$run({
@@ -25,7 +29,9 @@ sys$run({
         opt('o', 'outfile', 'rds', 'splice-rbm8_vs_luc8-JC.rds')
     )
 
-    sets = gset$get_human(c("MSigDB_Hallmark_2020", "DoRothEA", "GO_Biological_Process_2021"))
+    sets = gset$get_human(c("MSigDB_Hallmark_2020", "CORUM_all", "CORUM_core", "CORUM_splice",
+                            "HMDB_Metabolites", "miRTarBase_2017", "DoRothEA", "GO_Biological_Process_2021",
+                            "GO_Cellular_Component_2021", "GO_Molecular_Function_2021"))
 
     res = list(
         jc = read_all(args$comp, junction="JC"),

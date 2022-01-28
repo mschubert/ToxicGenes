@@ -52,7 +52,7 @@ sys$run({
 
     for (sname in names(sets))
         res = res %>%
-            mutate(!! rlang::sym(sname) := list(gset$test_lm(genes, sets[[sname]])))
+            mutate({{ sname }} := list(gset$test_lm(genes, sets[[sname]])))
 
     saveRDS(ungroup(res), file=args$outfile)
 })

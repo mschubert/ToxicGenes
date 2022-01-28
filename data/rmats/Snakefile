@@ -5,7 +5,7 @@ comps = ['all_rbm_vs_luc', 'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
 
 rule all:
     input:
-        "diff_expr.pdf",
+        expand("diff_expr_{time}.pdf", time=['8h', '24h', 'all']),
         expand("splice/splice-{comp}.pdf", comp=comps),
         expand("splice/paired-{comp}.pdf", comp=comps[0:3])
 
@@ -48,18 +48,19 @@ rule diff_expr:
         rscript = "diff_expr.r",
         infile = "eset.rds"
     output:
-        outfile = "diff_expr.rds",
+        outfile = "diff_expr_{time}.rds",
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
+            " --time {wildcards.time}"
             " --outfile {output.outfile}"
 
 rule de_plot:
     input:
         rscript = "diff_expr_plot.r",
-        infile = "diff_expr.rds"
+        infile = "diff_expr_{time}.rds"
     output:
-        plotfile = "diff_expr.pdf"
+        plotfile = "diff_expr_{time}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

@@ -34,10 +34,15 @@ de_cline = function(eset, cline) {
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', 'eset.rds'),
+        opt('t', 'time', '8h|24h|all', '8h'),
         opt('o', 'outfile', 'rds', 'diff_expr.rds')
     )
 
     eset = readRDS(args$infile)
+    eset = eset[,eset$time != "72h"] # only H838
+    if (args$time != "all")
+        eset = eset[,eset$time == args$time]
+
     sets = gset$get_human(c("MSigDB_Hallmark_2020", "CORUM_all", "CORUM_core", "CORUM_splice",
                             "HMDB_Metabolites", "miRTarBase_2017", "DoRothEA", "GO_Biological_Process_2021",
                             "GO_Cellular_Component_2021", "GO_Molecular_Function_2021"))

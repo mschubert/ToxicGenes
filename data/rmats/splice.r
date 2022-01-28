@@ -39,7 +39,10 @@ sys$run({
     ) %>% bind_rows(.id="junction") %>% rowwise()
 
     for (sname in names(sets))
-        res = res %>% mutate(!! rlang::sym(sname) := list(gset$test_lm(genes, sets[[sname]])))
+        res = res %>%
+            mutate(!! rlang::sym(sname) := tryCatch({
+                list(gset$test_lm(genes, sets[[sname]]))
+            }, error = function(e) list(tibble())))
 
     saveRDS(ungroup(res), file=args$outfile)
 })

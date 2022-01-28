@@ -15,6 +15,8 @@ sys = import('sys')
 #' @return      A patchwork object of volcano plots
 plot_asm = function(comp, coll, junc, df, hl=c()) {
     plot_one = function(df, title) {
+        if (nrow(df) == 0)
+            return(plt$text("No observations"))
         plt$volcano(df %>% mutate(circle = label %in% hl, size=3),
                     size = c("size_used", "size"),
                     x=c("IncLevelDifference", "estimate"), y=c("FDR", "adj.p")) +

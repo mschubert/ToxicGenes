@@ -58,7 +58,7 @@ sys$run({
 
     bams = list.files("seqdata", "\\.bam$", recursive=TRUE, full.names=TRUE)
     reads = Rsubread::featureCounts(bams, annot.ext="seqdata/hg38.refseq.gtf",
-                                    isGTFAnnotationFile=TRUE, isPairedEnd=TRUE)
+                    isGTFAnnotationFile=TRUE, isPairedEnd=TRUE, nthreads=10)
 
     meta = sub(".sorted.bam", "", basename(bams), fixed=TRUE) %>%
         strsplit("_") %>%
@@ -71,6 +71,7 @@ sys$run({
         as_tibble()
 
     eset = DESeq2::DESeqDataSetFromMatrix(reads$counts, meta, ~1)
+    eset = eset[rowSums(SummarizedExperiment::assay(eset)) != 0,]
 
     pdf(args$plotfile, 10, 8)
     print(read_count_plot(reads))

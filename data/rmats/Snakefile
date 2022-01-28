@@ -5,6 +5,7 @@ comps = ['all_rbm_vs_luc', 'all_rbm8_vs_luc8', 'all_rbm24_vs_luc24',
 
 rule all:
     input:
+        "diff_expr.pdf",
         expand("splice/splice-{comp}.pdf", comp=comps),
         expand("splice/paired-{comp}.pdf", comp=comps[0:3])
 
@@ -42,6 +43,28 @@ rule eset:
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
+rule diff_expr:
+    input:
+        rscript = "diff_expr.r",
+        infile = "eset.rds"
+    output:
+        outfile = "diff_expr.rds",
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --outfile {output.outfile}"
+
+rule de_plot:
+    input:
+        rscript = "diff_expr_plot.r",
+        infile = "diff_expr.rds"
+    output:
+        plotfile = "diff_expr.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --plotfile {output.plotfile}"
+
 rule splice:
     input:
         rscript = "splice.r",
@@ -56,10 +79,10 @@ rule splice:
 
 rule splice_plot:
     input:
-        rscript = "splice_plot.r",
-        infile = "splice/{paired}-{comp}.rds"
+        rscript = "{type}_plot.r",
+        infile = "{type}/{paired}-{comp}.rds"
     output:
-        plotfile = "splice/{paired}-{comp}.pdf"
+        plotfile = "{type}/{paired}-{comp}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

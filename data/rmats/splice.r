@@ -36,12 +36,10 @@ sys$run({
     res = list(
         jc = read_all(args$comp, junction="JC"),
         jcec = read_all(args$comp, junction="JCEC")
-    ) %>% bind_rows(.id="junction") %>%
-        rowwise() %>%
-            mutate(MSigDB_Hallmark_2020 = list(gset$test_lm(genes, sets$MSigDB_Hallmark_2020)),
-                   DoRothEA = list(gset$test_lm(genes, sets$DoRothEA)),
-                   GO_Biological_Process_2021 = list(gset$test_lm(genes, sets$GO_Biological_Process_2021))) %>%
-        ungroup()
+    ) %>% bind_rows(.id="junction") %>% rowwise()
 
-    saveRDS(res, file=args$outfile)
+    for (sname in names(sets))
+        res = res %>% mutate(!! rlang::sym(sname) := list(gset$test_lm(genes, sets[[sname]])))
+
+    saveRDS(ungroup(res), file=args$outfile)
 })

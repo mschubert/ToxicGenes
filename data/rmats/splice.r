@@ -14,7 +14,7 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
         try({
             readr::read_tsv(fname) %>%
                 select(label=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
-                mutate(stat = -log10(PValue) * sign(IncLevelDifference)) %>%
+                mutate(stat = -log10(pmax(PValue, 1e-20)) * sign(IncLevelDifference)) %>%
                 arrange(FDR, PValue)
         })
     }

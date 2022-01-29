@@ -31,7 +31,8 @@ sys$run({
 
     sets = gset$get_human(c("MSigDB_Hallmark_2020", "CORUM_all", "CORUM_core", "CORUM_splice",
                             "HMDB_Metabolites", "miRTarBase_2017", "DoRothEA", "GO_Biological_Process_2021",
-                            "GO_Cellular_Component_2021", "GO_Molecular_Function_2021"))
+                            "GO_Cellular_Component_2021", "GO_Molecular_Function_2021"), conf="A") %>%
+        gset$filter(max=500)
 
     res = list(
         jc = read_all(args$comp, junction="JC"),

@@ -38,12 +38,14 @@ plot_pca = function(eset) {
     pcadata = DESeq2::plotPCA(vst, intgroup=c("cline", "cond", "time", "rep"), returnData=TRUE)
     pcavar = round(100 * attr(pcadata, "percentVar"))
     shapes = c("8h"=21, "24h"=22, "72h"=23)
-    sizes = c("Luc"=2, "RBM14"=4)
+    sizes = c(Luc=2, RBM14=4)
+    cols = RColorBrewer::brewer.pal(length(levels(eset$cline)), "Set1") %>% setNames(levels(eset$cline))
 
     ggplot(pcadata, aes(x=PC1, y=PC2)) +
         geom_point(aes(fill=cline, shape=time, size=cond), alpha=0.7) +
-        scale_shape_manual(values=shapes) +
+        scale_shape_manual(values=shapes, guide=guide_legend(override.aes=list(size=3))) +
         scale_size_manual(values=sizes) +
+        scale_fill_manual(values=cols, guide=guide_legend(override.aes=list(shape=21, size=3))) +
         theme_minimal() +
         xlab(paste0("PC1: ", pcavar[1], "% variance")) +
         ylab(paste0("PC2: ", pcavar[2], "% variance")) +

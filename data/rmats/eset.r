@@ -52,6 +52,22 @@ plot_pca = function(eset) {
         ggrepel::geom_text_repel(aes(label=group))
 }
 
+plot_rbm14 = function(eset) {
+    eset = DESeq2::estimateSizeFactors(eset)
+    dset = cbind(as.data.frame(SummarizedExperiment::colData(eset)),
+                 RBM14=DESeq2::counts(eset, normalized=TRUE)["RBM14",]) %>%
+        mutate(label = paste(cline, cond, time, rep, sep=":"),
+               group = paste(cline, cond, rep, sep=":"))
+
+    ggplot(dset, aes(x=time, y=RBM14, group=group, color=cond)) +
+        geom_line(aes(linetype=rep), size=1.5, alpha=0.7) +
+        facet_wrap(~ cline, ncol=1, scales="free") +
+        theme_minimal() +
+        ylim(c(0, NA)) +
+        scale_color_manual(values=c(Luc="grey", RBM14="red")) +
+        labs(y = "RBM14 (normalized read count)")
+}
+
 sys$run({
     args = sys$cmd$parse(
         opt('o', 'outfile', 'rds', 'eset.rds'),
@@ -81,6 +97,7 @@ sys$run({
     print(plot_pca(eset[,eset$cline == "H838"]))
     print(plot_pca(eset[,eset$cline == "H1650"]))
     print(plot_pca(eset[,eset$cline == "HCC70"]))
+    print(plot_rbm14(eset))
     dev.off()
 
     saveRDS(eset, file=args$outfile)

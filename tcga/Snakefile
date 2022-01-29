@@ -12,7 +12,8 @@ cores = { "pan" : 500, "*" : 70 }
 rule fits:
     input:
         expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=config['tcga_adj'], fit=config['fits'])
+                type=config['tcga_adj'], fit=config['fits']),
+        expand("bionet/{tissue}.pdf", tissue=config['tcga_tissues'])
 
 rule gsets:
     input:
@@ -71,4 +72,15 @@ rule gset:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"
+
+rule bionet:
+    input:
+        rscript = "../ccle/bionet.r",
+        infile = "{tissue}/stan-nb_puradj.rds"
+    output:
+        plotfile = "bionet/{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"

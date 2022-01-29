@@ -12,7 +12,8 @@ time = { 'pan' : 72*60, '*' : 360 }
 
 rule fits:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits'])
+        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits']),
+        expand("bionet/{tissue}.pdf", tissue=config['ccle_tissues'])
 
 rule gsets:
     input:
@@ -62,4 +63,15 @@ rule gset:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
+            " --plotfile {output.plotfile}"
+
+rule bionet:
+    input:
+        rscript = "bionet.r",
+        infile = "{tissue}/stan-nb.rds"
+    output:
+        plotfile = "bionet/{tissue}.pdf"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
             " --plotfile {output.plotfile}"

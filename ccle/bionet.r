@@ -12,7 +12,7 @@ sys = import('sys')
 #' @return  ggplot2 object
 plot_net = function(net, node_aes, ...) {
     set.seed(121979) # same layout if same nodes
-    p = ggraph(net) +
+    p = ggraph(net, layout="stress") +
         geom_node_point(node_aes, alpha=0.7, ..., shape=21) +
         geom_node_text(aes(label = name), size=2, repel=TRUE) +
         viridis::scale_fill_viridis(option="magma") +
@@ -25,7 +25,7 @@ plot_net = function(net, node_aes, ...) {
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', 'pan/stan-nb.rds'),
-        opt('c', 'cutoff', 'min z_score to include', '4'),
+        opt('c', 'cutoff', 'min z_score to include', '3'),
         opt('p', 'plotfile', 'pdf', 'bionet.pdf')
     )
 

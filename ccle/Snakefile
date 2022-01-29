@@ -71,7 +71,10 @@ rule bionet:
         infile = "{tissue}/stan-nb.rds"
     output:
         plotfile = "bionet/{tissue}.pdf"
+    params:
+        cutoff = lambda wc: [ 3 if wc.tissue == "pan" else 1 ][0]
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
+            " --cutoff {params.cutoff}"
             " --plotfile {output.plotfile}"

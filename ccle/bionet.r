@@ -25,12 +25,13 @@ plot_net = function(net, node_aes, ...) {
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', 'pan/stan-nb.rds'),
-        opt('c', 'cutoff', 'min z_score to include', '3'),
+        opt('n', 'n_genes', 'number of genes to have non-zero scores', '500'),
         opt('p', 'plotfile', 'pdf', 'bionet.pdf')
     )
 
     scores = readRDS(args$infile)
-    cu = as.numeric(args$cutoff)
+    cohort = sub("^([a-zA-Z]+)/.*", "\\1", args$infile)
+    ng = as.integer(args$n_genes)
 
     op = OmnipathR::import_all_interactions()
     net = op %>%
@@ -42,12 +43,18 @@ sys$run({
     conn = igraph::components(net)$membership == 1 # doesn't work in filter above
     net = net %N>% filter(conn) %>% activate(edges)
 
-    scores2 = abs(scores$z_comp %>% setNames(scores$gene) %>% pmin(-cu) + cu)
+    # calculate cutoff as z>=1 or top <ng> genes
+    cu = scores %>% filter(z_comp < 0) %>% arrange(z_comp) %>%
+        head(ng) %>% top_n(1, z_comp) %>% pull(z_comp) %>% abs() %>% max(1)
+    scores2 = -scores$z_comp %>% setNames(scores$gene)
     scores2 = scores2[!is.na(scores2)]
+    scores2[scores2 < cu] = 0
+
     res = as_tbl_graph(runFastHeinz(net, scores2)) %N>%
         left_join(scores %>% dplyr::rename(name=gene))
 
     pdf(args$plotfile)
-    print(plot_net(res, aes(fill=estimate, size=n_aneup)))
+    print(plot_net(res, aes(fill=pmax(estimate, -1), size=n_aneup)) +
+          ggtitle(sprintf("%s (cutoff: %.2f)", cohort, cu)))
     dev.off()
 })

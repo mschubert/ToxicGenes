@@ -80,10 +80,8 @@ rule bionet:
         infile = "{tissue}/stan-nb_puradj.rds"
     output:
         plotfile = "bionet/{tissue}.pdf"
-    params:
-        cutoff = lambda wc: [ 5 if wc.tissue == "pan" else 2 ][0]
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
-            " --cutoff {params.cutoff}"
+            " --n_genes 500"
             " --plotfile {output.plotfile}"

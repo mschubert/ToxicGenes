@@ -6,6 +6,7 @@ sys$run({
     args = sys$cmd$parse(
         opt('d', 'diff_expr', 'rds', 'diff_expr_24h.rds'),
         opt('s', 'splice_all', 'rds', './splice/paired-all_rbm24_vs_luc24.rds'),
+        opt('o', 'outfile', 'rds', 'overview_24h.rds'),
         opt('p', 'plotfile', 'pdf', 'overview_24h.pdf'),
         arg('splice', 'cell line splice', arity='*',
             sprintf("splice/splice-%s_rbm24_vs_luc24.rds", c("H838", "H1650", "HCC70")))
@@ -55,7 +56,7 @@ sys$run({
             mutate(size = abs(statistic) / max(abs(statistic), na.rm=TRUE)) %>%
         ungroup()
 
-    ggplot(dset, aes(x=stype, y=factor(label, levels=rev(unique(use$label))), fill=statistic)) +
+    p = ggplot(dset, aes(x=stype, y=factor(label, levels=rev(unique(use$label))), fill=statistic)) +
         geom_point(aes(size=size, shape=junction), alpha=0.9, color="grey") +
         scale_shape_manual(values=c(covar=23, jc=21, jcec=22), guide=guide_legend(override.aes=list(size=3))) +
         scale_fill_distiller(palette="RdBu") +
@@ -67,4 +68,10 @@ sys$run({
               strip.text.y = element_text(angle=0),
               axis.title.x = element_blank(),
               axis.title.y = element_blank())
+
+    pdf(args$plotfile, 14, 14)
+    print(p)
+    dev.off()
+
+    saveRDS(both, file=args$outfile)
 })

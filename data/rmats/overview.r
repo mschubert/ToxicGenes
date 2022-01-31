@@ -19,18 +19,23 @@ sys$run({
 
     splice = bind_rows(splice_all, splice_cline) %>%
         select(cline, everything()) %>%
-        mutate(genes = lapply(genes, . %>% dplyr::rename(estimate=IncLevelDifference, statistic=stat, adj.p=FDR)))
+        mutate(genes = lapply(genes, . %>% dplyr::rename(estimate=IncLevelDifference, statistic=stat, adj.p=FDR))) %>%
+        tidyr::gather("collection", "res", -cline, -stype, -junction) %>%
+        tidyr::unnest(res) %>%
+        group_by(cline, stype, collection, label) %>%
+            top_n(-1, adj.p) %>%
+        ungroup()
     gex = diff_expr %>%
-        mutate(junction = ifelse(cline=="all", cond, NA),
+        filter(cond != "all") %>%
+        mutate(junction = "covar",
                genes = lapply(genes, . %>% dplyr::rename(label=gene_name, estimate=log2FoldChange, statistic=stat, adj.p=padj))) %>%
-        select(-cond)
+        select(cline, stype, everything()) %>% select(-cond) %>%
+        tidyr::gather("collection", "res", -cline, -stype, -junction) %>%
+        tidyr::unnest(res)
     both = bind_rows(gex, splice) %>%
-        filter(is.na(junction) | junction %in% c("jc", "all_covar")) %>% select(-junction) %>% # do only one first
         mutate(cline = factor(cline, levels=c("all", "H838", "H1650", "HCC70")),
                stype = factor(stype, levels=c("gex", unique(splice$stype)))) %>%
-        tidyr::gather("collection", "res", -cline, -stype) %>%
-        tidyr::unnest(res) %>%
-        select(collection, cline, stype, label, estimate, statistic, adj.p)
+        select(collection, cline, stype, junction, label, estimate, statistic, adj.p)
 
     use = both %>%
         filter(cline == "all", stype != "gex", adj.p < 0.05,
@@ -39,9 +44,10 @@ sys$run({
                !grepl("Nrp1", label),
                collection != "CORUM_all") %>%
         group_by(collection, stype) %>%
-            top_n(3, -adj.p) %>%
+            top_n(-3, adj.p) %>%
         ungroup() %>%
-        select(collection, label)
+        select(collection, label) %>%
+        distinct()
 
     dset = inner_join(use, both) %>%
         mutate(statistic = sign(statistic) * pmin(abs(statistic), 5)) %>%
@@ -50,11 +56,12 @@ sys$run({
         ungroup()
 
     ggplot(dset, aes(x=stype, y=factor(label, levels=rev(unique(use$label))), fill=statistic)) +
-        geom_point(aes(size=size), shape=21, alpha=0.9, color="grey") +
+        geom_point(aes(size=size, shape=junction), alpha=0.9, color="grey") +
+        scale_shape_manual(values=c(covar=23, jc=21, jcec=22), guide=guide_legend(override.aes=list(size=3))) +
         scale_fill_distiller(palette="RdBu") +
         facet_grid(collection ~ cline, scales="free_y", space="free_y") +
         coord_cartesian(clip="off") +
-        labs(size = "stat per\ncolumn") +
+        labs(size = "stat per\ncolumn", shape="type") +
         theme_classic() +
         theme(axis.text.x = element_text(angle=45, hjust=1),
               strip.text.y = element_text(angle=0),

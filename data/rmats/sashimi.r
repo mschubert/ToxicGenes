@@ -32,7 +32,7 @@ txdb = GenomicFeatures::makeTxDbFromGFF(args$gtf, format="gtf")
 genes = seq$coords$gene(assembly="GRCh38", granges=TRUE)
 exons = GenomicFeatures::exonsBy(txdb, by="tx", use.names=TRUE)
 
-.name = "NEK7"
+.name = "IL4R"
 .time = "24h"
 
 region = genes[genes$external_gene_name %in% .name] %>%
@@ -73,14 +73,16 @@ dev.off()
 
 
 eset = readRDS("eset_exon.rds") %>% DESeq2::estimateSizeFactors() %>% DESeq2::counts(normalized=TRUE)
-expr = eset[grepl("^NEK7", rownames(eset)),] %>%
+expr = eset[grepl(paste0("^", .name), rownames(eset)),] %>%
     reshape2::melt() %>%
     transmute(exon=Var1, bam=Var2, counts=value) %>%
     inner_join(meta %>% mutate(bam = basename(bam))) %>%
     as_tibble() %>%
-    mutate(bam = sub("\\.sorted\\.bam", "", bam))
+    mutate(bam = sub("\\.sorted\\.bam", "", bam)) %>%
+    filter(time == "24h")
 
-ggplot(expr, aes(x=exon, y=bam, fill=log2(counts+1))) +
+ggplot(expr, aes(y=exon, x=bam, fill=log2(counts+1))) +
     geom_raster() +
-    facet_grid(cline ~ ., scales="free_y", space="free_y") +
-    scale_fill_brewer(pal="")
+    facet_grid(. ~ cline, scales="free_x", space="free_x") +
+    scale_fill_distiller(palette="Spectral") +
+    theme_classic() + theme(axis.text.x = element_text(angle=45, hjust=1))

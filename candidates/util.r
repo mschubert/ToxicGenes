@@ -154,13 +154,18 @@ load_tcga = function(cohort, top, et=0.15) {
             cns[intersect(genes, rownames(cns)),,drop=FALSE]
         }) %>% narray::stack(along=2)
     }
+    mut_proc = function(cohort) {
+        tcga$mutations(cohort) %>%
+            transmute(sample = substr(Tumor_Sample_Barcode, 1, 16),
+                      gene = Hugo_Symbol,
+                      mut = factor(Variant_Classification))
+    }
     tcga_expr = load_expr(cohort, top) # only primary because purity() only
     tcga_cns = load_copies(cohort, top) # has those samples
     tcga_meth = tcga$meth(cohort2, cpg="avg", mvalues=TRUE, genes=top) %>% # cpg=stdev too many NAs
         reshape2::melt() %>%
         transmute(sample = Var2, gene = Var1, meth = value)
-    tcga_mut = tcga$mutations() %>%
-        transmute(sample = Tumor_Sample_Barcode, gene = Hugo_Symbol, mut = factor(Variant_Classification))
+    tcga_mut = lapply(cohort2, mut_proc) %>% bind_rows()
     names(dimnames(tcga_expr)) = c("gene", "sample")
     names(dimnames(tcga_cns)) = c("gene", "sample")
 

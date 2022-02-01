@@ -13,6 +13,19 @@ genes:
     - SFPQ
     - SNRPA
     - ZBTB14
+  bionet:
+    - POU2F1
+    - NRF1
+    - CTCF
+    - SP1
+    - FUS
+    - DHX9
+    - BCLAF1
+    - PPP1R10
+    - SRSF1
+    - RSRP1
+    - RPTOR
+    - ZNF143
 methods:
     - lm
     - stan-nb

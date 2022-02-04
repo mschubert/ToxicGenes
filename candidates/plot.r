@@ -7,11 +7,11 @@ util = import('./util')
 
 args = sys$cmd$parse(
     opt('c', 'config', 'yaml', '../config.yaml'),
-    opt('d', 'dset', 'rds', '../merge/LUAD.rds'),
-    opt('y', 'yaml', 'yaml', 'LUAD/top-genes.yaml'),
-    opt('t', 'tissue', 'pan|TCGA identifier', 'LUAD'),
+    opt('d', 'dset', 'rds', '../merge/pan.rds'),
+    opt('y', 'yaml', 'yaml', 'manual.yaml'),
+    opt('t', 'tissue', 'pan|TCGA identifier', 'pan'),
     opt('o', 'outfile', 'xlsx', '/dev/null'),
-    opt('p', 'plotfile', 'pdf', 'LUAD/top-genes.pdf')
+    opt('p', 'plotfile', 'pdf', 'pan/manual.pdf')
 )
 
 select = yaml::read_yaml(args$yaml)

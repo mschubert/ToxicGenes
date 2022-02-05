@@ -1,0 +1,52 @@
+import os, glob, re
+bams = glob.glob("../rmats/seqdata/**/*.sorted.bam", recursive=True)
+samples = { re.sub("\\.sorted\\.bam$", "", os.path.basename(f)):f for f in bams }
+
+rule all:
+    input:
+        expand("aligned/{sample}.Aligned.sortedByCoord.out.bam", sample=samples.keys())
+
+rule star_genome:
+    input:
+        fasta = "Homo_sapiens.GRCh38.dna.primary_assembly.fa",
+        gtf = "Homo_sapiens.GRCh38.105.gtf"
+    output:
+        genome = directory("STAR_GRCh38_ens105")
+    resources:
+        mem = 100000,
+        walltime = 240
+    threads: 10
+    shell:
+        "mkdir {output.genome};"
+        "STAR --runMode genomeGenerate"
+            " --runThreadN {threads}"
+            " --genomeFastaFiles {input.fasta}"
+            " --sjdbGTFfile {input.gtf}"
+            " --limitGenomeGenerateRAM {resources.mem}000000"
+            " --genomeDir {output.genome}"
+
+rule align:
+    input:
+        genome = "STAR_GRCh38_ens105",
+        bam_in = "../rmats/seqdata/{sample}/{sample}.sorted.bam"
+    output:
+        bam_temp = temp("aligned/{sample}.sorted.bam.temp"),
+        bam_out = "aligned/{sample}.Aligned.sortedByCoord.out.bam"
+    resources:
+        mem = 30000,
+        walltime = 120
+    threads: 10
+    shell:
+        "samtools sort -n -@{threads} {input.bam_in} > {output.bam_temp}; "
+        "STAR --runMode alignReads"
+            " --runThreadN {threads}"
+            " --genomeLoad LoadAndKeep"
+            " --readFilesType SAM PE"
+            " --readFilesCommand samtools view -F0x100"
+            " --limitOutSJcollapsed 2000000"
+            " --genomeDir {input.genome}"
+            " --readFilesIn {output.bam_temp}"
+            " --outSAMtype BAM SortedByCoordinate"
+            " --limitBAMsortRAM {resources.mem}000000"
+            " --quantMode GeneCounts"
+            " --outFileNamePrefix aligned/{wildcards.sample}."

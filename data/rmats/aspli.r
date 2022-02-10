@@ -20,6 +20,20 @@ seq = import('seq')
 ex = exonsBy(genomeTxDb, by="gene") %>% unlist() %>% mutate(gene_name = names(.)) %>% unname()
 fname = h838[1]
 
+int = intronsByTranscript(genomeTxDb)
+names(int) = 
+
+
+fname = "./seqdata/H1650_RBM14_24h_2/H1650_RBM14_24h_2.sorted.bam"
+ga = GenomicAlignments::readGAlignmentPairs(Rsamtools::BamFile(fname), use.names=TRUE,
+            index=paste0(fname, ".bai"),
+            param=Rsamtools::ScanBamParam(flag=Rsamtools::scanBamFlag(isDuplicate=FALSE)))
+
+table(njunc(first(ga)), njunc(last(ga)))
+colSums(cigarOpTable(cigar(first(ga))))
+colSums(cigarOpTable(cigar(last(ga))))
+
+
 process_one = function(fname) {
     gr = seq$read_granges(fname) %>%
         mutate(read_name = names(.)) %>% unname()
@@ -29,6 +43,8 @@ process_one = function(fname) {
         group_by(read_name) %>%
             filter(n_distinct(gene_name) == 1) %>%
         ungroup()
+
+    xx = spanning_ex %>% filter(!read_name %in% within_ex$read_name)
 
 
 

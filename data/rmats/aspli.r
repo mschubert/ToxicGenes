@@ -25,13 +25,16 @@ names(int) =
 
 
 fname = "./seqdata/H1650_RBM14_24h_2/H1650_RBM14_24h_2.sorted.bam"
-ga = GenomicAlignments::readGAlignmentPairs(Rsamtools::BamFile(fname), use.names=TRUE,
+ga = GenomicAlignments::readGAlignments(Rsamtools::BamFile(fname), use.names=TRUE,
             index=paste0(fname, ".bai"),
             param=Rsamtools::ScanBamParam(flag=Rsamtools::scanBamFlag(isDuplicate=FALSE)))
 
-table(njunc(first(ga)), njunc(last(ga)))
-colSums(cigarOpTable(cigar(first(ga))))
-colSums(cigarOpTable(cigar(last(ga))))
+juncs = as_tibble(cbind(#n = njunc(ga), cigarOpTable(cigar(ga)),
+                        ee_junc = grepl("[0-9]+M[0-9]+N[0-9]+M", cigar(ga)) + 0,
+                        ei_junc = grepl("([0-9]+M[0-9]+S)|([0-9]+S[0-9]+M)", cigar(ga)) + 0))
+
+#ga = ga[isCompatibleWithSplicing(cigar(ga))]
+#findCompatibleOverlaps(ga, genomeTxDb)
 
 
 process_one = function(fname) {

@@ -1,6 +1,12 @@
 library(dplyr)
 library(GenomicFeatures)
 library(GenomicAlignments)
+sys = import('sys')
+
+args = sys$cmd$parse(
+    opt('o', 'outfile', 'rds', 'global_ee-ei.rds'),
+    opt('p', 'plotfile', 'pdf', 'global_ee-ei.pdf')
+)
 
 genomeTxDb = makeTxDbFromGFF("seqdata/hg38.refseq.gtf")
 bams = list.files("seqdata", "\\.bam$", recursive=TRUE, full.names=TRUE)
@@ -30,10 +36,18 @@ meta = sub(".sorted.bam", "", basename(bams), fixed=TRUE) %>%
               time = factor(V3) %>% relevel("8h"),
               rep = factor(V4)) %>%
     as_tibble()
-meta$reads = lapply(reads, as_tibble)
+meta$reads = lapply(reads, . %>% as.data.frame() %>% tibble::rownames_to_column("gene_name") %>% as_tibble())
+saveRDS(meta, file=args$outfile)
 
-mu = tidyr::unnest(meta) #%>% filter(cline == "HCC70", time == "24h")
+mu = tidyr::unnest(meta, reads) #%>% filter(cline == "HCC70", time == "24h")
 
+mod8 = lm(ee_ei ~ gene_name + cond, data=mu %>% filter(ee > 500, ee < 1000, time == "8h") %>% mutate(ee_ei = ee/ei))
+mod24 = lm(ee_ei ~ gene_name + cond, data=mu %>% filter(ee > 500, ee < 1000, time == "24h") %>% mutate(ee_ei = ee/ei))
+
+broom::tidy(mod8) %>% filter(!grepl("gene_name", term))
+broom::tidy(mod24) %>% filter(!grepl("gene_name", term))
+
+pdf(args$plotfile, 10, 8)
 ggplot(mu %>% filter(ee > 1000), aes(x=rep, y=ei/ee)) +
     geom_boxplot(aes(fill=cond), outlier.shape=NA) +
     facet_grid(cline ~ time) +
@@ -46,3 +60,4 @@ ggplot(mu %>% filter(ee > 5, ei > 5), aes(x=ee, y=ei)) +
     facet_grid(cline ~ time) +
     scale_x_continuous(trans="log1p", breaks=10^(1:4), limits=c(5,1e4), expand=c(0,0)) +
     scale_y_continuous(trans="log1p", breaks=10^(1:4), limits=c(5,1e4), expand=c(0,0))
+dev.off()

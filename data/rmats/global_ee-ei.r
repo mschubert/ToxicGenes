@@ -52,6 +52,7 @@ do_glm = function(df) {
 xx = mu %>%
     mutate(ee_ei = ee / ei) %>%
     group_by(time, gene_name) %>%
+        filter(all(ee >= 5)) %>%
         tidyr::nest() %>%
     ungroup() %>%
     mutate(res = clustermq::Q(do_glm, df=data, n_jobs=10, pkgs="dplyr", fail_on_error=FALSE)) %>%

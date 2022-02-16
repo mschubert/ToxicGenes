@@ -40,6 +40,32 @@ meta$reads = lapply(reads, . %>% as.data.frame() %>% tibble::rownames_to_column(
 saveRDS(meta, file=args$outfile)
 
 mu = tidyr::unnest(meta, reads) #%>% filter(cline == "HCC70", time == "24h")
+
+do_glm = function(df) {
+#    glm(cbind(ee, ei) ~ cline + cond, data=df, family="binomial") %>%
+    MASS::glm.nb(ei ~ cline:ee + cond:ee, df) %>%
+        broom::tidy() %>%
+#        filter(term == "condRBM14") %>%
+        filter(term == "ee:condRBM14") %>%
+        select(-term)
+}
+xx = mu %>%
+    mutate(ee_ei = ee / ei) %>%
+    group_by(time, gene_name) %>%
+        tidyr::nest() %>%
+    ungroup() %>%
+    mutate(res = clustermq::Q(do_glm, df=data, n_jobs=10, pkgs="dplyr", fail_on_error=FALSE)) %>%
+    filter(!sapply(res, function(r) identical(class(r), "error"))) %>%
+    tidyr::unnest(res) %>%
+#    filter(std.error < 5) %>%
+    mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+    arrange(adj.p, p.value, -abs(statistic))
+
+gset = import('genesets')
+plt = import('plot')
+gset$get_human("GO_Biological_Process_2021") %>% gset$test_lm(xx %>% filter(time == "8h"), .) %>% plt$volcano()
+
+
 mu2 = mu %>% filter(ee > 50, ee < 1000) %>% mutate(ee_ei = ee/ei)
 mu2.8 = mu2 %>% filter(time == "8h", gene_name %in% sample(unique(gene_name), 1000))
 mu2.24 =mu2 %>% filter(time == "24h", gene_name %in% sample(unique(gene_name), 1000))

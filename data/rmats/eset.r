@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 sys = import('sys')
+plt = import('plot')
 
 #' Plot read count distributions
 #'
@@ -30,26 +31,20 @@ read_count_plot = function(reads) {
 
 #' Plot a PCA of samples
 #'
-#' @param eset  DESeq2 expression set object
+#' @param eset  DESeq2 transform or expression set object
 #' @return      ggplot2 object
-plot_pca = function(eset) {
-    vst = DESeq2::varianceStabilizingTransformation(eset)
-
-    pcadata = DESeq2::plotPCA(vst, intgroup=c("cline", "cond", "time", "rep"), returnData=TRUE)
-    pcavar = round(100 * attr(pcadata, "percentVar"))
+plot_pca = function(eset, mapping=aes(x=PC1, y=PC2)) {
     shapes = c("8h"=21, "24h"=22, "72h"=23)
     sizes = c(Luc=2, RBM14=4)
     cols = RColorBrewer::brewer.pal(length(levels(eset$cline)), "Set1") %>% setNames(levels(eset$cline))
 
-    ggplot(pcadata, aes(x=PC1, y=PC2)) +
+    plt$pca(eset, mapping) +
         geom_point(aes(fill=cline, shape=time, size=cond), alpha=0.7) +
         scale_shape_manual(values=shapes, guide=guide_legend(override.aes=list(size=3))) +
         scale_size_manual(values=sizes) +
         scale_fill_manual(values=cols, guide=guide_legend(override.aes=list(shape=21, size=3))) +
         theme_minimal() +
-        xlab(paste0("PC1: ", pcavar[1], "% variance")) +
-        ylab(paste0("PC2: ", pcavar[2], "% variance")) +
-        ggrepel::geom_text_repel(aes(label=group))
+        ggrepel::geom_text_repel(aes(label=paste(sprintf("%s:%s:%s:%i", cline, cond, time, rep))))
 }
 
 plot_rbm14 = function(eset) {
@@ -90,13 +85,17 @@ sys$run({
 
     eset = DESeq2::DESeqDataSetFromMatrix(reads$counts, meta, ~1)
     eset = eset[rowSums(SummarizedExperiment::assay(eset)) != 0,]
+    vst = DESeq2::varianceStabilizingTransformation(eset)
 
     pdf(args$plotfile, 10, 8)
     print(read_count_plot(reads))
-    print(plot_pca(eset))
-    print(plot_pca(eset[,eset$cline == "H838"]))
-    print(plot_pca(eset[,eset$cline == "H1650"]))
-    print(plot_pca(eset[,eset$cline == "HCC70"]))
+    print(plot_pca(vst))
+    print(plot_pca(vst, aes(x=PC3, y=PC4)))
+    print(plot_pca(vst[,vst$time == "8h"], aes(x=PC3, y=PC4)) + ggtitle("8h"))
+    print(plot_pca(vst[,vst$time == "24h"], aes(x=PC3, y=PC4)) + ggtitle("24h"))
+    print(plot_pca(vst[,vst$cline == "H838"]))
+    print(plot_pca(vst[,vst$cline == "H1650"]))
+    print(plot_pca(vst[,vst$cline == "HCC70"]))
     print(plot_rbm14(eset))
     dev.off()
 

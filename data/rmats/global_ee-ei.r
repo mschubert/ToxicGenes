@@ -83,7 +83,7 @@ xx = mu %>%
 
 gset = import('genesets')
 plt = import('plot')
-gset$get_human("GO_Biological_Process_2021") %>% gset$test_lm(xx %>% filter(time == "8h"), .) %>% plt$volcano()
+gset$get_human("CORUM_core") %>% gset$test_lm(xx %>% filter(time == "8h"), .) %>% plt$volcano()
 
 
 mu2 = mu %>% filter(ee > 50, ee < 1000) %>% mutate(ee_ei = ee/ei)

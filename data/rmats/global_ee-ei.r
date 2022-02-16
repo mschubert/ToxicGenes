@@ -62,6 +62,25 @@ xx = mu %>%
     mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
     arrange(adj.p, p.value, -abs(statistic))
 
+do_lm = function(df) {
+    lm(ee_ei ~ cline + cond, data=df) %>%
+        broom::tidy() %>%
+        filter(term == "condRBM14") %>%
+        select(-term)
+}
+xx = mu %>%
+    mutate(ee_ei = ee / ei) %>%
+    group_by(time, gene_name) %>%
+        filter(all(ee >= 5)) %>%
+        tidyr::nest() %>%
+    ungroup() %>%
+    mutate(res = clustermq::Q(do_lm, df=data, n_jobs=10, pkgs="dplyr", fail_on_error=FALSE)) %>%
+    filter(!sapply(res, function(r) identical(class(r), "error"))) %>%
+    tidyr::unnest(res) %>%
+#    filter(std.error < 5) %>%
+    mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+    arrange(adj.p, p.value, -abs(statistic))
+
 gset = import('genesets')
 plt = import('plot')
 gset$get_human("GO_Biological_Process_2021") %>% gset$test_lm(xx %>% filter(time == "8h"), .) %>% plt$volcano()

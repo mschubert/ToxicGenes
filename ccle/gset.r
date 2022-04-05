@@ -1,4 +1,5 @@
 library(dplyr)
+library(patchwork)
 sys = import('sys')
 gset = import('data/genesets')
 plt = import('plot')
@@ -14,41 +15,48 @@ test_set = function(dset, sets, set, cna) {
                genes = ifelse(sum(in_set) <= 10, paste(sets[[set]], collapse=","), NA_character_))
 }
 
-args = sys$cmd$parse(
-    opt('c', 'config', 'yaml', '../config.yaml'),
-    opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
-    opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
-    opt('p', 'plotfile', 'pdf', 'CH.HALLMARK.pdf')
-)
+do_plot = function(res) {
+    left = res %>%
+        filter(estimate < 0) %>%
+        plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE)
+    right = res %>%
+        filter(estimate > 0) %>%
+        plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE)
+    left | right
+}
 
-cnas = yaml::read_yaml(args$config)$cna
+sys$run({
+    args = sys$cmd$parse(
+        opt('c', 'config', 'yaml', '../config.yaml'),
+        opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
+        opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
+        opt('p', 'plotfile', 'pdf', 'CH.HALLMARK.pdf')
+    )
 
-dset = readxl::excel_sheets(args$infile) %>%
-    sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
-names(dset) = "amp" #FIXME:
+    cnas = yaml::read_yaml(args$config)$cna
 
-sets = readRDS(args$setfile) %>%
-    gset$filter(min=1, valid=dset$all$name)
+    dset = readxl::excel_sheets(args$infile) %>%
+        sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
+    names(dset) = "amp" #FIXME:
 
-result = expand.grid(cna=cnas, set=names(sets), stringsAsFactors=FALSE) %>%
-    mutate(result = clustermq::Q_rows(., test_set, const=list(dset=dset, sets=sets), n_jobs=0)) %>%
-    tidyr::unnest(cols="result") %>%
-    group_by(cna) %>%
-    mutate(adj.p = p.adjust(p.value, method="fdr"),
-           set = ifelse(is.na(genes), set, sprintf("%s\n%s", set, genes))) %>%
-    arrange(adj.p, p.value) %>%
-    ungroup()
+    sets = readRDS(args$setfile) %>%
+        gset$filter(min=1, valid=dset$all$name)
 
-do_plot = . %>%
-    mutate(label = set) %>%
-    plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE,
-                pos_label_bias=0.2)
+    result = expand.grid(cna=cnas, set=names(sets), stringsAsFactors=FALSE) %>%
+        mutate(result = clustermq::Q_rows(., test_set, const=list(dset=dset, sets=sets), n_jobs=0)) %>%
+        tidyr::unnest(cols="result") %>%
+        group_by(cna) %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr"),
+               set = ifelse(is.na(genes), set, sprintf("%s\n%s", set, genes))) %>%
+        arrange(adj.p, p.value) %>%
+        ungroup()
 
-plots = result %>%
-    split(.$cna) %>%
-    lapply(do_plot)
+    plots = result %>%
+        split(.$cna) %>%
+        lapply(do_plot)
 
-pdf(args$plotfile, 10, 8)
-for (i in seq_along(plots))
-    print(plots[[i]] + ggtitle(names(plots)[i]))
-dev.off()
+    pdf(args$plotfile, 12, 8)
+    for (i in seq_along(plots))
+        print(plots[[i]] + ggtitle(names(plots)[i]))
+    dev.off()
+})

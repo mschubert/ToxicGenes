@@ -4,24 +4,24 @@ sys = import('sys')
 gset = import('data/genesets')
 plt = import('plot')
 
-test_set = function(dset, sets, set, cna) {
-    cnv = dset[[cna]]
-    in_set = cnv$gene %in% sets[[set]]
-    lm(estimate ~ in_set, data=cnv) %>% # statistic if rlm, 'estimate' if stan-nb
-        broom::tidy() %>%
-        filter(term == "in_setTRUE") %>%
-        select(-term) %>%
-        mutate(size = sum(in_set),
-               genes = ifelse(sum(in_set) <= 10, paste(sets[[set]], collapse=","), NA_character_))
-}
+do_plot = function(res, sets) {
+    adjlab = function(lab, sz) {
+        name_has_genes = all(sapply(sets[[lab]], function(s) grepl(s, lab, fixed=TRUE)))
+        if (sz < 10 & ! name_has_genes)
+            sprintf("%s\n%s", lab, paste(sets[[lab]], collapse=","))
+        else
+            sprintf("%s (%i)", lab, sz)
+    }
+    res = rowwise(res) %>%
+        mutate(label = adjlab(label, size_used)) %>%
+        ungroup()
 
-do_plot = function(res) {
     left = res %>%
         filter(estimate < 0) %>%
-        plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE)
+        plt$volcano(base.size=0.2, text.size=2.5, p=0.1, label_top=15, repel=TRUE)
     right = res %>%
         filter(estimate > 0) %>%
-        plt$volcano(base.size=0.2, text.size=2.5, label_top=20, repel=TRUE)
+        plt$volcano(base.size=0.2, text.size=2.5, p=0.1, label_top=15, repel=TRUE)
     left | right
 }
 
@@ -29,8 +29,8 @@ sys$run({
     args = sys$cmd$parse(
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
-        opt('s', 'setfile', 'rds', '../data/genesets/CH.HALLMARK.rds'),
-        opt('p', 'plotfile', 'pdf', 'CH.HALLMARK.pdf')
+        opt('s', 'setfile', 'rds', '../data/genesets/CORUM_core.rds'),
+        opt('p', 'plotfile', 'pdf', 'pan/stan-nb/MSigDB_Hallmark_2020.pdf')
     )
 
     cnas = yaml::read_yaml(args$config)$cna
@@ -39,21 +39,10 @@ sys$run({
         sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
     names(dset) = "amp" #FIXME:
 
-    sets = readRDS(args$setfile) %>%
-        gset$filter(min=1, valid=dset$all$name)
+    sets = readRDS(args$setfile)
 
-    result = expand.grid(cna=cnas, set=names(sets), stringsAsFactors=FALSE) %>%
-        mutate(result = clustermq::Q_rows(., test_set, const=list(dset=dset, sets=sets), n_jobs=0)) %>%
-        tidyr::unnest(cols="result") %>%
-        group_by(cna) %>%
-        mutate(adj.p = p.adjust(p.value, method="fdr"),
-               set = ifelse(is.na(genes), set, sprintf("%s\n%s", set, genes))) %>%
-        arrange(adj.p, p.value) %>%
-        ungroup()
-
-    plots = result %>%
-        split(.$cna) %>%
-        lapply(do_plot)
+    result = lapply(dset, function(d) gset$test_lm(d, sets, stat="estimate"))
+    plots = lapply(result, do_plot, sets=sets)
 
     pdf(args$plotfile, 12, 8)
     for (i in seq_along(plots))

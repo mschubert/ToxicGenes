@@ -60,12 +60,14 @@ rule gset:
         setfile = genesets("{gset}.rds"),
         selfile = "../cor_tcga_ccle/positive_comp_set.tsv"
     output:
+        outfile = "{tissue}/{fit}/{select}/{gset}.rds",
         plotfile = "{tissue}/{fit}/{select}/{gset}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
             " --select {wildcards.select}"
+            " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
 rule bionet:

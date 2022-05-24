@@ -30,7 +30,8 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
         opt('s', 'setfile', 'rds', '../data/genesets/CORUM_core.rds'),
-        opt('e', 'select', 'all|comp|comp+orf', 'comp'),
+        opt('e', 'select', 'all|comp|comp+orf', 'all'),
+        opt('o', 'outfile', 'rds', 'pan/stan-nb/MSigDB_Hallmark_2020.rds'),
         opt('p', 'plotfile', 'pdf', 'pan/stan-nb/MSigDB_Hallmark_2020.pdf')
     )
 
@@ -42,7 +43,7 @@ sys$run({
 
     sets = readRDS(args$setfile)
 
-    sel = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
+    sel = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>% filter(hit)
     if (args$select == "comp+orf")
         sel = sel %>% filter(est_orf < -1)
     if (grepl("comp", args$select))
@@ -55,4 +56,6 @@ sys$run({
     for (i in seq_along(plots))
         print(plots[[i]] + ggtitle(names(plots)[i]))
     dev.off()
+
+    saveRDS(result, file=args$outfile)
 })

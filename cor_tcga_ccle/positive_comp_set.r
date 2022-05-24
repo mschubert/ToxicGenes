@@ -15,10 +15,11 @@ tcga = readxl::read_xlsx(args$tcga_puradj)
 
 both = inner_join(ccle %>% select(gene, est_ccle=estimate),
                   tcga %>% select(gene, est_tcga=estimate)) %>%
-    filter(est_ccle < -0.3, est_tcga < -0.3, est_tcga + est_ccle < -0.8) %>%
+    mutate(hit = est_ccle < -0.3 & est_tcga < -0.3 & est_tcga + est_ccle < -0.8) %>%
     left_join(orf %>% select(gene=`GENE SYMBOL`, est_orf=estimate, stat_orf=statistic))
 
-length(both$gene)
-"CDKN1A" %in% both$gene
+both$hit[is.na(both$hit)] = FALSE
+table(both$hit)
+"CDKN1A" %in% both$gene[both$hit]
 
 write.table(both, file=args$outfile, sep="\t", row.names=FALSE, quote=FALSE)

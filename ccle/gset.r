@@ -18,10 +18,10 @@ do_plot = function(res, sets) {
 
     left = res %>%
         filter(estimate < 0) %>%
-        plt$volcano(base.size=0.2, text.size=2.5, p=0.1, label_top=15, repel=TRUE)
+        plt$volcano(base.size=0.2, text.size=2.5, p=0.15, label_top=15, repel=TRUE)
     right = res %>%
         filter(estimate > 0) %>%
-        plt$volcano(base.size=0.2, text.size=2.5, p=0.1, label_top=15, repel=TRUE)
+        plt$volcano(base.size=0.2, text.size=2.5, p=0.15, label_top=15, repel=TRUE)
     left | right
 }
 
@@ -30,6 +30,7 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'xlsx', 'pan/stan-nb.xlsx'),
         opt('s', 'setfile', 'rds', '../data/genesets/CORUM_core.rds'),
+        opt('e', 'select', 'all|comp|comp+orf', 'comp'),
         opt('p', 'plotfile', 'pdf', 'pan/stan-nb/MSigDB_Hallmark_2020.pdf')
     )
 
@@ -40,6 +41,12 @@ sys$run({
     names(dset) = "amp" #FIXME:
 
     sets = readRDS(args$setfile)
+
+    sel = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
+    if (args$select == "comp+orf")
+        sel = sel %>% filter(est_orf < -1)
+    if (grepl("comp", args$select))
+        sets = sets[sapply(sets, function(s) any(sel$gene %in% s))]
 
     result = lapply(dset, function(d) gset$test_lm(d, sets, stat="estimate"))
     plots = lapply(result, do_plot, sets=sets)

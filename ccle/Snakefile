@@ -17,8 +17,9 @@ rule fits:
 
 rule gsets:
     input:
-        expand("{tissue}/{fit}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'], fit=config['fits'])
+        expand("{tissue}/{fit}/{select}/{gset}.pdf",
+                tissue=config['cor_tissues'], gset=config['genesets'],
+                fit=config['fits'], select=['all', 'comp', 'comp+orf'])
 
 rule fit:
     input:
@@ -56,13 +57,15 @@ rule gset:
     input:
         rscript = "gset.r",
         infile = "{tissue}/{fit}.xlsx",
-        setfile = genesets("{gset}.rds")
+        setfile = genesets("{gset}.rds"),
+        selfile = "../cor_tcga_ccle/positive_comp_set.tsv"
     output:
-        plotfile = "{tissue}/{fit}/{gset}.pdf"
+        plotfile = "{tissue}/{fit}/{select}/{gset}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
+            " --select {wildcards.select}"
             " --plotfile {output.plotfile}"
 
 rule bionet:

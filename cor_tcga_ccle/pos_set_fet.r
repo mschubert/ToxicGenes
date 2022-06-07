@@ -43,13 +43,13 @@ res = sapply(names(corum), test_fet, simplify=FALSE) %>%
 
 ggplot(res, aes(x=avg_orf, y=p.value)) +
     geom_rect(ymin=-Inf, ymax=2, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
-    geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD33") +
+    geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
     geom_hline(yintercept=0.05, linetype="dashed", size=2, color="grey") +
     geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
     geom_point(aes(size=n, fill=has_RBM14), shape=21) +
     ggrepel::geom_text_repel(aes(label=set_name), max.overlaps=5) +
     scale_fill_manual(values=c(`FALSE`="grey", `TRUE`="#FA524E")) +
-    scale_size_binned_area() +
+    scale_size_binned_area(max_size=10) +
     scale_y_continuous(trans=reverselog_trans(10)) +
     scale_x_reverse() +
     theme_classic() +

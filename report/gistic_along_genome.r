@@ -3,7 +3,8 @@ library(ggplot2)
 seq = import('seq')
 tcga = import('data/tcga')
 
-#hlg = c("MYC", "EGFR", "RBM14", "CDKN1A", "TP53")
+hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
+        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "SMAD4", "CCNE1", "PIK3CA", "AURKA")
 hlg = readRDS("../data/genesets/manual.rds")[c("Davoli_oncogenes", "Davoli_TSGs")] %>%
     unlist(use.names=FALSE) %>% na.omit() %>% c()
 
@@ -15,28 +16,31 @@ gt = seq$gene_table() %>%
     group_by(chr, gene_name) %>%
         summarize(tss = mean(tss)) %>%
     ungroup()
-gt2 = gt %>% filter(gene_name %in% hlg)
 
-gg = tcga$cna_gistic(thresh=TRUE)
-cg = tibble(gene_name = rownames(gg),
-            f_amp = rowSums(gg > 0) / nrow(gg),
-            f_del = -rowSums(gg < 0) / nrow(gg)) %>%
-    inner_join(gt) %>%
-    filter(chr %in% c(1:22,'X')) %>%
-    mutate(chr = factor(chr, levels=c(1:22,'X')))
+cg2 = readRDS("../data/tcga_prod2-gistic.rds") %>%
+    transmute(gene_name = SYMBOL,
+              type = ALT_TYPE,
+              frac = ifelse(type == "amplification", OVERALL_FREQ, -OVERALL_FREQ)) %>%
+    inner_join(gt)
 
-cg2 = tidyr::gather(cg, "type", "frac", -chr, -gene_name, -tss)
+gt2 = cg2 %>% filter(gene_name %in% hlg) %>%
+    group_by(gene_name) %>%
+        slice_max(abs(frac)) %>%
+    ungroup()
 
 ggplot(cg2, aes(x=tss)) +
     geom_hline(yintercept=0, color="black") +
+    geom_rect(xmin=-Inf, xmax=Inf, ymin=-0.15, ymax=0.15, fill="#efefef", color=NA) +
     geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
-#    geom_line(data=cg2 %>% filter(abs(frac)>0.1), aes(y=frac, group=type, color=type), size=2) +
-    scale_fill_manual(values=c(f_amp="firebrick", f_del="navy")) +
+    scale_fill_manual(values=c(amplification="firebrick", deletion="navy")) +
     geom_vline(data=gt2, aes(xintercept=tss), linetype="dashed", color="grey") +
-    geom_point(data=gt2, aes(color=group), y=0) +
-    ggrepel::geom_label_repel(data=gt2, aes(color=group,label=gene_name), y=0, hjust=0, vjust=-0.5, angle=0, size=5, max.time=10, max.iter=1e5) +
+    ggrepel::geom_text_repel(data=gt2, aes(y=frac, label=gene_name), size=5, min.segment.length=0) +
     facet_grid(. ~ chr, scales="free", space="free") +
     theme_minimal() +
+    theme(axis.text.x = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          panel.spacing.x = unit(1, "mm")) +
     coord_cartesian(clip="off")
 #todo: high/low amp
 

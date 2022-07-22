@@ -24,6 +24,7 @@ backup
 cache
 *.h5
 **/docs/*
+*.sql
 
 # History files
 .Rhistory

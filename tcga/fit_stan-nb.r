@@ -5,31 +5,34 @@ tcga = import('data/tcga')
 
 #' Fit a negative binomial model using a stan glm
 #'
-#' @param df   A data.frame with columns: purity, expr, copies, sf, covar, eup_equiv
-#' @param cna  Character string of either: "amp", "del", or "all"
-#' @param mod  A precompiled brms model (depending on fit type)
-#' @param et   Tolerance in ploidies to consider sample euploid
+#' @param dset  A data.frame with columns: purity, expr, copies, sf, covar, eup_equiv
+#' @param cna   Character string of either: "amp", "del", or "all"
+#' @param mod   A precompiled brms model (depending on fit type)
+#' @param et    Tolerance in ploidies to consider sample euploid
 #' @param min_aneup  Minimum number of aneuploid (triploid minus et) samples
-#' @return     A data.frame with fit statistics
-do_fit = function(df, cna, mod, et=0.15, min_aneup=5) {
+#' @return      A data.frame with fit statistics
+do_fit = function(dset, cna, mod, et=0.15, min_aneup=5) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
-        df = df %>% dplyr::filter(copies > 2-et)
+        dset = dset %>% dplyr::filter(copies > 2-et)
     } else if (cna == "del") {
-        df = df %>% dplyr::filter(copies < 2+et)
+        dset = dset %>% dplyr::filter(copies < 2+et)
     }
 
-    df$sf = df$sf * mean(df$expr)
+    dset$sf = dset$sf * mean(dset$expr)
 
-    n_aneup = sum(abs(df$cancer_copies-2) > 1-et)
+    n_aneup = sum(abs(dset$cancer_copies-2) > 1-et)
     if (n_aneup < min_aneup)
         return(data.frame(n_aneup=n_aneup))
 
     tryCatch({
-        init_vars = with(prior_summary(mod), coef[class == "b" & coef != ""])
-        init_fun = function() list(b=runif(length(init_vars), 0.5, 1.5))
-
-        res = update(mod, newdata=df, chains=4, iter=2000, init=init_fun)
+        # stancode(mod) has eup_dev on different positions of b[i]
+        init_fun = function() {
+            lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
+                      strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
+            list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
+        }
+        res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat))
@@ -42,13 +45,15 @@ do_fit = function(df, cna, mod, et=0.15, min_aneup=5) {
                z_comp = z_comp,
                n_aneup = n_aneup,
                n_genes = 1,
-               eup_reads = mean(intcp) * mean(df$expr),
-               stroma_reads = mean(stroma) * mean(df$expr),
+               eup_reads = mean(intcp) * mean(dset$expr),
+               stroma_reads = mean(stroma) * mean(dset$expr),
+               n_eff = neff_ratio(res, pars=grep("eup_dev", colnames(rmat), value=TRUE)),
+               Rhat = rhat(res, pars=grep("eup_dev", colnames(rmat), value=TRUE)),
                p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
-        tibble(estimate = NA)
+        tibble(n_aneup = n_aneup)
     })
 }
 
@@ -79,7 +84,7 @@ make_mod = function(data, type="naive") {
     brm(fml, family = negbinomial(link="identity"),
         data = data, chains = 0, cores = 1,
         prior = prior_string("normal(0,0.2)", coef=ex) +
-                prior(gamma(1.5,1), class="b"))
+                prior(lognormal(0,1), class="b"))
 }
 
 #' Prepare common TCGA data.frame to serve as model input
@@ -87,13 +92,12 @@ make_mod = function(data, type="naive") {
 #' @param tcga_df
 #' @param tissue
 prep_data = function(tcga_df, tissue) {
-    if (tissue == "pan") {
-        tissue = tcga$cohorts()
-    } else if (args$tissue == "COADREAD") {
-        tissue = c("COAD", "READ")
-    } else if (args$tissue == "NSCLC") {
-        tissue = c("LUAD", "LUSC")
-    }
+    tissue = switch(tissue,
+        pan = tcga$cohorts(),
+        COADREAD = c("COAD", "READ"),
+        NSCLC = c("LUAD", "LUSC"),
+        tissue
+    )
 
     tcga_df %>%
         filter(covar %in% tissue) %>%
@@ -118,35 +122,30 @@ sys$run({
         opt('o', 'outfile', 'xlsx', 'COADREAD/stan-nb_pur.xlsx')
     )
 
-    cna_cmq = function(data, cna, mod) {
-        clustermq::Q(do_fit, df=data,
+    cna_cmq = function(.gene, .data, cna) {
+        clustermq::Q(do_fit, dset=.data,
                      const = list(cna=cna, mod=mod, et=cfg$euploid_tol),
                      pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-                     chunk_size = 1)
+                     chunk_size = 1) %>%
+            bind_rows() %>%
+            mutate(gene = .gene,
+                   adj.p = p.adjust(p.value, method="fdr")) %>%
+            select(gene, everything()) %>%
+            arrange(adj.p, p.value)
     }
 
     cfg = yaml::read_yaml(args$config)
+    df = readRDS(args$infile) %>% prep_data(args$tissue)
+    mod = make_mod(df$data[[1]], type=args$type)
 
-    td = readRDS(args$infile) %>%
-        prep_data(args$tissue) %>%
-        mutate(amp = cna_cmq(data, "amp", make_mod(data[[1]], args$type)))
-#               del = cna_cmq(data, "del"),
-#               all = cna_cmq(data, "all"))
-
-    res = td %>%
-        select(-data) %>%
-        tidyr::unnest("amp") %>%
-        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-        arrange(adj.p, p.value)
-    saveRDS(res, file=sub("\\.xlsx$", ".rds", args$outfile))
-
-#    res = df %>%
-#        select(-data) %>%
-#        tidyr::unnest("res") %>%
-#        split(.$cna) %>%
-#        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
+    #TODO: remove head; for debug
+    res = with(head(df), list(
+        amp = cna_cmq(gene, data, "amp"),
+        del = cna_cmq(gene, data, "del"),
+        all = cna_cmq(gene, data, "all")
+    ))
 
     writexl::write_xlsx(res, args$outfile)
 })

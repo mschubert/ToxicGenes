@@ -4,31 +4,30 @@ sys = import('sys')
 
 #' Fit a negative binomial model using a stan glm
 #'
-#' @param df   A data.frame with columns: expr, copies, sf, covar, eup_equiv
-#' @param cna  Character string of either: "amp", "del", or "all"
-#' @param mod  Precompiled brms model
-#' @param et   Tolerance in ploidies to consider sample euploid
+#' @param dset  A data.frame with columns: expr, copies, sf, covar, eup_equiv
+#' @param cna   Character string of either: "amp", "del", or "all"
+#' @param mod   Precompiled brms model
+#' @param et    Tolerance in ploidies to consider sample euploid
 #' @param min_aneup  Minimum number of aneuploid (triploid minus et) samples
-#' @return     A data.frame with fit statistics
-do_fit = function(df, cna, mod, et=0.15, min_aneup=3) {
+#' @return      A data.frame with fit statistics
+do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
-        df = df %>% dplyr::filter(copies > 2-et)
+        dset = dset %>% dplyr::filter(copies > 2-et)
     } else if (cna == "del") {
-        df = df %>% dplyr::filter(copies < 2+et)
+        dset = dset %>% dplyr::filter(copies < 2+et)
     }
 
-    df$sf = df$sf * mean(df$expr) # parameterize so prior SD is constant
+    dset$sf = dset$sf * mean(dset$expr) # parameterize so fitted mean is constant
 
-    n_aneup = sum(abs(df$copies-2) > 1-et)
+    n_aneup = sum(abs(dset$copies-2) > 1-et)
     if (n_aneup < min_aneup)
         return(data.frame(n_aneup=n_aneup))
 
     tryCatch({
-        init_vars = with(prior_summary(mod), coef[class == "b" & coef != ""])
-        init_fun = function() list(b=runif(length(init_vars), 0.5, 1.5))
-
-        res = update(mod, newdata=df, chains=4, iter=2000, init=init_fun)
+        # stancode(mod) has eup_dev first and then covar intercepts
+        init_fun = function() list(b=c(0, runif(length(unique(dset$covar)), 0.5, 1.5)))
+        res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
 
         rmat = as.matrix(res)
         is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
@@ -40,12 +39,14 @@ do_fit = function(df, cna, mod, et=0.15, min_aneup=3) {
                z_comp = z_comp,
                n_aneup = n_aneup,
                n_genes = 1,
-               eup_reads = mean(intcp) * mean(df$expr),
+               eup_reads = mean(intcp) * mean(dset$expr),
+               n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
+               Rhat = rhat(res, pars="b_sf:eup_dev"),
                p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 
     }, error = function(e) {
         warning(conditionMessage(e), immediate.=TRUE)
-        tibble(estimate=NA)
+        tibble(n_aneup=n_aneup)
     })
 }
 
@@ -63,7 +64,7 @@ make_mod = function(data) {
     mod = brm(fml, family=negbinomial(link="identity"),
               data = data, chains = 0, cores = 1,
               prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                      prior(normal(1,5), class="b"))
+                      prior(lognormal(0,1), class="b"))
 }
 
 #' Prepare common CCLE data.frame to serve as model input
@@ -71,12 +72,10 @@ make_mod = function(data) {
 #' @param ccle_df  data.frame from ccle
 #' @param tissue   character vector of tissue types, or 'pan'
 prep_data = function(ccle_df, tissue) {
-    if (tissue == "NSCLC") {
+    if (tissue == "NSCLC")
         tissue = c("LUAD", "LUSC")
-    }
-    if (!identical(args$tissue, "pan")) {
+    if (!identical(args$tissue, "pan"))
         df = df %>% filter(covar %in% tissue)
-    }
 
     ccle_df %>%
         mutate(eup_dev = ((copies - 2) / 2),
@@ -91,39 +90,34 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_ccle.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
-        opt('j', 'cores', 'integer', '20'),
+        opt('j', 'cores', 'integer', '70'),
         opt('m', 'memory', 'integer', '1024'),
         opt('o', 'outfile', 'xlsx', 'pan/stan-nb.xlsx')
     )
 
-    cna_cmq = function(data, cna, mod) {
-        clustermq::Q(do_fit, df=data,
+    cna_cmq = function(.gene, .data, cna) {
+        clustermq::Q(do_fit, dset=.data,
                      const = list(cna=cna, et=cfg$euploid_tol, mod=mod),
                      pkgs = c("dplyr", "brms"),
                      n_jobs = as.integer(args$cores),
                      memory = as.integer(args$memory),
-                     chunk_size = 1)
+                     chunk_size = 1) %>%
+            bind_rows() %>%
+            mutate(gene = .gene,
+                   adj.p = p.adjust(p.value, method="fdr")) %>%
+            select(gene, everything()) %>%
+            arrange(adj.p, p.value)
     }
 
     cfg = yaml::read_yaml(args$config)
-    df = readRDS(args$infile) %>%
-        prep_data(args$tissue) %>%
-        mutate(amp = cna_cmq(data, "amp", make_mod(data[[1]])))
-#               del = cna_cmq(data, "del"),
-#               all = cna_cmq(data, "all"))
+    df = readRDS(args$infile) %>% prep_data(args$tissue)
+    mod = make_mod(df$data[[1]])
 
-    res = df %>%
-        select(-data) %>%
-        tidyr::unnest("amp") %>%
-        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
-        arrange(adj.p, p.value)
-    saveRDS(res, file=sub("\\.xlsx$", ".rds", args$outfile))
-
-#    res = df %>%
-#        select(-data) %>%
-#        tidyr::unnest("res") %>%
-#        split(.$cna) %>%
-#        lapply(. %>% mutate(adj.p = p.adjust(p.value, method="fdr")) %>% arrange(adj.p, p.value))
+    res = with(df, list(
+        amp = cna_cmq(gene, data, "amp"),
+        del = cna_cmq(gene, data, "del"),
+        all = cna_cmq(gene, data, "all")
+    ))
 
     writexl::write_xlsx(res, args$outfile)
 })

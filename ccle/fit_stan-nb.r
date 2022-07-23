@@ -25,8 +25,12 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
         return(data.frame(n_aneup=n_aneup))
 
     tryCatch({
-        # stancode(mod) has eup_dev first and then covar intercepts
-        init_fun = function() list(b=c(0, runif(length(unique(dset$covar)), 0.5, 1.5)))
+        # stancode(mod) has eup_dev on different positions of b[i]
+        init_fun = function() {
+            lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
+                      strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
+            list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
+        }
         res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
 
         rmat = as.matrix(res)

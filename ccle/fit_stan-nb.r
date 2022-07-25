@@ -11,7 +11,6 @@ sys = import('sys')
 #' @param min_aneup  Minimum number of aneuploid (triploid minus et) samples
 #' @return      A data.frame with fit statistics
 do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
-    stopifnot(requireNamespace("brms"))
     if (cna == "amp") {
         dset = dset %>% dplyr::filter(copies > 2-et)
     } else if (cna == "del") {
@@ -24,34 +23,28 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     if (n_aneup < min_aneup)
         return(data.frame(n_aneup=n_aneup))
 
-    tryCatch({
-        # stancode(mod) has eup_dev on different positions of b[i]
-        init_fun = function() {
-            lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
-                      strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
-            list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
-        }
-        res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
+    # stancode(mod) has eup_dev on different positions of b[i]
+    init_fun = function() {
+        lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
+                  strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
+        list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
+    }
+    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
 
-        rmat = as.matrix(res)
-        is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
-        intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
-        eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
-        z_comp = mean(eup_dev) / sd(eup_dev)
+    rmat = as.matrix(res)
+    is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
+    intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
+    eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
+    z_comp = mean(eup_dev) / sd(eup_dev)
 
-        tibble(estimate = mean(eup_dev) / mean(intcp),
-               z_comp = z_comp,
-               n_aneup = n_aneup,
-               n_genes = 1,
-               eup_reads = mean(intcp) * mean(dset$expr),
-               n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
-               Rhat = rhat(res, pars="b_sf:eup_dev"),
-               p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
-
-    }, error = function(e) {
-        warning(conditionMessage(e), immediate.=TRUE)
-        tibble(n_aneup=n_aneup)
-    })
+    tibble(estimate = mean(eup_dev) / mean(intcp),
+           z_comp = z_comp,
+           n_aneup = n_aneup,
+           n_genes = 1,
+           eup_reads = mean(intcp) * mean(dset$expr),
+           n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
+           Rhat = rhat(res, pars="b_sf:eup_dev"),
+           p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 }
 
 #' Precompile BRMS model

@@ -4,7 +4,7 @@ sys = import('sys')
 gset = import('data/genesets')
 plt = import('plot')
 
-do_plot = function(res, sets) {
+do_plot = function(res, sets, title="") {
     adjlab = function(lab, sz) {
         name_has_genes = all(sapply(sets[[lab]], function(s) grepl(s, lab, fixed=TRUE)))
         if (sz < 10 & ! name_has_genes)
@@ -22,7 +22,7 @@ do_plot = function(res, sets) {
     right = res %>%
         filter(estimate > 0) %>%
         plt$volcano(base.size=0.2, text.size=2.5, p=0.15, label_top=15, repel=TRUE)
-    left | right
+    plt$text(title, size=6) / (left | right) + plot_layout(heights=c(1,20))
 }
 
 sys$run({
@@ -39,7 +39,6 @@ sys$run({
 
     dset = readxl::excel_sheets(args$infile) %>%
         sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
-    names(dset) = "amp" #FIXME:
 
     sets = readRDS(args$setfile)
 
@@ -50,11 +49,12 @@ sys$run({
         sets = sets[sapply(sets, function(s) any(sel$gene %in% s))]
 
     result = lapply(dset, function(d) gset$test_lm(d, sets, stat="estimate"))
-    plots = lapply(result, do_plot, sets=sets)
+    plots = mapply(do_plot, res=result, title=names(result),
+                   MoreArgs=list(sets=sets), SIMPLIFY=FALSE)
 
     pdf(args$plotfile, 12, 8)
-    for (i in seq_along(plots))
-        print(plots[[i]] + ggtitle(names(plots)[i]))
+    for (p in plots)
+        print(p)
     dev.off()
 
     saveRDS(result, file=args$outfile)

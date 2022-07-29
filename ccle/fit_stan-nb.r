@@ -36,8 +36,8 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
                    init=init_r, save_pars=save_pars(all=TRUE))
 
     cmp = tryCatch({
-        res.f = add_criterion(res.f, "loo", moment_match=TRUE)
-        res.r = add_criterion(res.r, "loo", moment_match=TRUE)
+        res.f = add_loo(res.f, moment_match=TRUE)
+        res.r = add_loo(res.r, moment_match=TRUE)
         loo.out = loo_compare(res.f, res.r, criterion = "loo")
         cmp = diff(loo.out[c("res.r", "res.f"),])
     }, error = function(e) data.frame(elpd_diff=NA, se_diff=NA))

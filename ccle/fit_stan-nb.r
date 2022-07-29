@@ -26,24 +26,37 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     # stancode(mod) has eup_dev on different positions of b[i]
     init_fun = function() {
         lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
-                  strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
+                  strsplit(stancode(mod$full), "\\n")[[1]], value=TRUE)
         list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
     }
-    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
+    init_r = function() list(b=runif(length(unique(dset$covar)), 0.5, 1.5))
+    res.f = update(mod$full, newdata=dset, chains=4, iter=2000,
+                   init=init_fun, save_pars=save_pars(all=TRUE))
+    res.r = update(mod$red, newdata=dset, chains=4, iter=2000,
+                   init=init_r, save_pars=save_pars(all=TRUE))
 
-    rmat = as.matrix(res)
+    cmp = tryCatch({
+        res.f = add_criterion(res.f, "loo", moment_match=TRUE)
+        res.r = add_criterion(res.r, "loo", moment_match=TRUE)
+        loo.out = loo_compare(res.f, res.r, criterion = "loo")
+        cmp = diff(loo.out[c("res.r", "res.f"),])
+    }, error = function(e) data.frame(elpd_diff=NA, se_diff=NA))
+
+    rmat = as.matrix(res.f)
     is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
     intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
     eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
     z_comp = mean(eup_dev) / sd(eup_dev)
 
     tibble(estimate = mean(eup_dev) / mean(intcp),
+           mod_diff = cmp[,"elpd_diff"],
+           mod_z = cmp[,"elpd_diff"] / abs(cmp[,"se_diff"]),
            z_comp = z_comp,
            n_aneup = n_aneup,
            n_genes = 1,
            eup_reads = mean(intcp) * mean(dset$expr),
-           n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
-           Rhat = rhat(res, pars="b_sf:eup_dev"),
+           n_eff = neff_ratio(res.f, pars="b_sf:eup_dev"),
+           Rhat = rhat(res.f, pars="b_sf:eup_dev"),
            p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 }
 
@@ -53,15 +66,22 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
 #' @return      A brms model object
 make_mod = function(data) {
     if (length(unique(df$data[[1]]$covar)) == 1) {
-        fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+        full = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+        red = expr ~ 0 + sf:eup_equiv
     } else {
-        fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+        full = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+        red =  expr ~ 0 + sf:covar:eup_equiv
     }
 
-    mod = brm(fml, family=negbinomial(link="identity"),
-              data = data, chains = 0, cores = 1,
-              prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                      prior(lognormal(0,1), class="b"))
+    mod = list(
+        full = brm(full, family=negbinomial(link="identity"),
+                   data = data, chains = 0, cores = 1,
+                   prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                           prior(lognormal(0,1), class="b")),
+        red = brm(red, family=negbinomial(link="identity"),
+                   data = data, chains = 0, cores = 1,
+                   prior = prior(lognormal(0,1), class="b"))
+    )
 }
 
 #' Prepare common CCLE data.frame to serve as model input
@@ -110,7 +130,7 @@ sys$run({
     df = readRDS(args$infile) %>% prep_data(args$tissue)
     mod = make_mod(df$data[[1]])
 
-    res = with(df, list(
+    res = with(df[sample(1:nrow(df), 20),], list(
         amp = cna_cmq(gene, data, "amp"),
         del = cna_cmq(gene, data, "del"),
         all = cna_cmq(gene, data, "all")

@@ -16,7 +16,9 @@ tcga_ccle_cor = function() {
     tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     both = inner_join(ccle, tcga3, by="gene") %>%
-        left_join(fig1$get_cosmic_annot() %>% dplyr::rename(gene=gene_name))
+        dplyr::rename(gene_name = gene) %>%
+        left_join(fig1$get_cosmic_annot()) %>%
+        inner_join(fig1$get_gistic_scores() %>% filter(type == "amplification", frac > 0.15) %>% select(gene_name))
 
     dx = ggplot(both, aes(x=estimate.x)) +
         geom_density(fill="#dedede") +
@@ -30,38 +32,69 @@ tcga_ccle_cor = function() {
         plot_layout(tag_level="new")
 
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
-    lab = sprintf("R^2=%.2f\np=%.1g", m$adj.r.squared, max(m$p.value, .Machine$double.xmin))
+    pval = max(m$p.value, .Machine$double.xmin)
+    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, pval) %>%
+        sub("e", "^", .)
 
     p = ggplot(both, aes(x=estimate.x, y=estimate.y)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_rect(xmin=-Inf, ymin=-Inf, xmax=-0.3, ymax=-0.3, color="orange",
                   linetype="dashed", color="orange", aes(fill="Compensated")) +
-        scale_fill_manual(values=c(Compensated="#ffefce10"), name="Area") +
+        scale_fill_manual(values=c(Compensated="#ffffff00"), name="Area") +
         geom_point(data=both %>% filter(is.na(type)),
                    aes(size=n_aneup.y), alpha=0.2) +
         geom_density2d(color="white", breaks=c(0.5, 0.99)) +
         geom_point(data=both %>% filter(!is.na(type)),
                    aes(size=n_aneup.y, color=type), alpha=0.7) +
         geom_smooth(method="lm", color="blue") +
-        annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue") +
+        annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue", parse=TRUE) +
         ggrepel::geom_label_repel(data=both %>% filter(!is.na(type)),
-                   aes(label=gene, color=type), max.overlaps=11,
+                   aes(label=gene_name, color=type), max.overlaps=11,
                    size=3, min.segment.length=0,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         theme_classic() +
-        labs(x = "CCLE", y = "TCGA") +
+        labs(x = "Deregulation CCLE", y = "Deregulation TCGA") +
         plot_layout(tag_level="new")
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +
         plot_layout(widths=c(10,1,2), heights=c(1,10), guides="collect")
 }
 
+og_tsg_comp = function() {
+    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+
+    cosmic = fig1$get_cosmic_annot()
+    gistic = fig1$get_gistic_scores() %>%
+        filter(type == "amplification", frac > 0.15) %>% select(gene_name)
+
+    dset = list(CCLE=ccle, TCGA=tcga3) %>% bind_rows(.id="dset") %>%
+        dplyr::rename(gene_name = gene) %>%
+        left_join(cosmic) %>%
+        inner_join(gistic) %>%
+        mutate(type = ifelse(is.na(type), "Background", type))
+    meds = dset %>% group_by(dset) %>%
+        summarize(bg = median(estimate[type == "Background"], na.rm=TRUE))
+
+    ggplot(dset, aes(x=type, y=estimate, color=type)) +
+        geom_boxplot(outlier.shape=NA) +
+        ggbeeswarm::geom_quasirandom() +
+        ggsignif::geom_signif(y_position=c(1.6, 1.8), color="black", test=wilcox.test,
+            comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
+        geom_hline(data=meds, aes(yintercept=bg), linetype="dashed", color="black") +
+        facet_wrap(~ dset) +
+        theme_classic() +
+        ggtitle("Compensation of Oncogenes/TSGs")
+}
+
 sys$run({
     left = (schema() / tcga_ccle_cor()) +
         plot_layout(heights=c(1,4))
 
-    right = plot_spacer()
+    right = og_tsg_comp() / plot_spacer() / plot_spacer()
 
     asm = (left | right) + plot_layout(widths=c(4,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))

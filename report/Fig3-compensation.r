@@ -32,9 +32,8 @@ tcga_ccle_cor = function(gistic_amp, cosmic) {
         plot_layout(tag_level="new")
 
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
-    pval = max(m$p.value, .Machine$double.xmin)
-    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, pval) %>%
-        sub("e", "^", .)
+    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
+        sub("e", "%*%10^", .)
 
     p = ggplot(both, aes(x=estimate.x, y=estimate.y)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
@@ -93,9 +92,8 @@ comp_orf = function(all, gistic_amp) {
                label = ifelse(hit & stat_orf < -5 | stat_orf < -12, gene_name, NA))
 
     m = lm(stat_orf ~ est_ccle_tcga, data=dset) %>% broom::glance()
-    pval = max(m$p.value, .Machine$double.xmin)
-    lab = sprintf("R^2~`=`~%.3f~\n~p~`=`~%.2g", m$adj.r.squared, pval) %>%
-        sub("e", "^", .)
+    lab = sprintf("R^2~`=`~%.3f~\n~p~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
+        sub("e", "%*%10^", .)
 
     ggplot(dset, aes(x=(est_ccle+est_tcga)/2, y=stat_orf)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
@@ -104,7 +102,7 @@ comp_orf = function(all, gistic_amp) {
         ggrepel::geom_label_repel(aes(label=label, color=hit), size=3,
             min.segment.length=0, segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         scale_alpha_manual(values=c("TRUE"=0.9, "FALSE"=0.2), name="Dropout") +
-        annotate("text", y=8, x=0.8, hjust=0, label=lab, color="blue", parse=TRUE) +
+        annotate("text", y=8, x=0.7, hjust=0, label=lab, color="blue", parse=TRUE) +
         geom_smooth(method="lm") +
         theme_classic()
 }

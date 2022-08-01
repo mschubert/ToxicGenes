@@ -10,15 +10,15 @@ schema = function() {
     ggplot() + annotation_custom(schema) + theme(panel.background=element_blank())
 }
 
-tcga_ccle_cor = function() {
+tcga_ccle_cor = function(gistic_amp, cosmic) {
     ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     both = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
-        left_join(fig1$get_cosmic_annot()) %>%
-        inner_join(fig1$get_gistic_scores() %>% filter(type == "amplification", frac > 0.15) %>% select(gene_name))
+        left_join(cosmic) %>%
+        inner_join(gistic_amp)
 
     dx = ggplot(both, aes(x=estimate.x)) +
         geom_density(fill="#dedede") +
@@ -61,20 +61,16 @@ tcga_ccle_cor = function() {
         plot_layout(widths=c(10,1,2), heights=c(1,10), guides="collect")
 }
 
-og_tsg_comp = function() {
+og_tsg_comp = function(gistic_amp, cosmic) {
     ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 
-    cosmic = fig1$get_cosmic_annot()
-    gistic = fig1$get_gistic_scores() %>%
-        filter(type == "amplification", frac > 0.15) %>% select(gene_name)
-
     dset = list(CCLE=ccle, TCGA=tcga3) %>% bind_rows(.id="dset") %>%
         dplyr::rename(gene_name = gene) %>%
         left_join(cosmic) %>%
-        inner_join(gistic) %>%
+        inner_join(gistic_amp) %>%
         mutate(type = ifelse(is.na(type), "Background", type))
     meds = dset %>% group_by(dset) %>%
         summarize(bg = median(estimate[type == "Background"], na.rm=TRUE))
@@ -90,11 +86,41 @@ og_tsg_comp = function() {
         ggtitle("Compensation of Oncogenes/TSGs")
 }
 
+comp_orf = function(all, gistic_amp) {
+    dset = inner_join(all %>% dplyr::rename(gene_name=gene), gistic_amp) %>%
+        mutate(est_ccle_tcga = (est_ccle + est_tcga)/2,
+               dropout = stat_orf < -5,
+               label = ifelse(hit & stat_orf < -5 | stat_orf < -12, gene_name, NA))
+
+    m = lm(stat_orf ~ est_ccle_tcga, data=dset) %>% broom::glance()
+    pval = max(m$p.value, .Machine$double.xmin)
+    lab = sprintf("R^2~`=`~%.3f~\n~p~`=`~%.2g", m$adj.r.squared, pval) %>%
+        sub("e", "^", .)
+
+    ggplot(dset, aes(x=(est_ccle+est_tcga)/2, y=stat_orf)) +
+        geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
+        geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
+        geom_point(aes(color=hit, alpha=dropout)) +
+        ggrepel::geom_label_repel(aes(label=label, color=hit), size=3,
+            min.segment.length=0, segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
+        scale_alpha_manual(values=c("TRUE"=0.9, "FALSE"=0.2), name="Dropout") +
+        annotate("text", y=8, x=0.8, hjust=0, label=lab, color="blue", parse=TRUE) +
+        geom_smooth(method="lm") +
+        theme_classic()
+}
+
 sys$run({
-    left = (schema() / tcga_ccle_cor()) +
+    gistic_amp = fig1$get_gistic_scores() %>%
+        filter(type == "amplification", frac > 0.15) %>%
+        select(gene_name, frac)
+    cosmic = fig1$get_cosmic_annot()
+    all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
+
+    left = (schema() / tcga_ccle_cor(gistic_amp, cosmic)) +
         plot_layout(heights=c(1,4))
 
-    right = og_tsg_comp() / plot_spacer() / plot_spacer()
+    right = (og_tsg_comp(gistic_amp, cosmic) / comp_orf(all, gistic_amp)) +
+        plot_layout(heights=c(1,2))
 
     asm = (left | right) + plot_layout(widths=c(4,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))

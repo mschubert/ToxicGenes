@@ -56,14 +56,14 @@ get_cosmic_annot = function() {
                       grepl("TSG", ind) ~ "TSG"
                   ),
                   tier = sub(".*Tier([12])$", "\\1", ind)) %>%
-        distinct()
+        distinct() %>%
+        group_by(gene_name, tier) %>%
+        summarize(type = ifelse(length(type) == 1, as.character(type), "Both"))
 }
 
 og_vs_tsg = function(gistic, cosmic, hlg=c()) {
-    cosmic2 = cosmic %>% group_by(gene_name, tier) %>%
-        summarize(type = ifelse(length(type) == 1, as.character(type), "Both"))
     gwide = tidyr::pivot_wider(gistic, names_from="type", values_from="frac") %>%
-        left_join(cosmic2) %>%
+        left_join(cosmic) %>%
         mutate(label = ifelse(!is.na(type) & gene_name %in% hlg, gene_name, NA))
 
     p = ggplot(gwide, aes(x=amplification, y=-deletion, color=type)) +

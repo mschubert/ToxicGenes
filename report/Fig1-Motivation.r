@@ -30,7 +30,10 @@ cna_along_genome = function(gistic_scores, hlg=c()) {
 
     ggplot(gistic_scores, aes(x=tss)) +
         geom_hline(yintercept=0, color="black") +
-        geom_rect(xmin=-Inf, xmax=Inf, ymin=-0.15, ymax=0.15, fill="#efefef", color=NA) +
+#todo: recurrent amps with line width?
+        geom_rect(xmin=-Inf, ymin=0.15, xmax=Inf, ymax=Inf, fill="#fff9f5de",
+                  linetype="dashed", aes(color="Amplified")) +
+        scale_color_manual(values=c(Amplified="orange"), name="Area") +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
         scale_fill_manual(values=c(amplification="firebrick", deletion="navy"), name="CNA") +
         geom_point(data=labs, aes(y=frac), color="black") +

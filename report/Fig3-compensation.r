@@ -39,8 +39,8 @@ tcga_ccle_cor = function(gistic_amp, cosmic) {
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_rect(xmin=-Inf, ymin=-Inf, xmax=-0.3, ymax=-0.3, color="orange",
-                  linetype="dashed", color="orange", aes(fill="Compensated")) +
-        scale_fill_manual(values=c(Compensated="#ffffff00"), name="Area") +
+                  linetype="dashed", aes(fill="Compensated")) +
+        scale_fill_manual(values=c(Compensated="#fff9f5de"), name="Area") +
         geom_point(data=both %>% filter(is.na(type)),
                    aes(size=n_aneup.y), alpha=0.2) +
         geom_density2d(color="white", breaks=c(0.5, 0.99)) +
@@ -53,7 +53,8 @@ tcga_ccle_cor = function(gistic_amp, cosmic) {
                    size=3, min.segment.length=0,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         theme_classic() +
-        labs(x = "Deregulation CCLE", y = "Deregulation TCGA") +
+        labs(x = "Expression over expected amplified genes CCLE",
+             y = "Expression over expected amplified genes TCGA") +
         plot_layout(tag_level="new")
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +

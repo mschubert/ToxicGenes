@@ -77,7 +77,7 @@ og_tsg_comp = function(gistic_amp, cosmic) {
 
     ggplot(dset, aes(x=type, y=estimate, color=type)) +
         geom_boxplot(outlier.shape=NA) +
-        ggbeeswarm::geom_quasirandom() +
+        ggbeeswarm::geom_quasirandom(alpha=0.5) +
         ggsignif::geom_signif(y_position=c(1.6, 1.8), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         geom_hline(data=meds, aes(yintercept=bg), linetype="dashed", color="black") +

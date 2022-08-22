@@ -83,7 +83,7 @@ sys$run({
     top = (schema() | overlap()) + plot_layout(widths=c(3,2))
     btm = wrap_elements(cna_along_genome(gistic, hlg))
 
-    asm = (top / btm) + plot_layout(heights=c(3,2)) + plot_annotation(tag_levels='a') &
+    asm = (btm / top) + plot_layout(heights=c(2,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
     pdf("Fig1-Motivation.pdf", 14, 8)

@@ -25,8 +25,7 @@ og_vs_tsg = function(gistic, cosmic, hlg=c()) {
 
     gwide$type[is.na(gwide$type)] = "Background"
     boxbee = function(y1, y2) list(
-        geom_boxplot(),
-        ggbeeswarm::geom_quasirandom(alpha=0.5),
+        geom_boxplot(outlier.shape=NA),
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
                               y_position=c(y1, y2), color="black", test=wilcox.test),
         theme_classic(),

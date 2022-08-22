@@ -68,9 +68,9 @@ og_tsg_orf = function(orfdata) {
 
     ggplot(both, aes(x=type, y=statistic, color=type)) +
         geom_boxplot(outlier.shape=NA) +
-        ggbeeswarm::geom_quasirandom() +
         ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
+        coord_cartesian(ylim=c(-8, 11)) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
 }
@@ -90,9 +90,9 @@ amp_del_orf = function(orfdata) {
 
     ggplot(both, aes(x=type, y=statistic, color=type)) +
         geom_boxplot(outlier.shape=NA) +
-        ggbeeswarm::geom_quasirandom(alpha=0.5) +
-        ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=wilcox.test,
+        ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
+        coord_cartesian(ylim=c(-5, 8)) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
 }

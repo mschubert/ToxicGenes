@@ -57,20 +57,29 @@ tcga_ccle_cor = function(gistic_amp, cosmic) {
 }
 
 orf_volc = function(orfdata) {
-    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=100) +
-        labs(size = "Number of ORFs")
+    orfdata$fill = orfdata$statistic < -5
+    orfdata$circle =  TRUE
+    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
+        labs(x = "log fold-change ORF screen",
+             y = "Adjusted p-value (FDR)",
+             size = "# ORFs")
 }
 
 og_tsg_orf = function(orfdata) {
     cosmic = fig1$get_cosmic_annot()
     both = left_join(orfdata, cosmic) %>%
-        mutate(type = ifelse(is.na(type), "Background", type))
+        mutate(type = ifelse(is.na(type), "Background", type),
+               type = ifelse(type == "Both", "OG+TSG", type),
+               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
 
-    ggplot(both, aes(x=type, y=statistic, color=type)) +
+    ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA) +
         ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
+        labs(fill = "Driver status", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
+        theme_classic() +
+        theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
 }
@@ -79,20 +88,23 @@ amp_del_orf = function(orfdata) {
     gwide = fig1$get_gistic_scores() %>%
         tidyr::pivot_wider(names_from="type", values_from="frac") %>%
         mutate(type = case_when(
-            amplification > 0.15 & deletion < -0.15 ~ "Both",
+            amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
             amplification > 0.15 ~ "Amplified",
             deletion < -0.15 ~ "Deleted",
             TRUE ~ "Background"
         ))
 
     both = inner_join(orfdata, gwide) %>%
-        mutate(type = factor(type, levels=c("Background", "Both", "Amplified", "Deleted")))
+        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
 
-    ggplot(both, aes(x=type, y=statistic, color=type)) +
+    ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA) +
         ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
         coord_cartesian(ylim=c(-5, 8)) +
+        labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)") +
+        theme_classic() +
+        theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
 }
@@ -107,15 +119,15 @@ sys$run({
         select(gene_name, frac)
     cosmic = fig1$get_cosmic_annot()
 
-    orf_cors = (og_tsg_orf(orfdata) / amp_del_orf(orfdata)) & theme_classic()
+    orf_cors = (amp_del_orf(orfdata) | og_tsg_orf(orfdata))
 
-    top = tcga_ccle_cor(gistic_amp, cosmic)
-    btm = orf_volc(orfdata) | orf_cors
+    top = tcga_ccle_cor(gistic_amp, cosmic) | (plt$text("comp GO") / plt$text("TCGA/CCLE OG/TSG"))
+    btm = (orf_volc(orfdata) | (plt$text("orf GO") / orf_cors)) + plot_layout(widths=c(1,1.2))
 
     asm = (top / btm) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig2-compensation_ORF.pdf", 8, 14)
+    cairo_pdf("Fig2-compensation_ORF.pdf", 16, 14)
     print(asm)
     dev.off()
 })

@@ -28,20 +28,21 @@ og_vs_tsg = function(gistic, cosmic, hlg=c()) {
         geom_boxplot(outlier.shape=NA),
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
                               y_position=c(y1, y2), color="black", test=wilcox.test),
+        coord_cartesian(ylim=c(NA, max(c(y1, y2))+0.05)),
         theme_classic(),
         labs(x = "Gene type"),
         theme(axis.text.x = element_blank())
     )
     pa = ggplot(gwide, aes(x=type, y=amplification, color=type)) +
-        boxbee(0.48, 0.52) + ylab("Amplification frequency") +
+        boxbee(0.45, 0.52) + ylab("Frequency") + ggtitle("Amplifications") +
         geom_hline(yintercept=median(gwide$amplification[gwide$type=="Background"]),
                    linetype="dashed", color="black")
     pd = ggplot(gwide, aes(x=type, y=-deletion, color=type)) +
-        boxbee(0.4, 0.44) + ylab("Deletion frequency") +
+        boxbee(0.4, 0.47) + ylab("Frequency") + ggtitle("Deletions") +
         geom_hline(yintercept=-median(gwide$deletion[gwide$type=="Background"]),
                    linetype="dashed", color="black")
 
-    p | (pa | pd) + plot_layout(guides="collect")
+    (p | (pa / pd) + plot_layout(guides="collect")) + plot_layout(widths=c(2,1))
 }
 
 sys$run({
@@ -53,7 +54,7 @@ sys$run({
     asm = btm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 14, 8)
+    pdf("FigS1-OG_TSG.pdf", 10, 5.5)
     print(asm)
     dev.off()
 })

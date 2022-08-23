@@ -47,6 +47,48 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         plot_layout(widths=c(10,1,2), heights=c(1,10), guides="collect")
 }
 
+go_tcga_ccle = function() {
+    ccle = readRDS("../ccle/pan/stan-nb/all/GO_Biological_Process_2021.rds")$amp %>%
+        transmute(label=label, est_CCLE=estimate, fdr_CCLE=adj.p)
+    tcga = readRDS("../tcga/pan/stan-nb_puradj/all/GO_Biological_Process_2021.rds")[[1]] %>%
+        transmute(label=label, est_TCGA=estimate, fdr_TCGA=adj.p)
+    dset = inner_join(ccle, tcga) %>%
+        mutate(mean_est = rowMeans(cbind(est_CCLE, est_TCGA))) %>%
+        arrange(mean_est) %>%
+        head(15) %>%
+        mutate(label = forcats::fct_reorder(label, mean_est, .desc=TRUE)) %>%
+        tidyr::pivot_longer(c(est_CCLE, est_TCGA),
+                            names_pattern="_(TCGA|CCLE)",
+                            names_to="dset")
+
+    ggplot(dset, aes(x=label, y=value)) +
+        geom_col(aes(fill=dset), width=1.5, position=position_dodge(width=0.3)) +
+        geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
+        coord_flip(expand=FALSE, clip="off") +
+        scale_y_reverse() +
+        scale_fill_manual(values=c(TCGA="#cce2db", CCLE="#f6eac2"), name="Data set") +
+        labs(x = "Gene Ontology", y = "Mean compensation in CCLE and TCGA") +
+        theme_classic() +
+        theme(axis.text.y = element_blank())
+}
+
+go_orf = function() {
+    dset = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx") %>%
+        filter(adj.p < 0.05) %>%
+        arrange(estimate) %>%
+        head(15) %>%
+        mutate(label = forcats::fct_reorder(name, estimate, .desc=TRUE))
+
+    ggplot(dset, aes(x=label, y=estimate)) +
+        geom_col(fill="#12121223") +
+        geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
+        coord_flip(expand=FALSE, clip="off") +
+        scale_y_reverse() +
+        labs(x = "Gene Ontology", y = "ORF dropout (mean z-score)") +
+        theme_classic() +
+        theme(axis.text.y = element_blank())
+}
+
 comp_tcga_ccle = function(comp) {
     both = comp %>%
         mutate(type = ifelse(is.na(type), "Background", type),
@@ -149,9 +191,9 @@ sys$run({
     orf_cors = (amp_del_orf(orfdata) | og_tsg_orf(orfdata))
 
     top = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
-        ((plt$text("comp GO") / comp_tcga_ccle(comp)) + plot_layout(heights=c(3,2)))) +
+        ((go_tcga_ccle() / comp_tcga_ccle(comp)) + plot_layout(heights=c(3,2)))) +
         plot_layout(widths=c(1.3,1))
-    btm = (orf_volc(orfdata) | ((plt$text("orf GO") / orf_cors) + plot_layout(heights=c(3,2)))) +
+    btm = (orf_volc(orfdata) | ((go_orf() / orf_cors) + plot_layout(heights=c(3,2)))) +
         plot_layout(widths=c(1,1.3))
 
     asm = (top / btm) + plot_annotation(tag_levels='a') &

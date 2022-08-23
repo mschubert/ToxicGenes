@@ -5,16 +5,7 @@ sys = import('sys')
 plt = import('plot')
 fig1 = import('./Fig1-Motivation')
 
-tcga_ccle_cor = function(gistic_amp, cosmic) {
-    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
-        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
-        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    both = inner_join(ccle, tcga3, by="gene") %>%
-        dplyr::rename(gene_name = gene) %>%
-        left_join(cosmic) %>%
-        inner_join(gistic_amp)
-
+tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     dx = ggplot(both, aes(x=estimate.x)) +
         geom_density(fill="#dedede") +
         theme_void() +
@@ -54,6 +45,34 @@ tcga_ccle_cor = function(gistic_amp, cosmic) {
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +
         plot_layout(widths=c(10,1,2), heights=c(1,10), guides="collect")
+}
+
+comp_tcga_ccle = function(comp) {
+    both = comp %>%
+        mutate(type = ifelse(is.na(type), "Background", type),
+               type = ifelse(type == "Both", "OG+TSG", type),
+               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+
+    common = function(y, coordy, sigy) list(
+        geom_boxplot(outlier.shape=NA),
+        ggsignif::geom_signif(y_position=sigy, color="black", test=wilcox.test,
+            comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
+        labs(fill = "Driver status", x = "Gene type subset", y = "Δ Expression / expected"),
+        theme_classic(),
+        coord_cartesian(ylim=coordy),
+        theme(axis.text.x = element_blank()),
+        geom_hline(yintercept=median(y[both$type=="Background"]),
+                   linetype="dashed", color="black")
+    )
+
+    p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
+        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
+        labs(title = "CCLE")
+    p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(1.0, 1.2)) +
+        labs(title = "TCGA")
+
+    (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
 }
 
 orf_volc = function(orfdata) {
@@ -110,24 +129,35 @@ amp_del_orf = function(orfdata) {
 }
 
 sys$run({
-    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
-        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
-        filter(gene_name != "LOC254896") # not in tcga/ccle data
-
+    cosmic = fig1$get_cosmic_annot()
     gistic_amp = fig1$get_gistic_scores() %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
-    cosmic = fig1$get_cosmic_annot()
 
+    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    comp = inner_join(ccle, tcga3, by="gene") %>%
+        dplyr::rename(gene_name = gene) %>%
+        left_join(cosmic) %>%
+        inner_join(gistic_amp)
+
+    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
+        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
+        filter(gene_name != "LOC254896") # not in tcga/ccle data
     orf_cors = (amp_del_orf(orfdata) | og_tsg_orf(orfdata))
 
-    top = tcga_ccle_cor(gistic_amp, cosmic) | (plt$text("comp GO") / plt$text("TCGA/CCLE OG/TSG"))
-    btm = (orf_volc(orfdata) | (plt$text("orf GO") / orf_cors)) + plot_layout(widths=c(1,1.2))
+    top = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
+        ((plt$text("comp GO") / comp_tcga_ccle(comp)) + plot_layout(heights=c(3,2)))) +
+        plot_layout(widths=c(1.3,1))
+    btm = (orf_volc(orfdata) | ((plt$text("orf GO") / orf_cors) + plot_layout(heights=c(3,2)))) +
+        plot_layout(widths=c(1,1.3))
 
     asm = (top / btm) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig2-compensation_ORF.pdf", 16, 14)
+    cairo_pdf("Fig2-compensation_ORF.pdf", 15, 14)
     print(asm)
     dev.off()
 })

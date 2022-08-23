@@ -6,7 +6,7 @@ seq = import('seq')
 tcga = import('data/tcga')
 
 hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
-        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "SMAD4", "CCNE1", "PIK3CA", "AURKA")
+        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "CCNE1", "PIK3CA", "AURKA")
 
 schema = function() {
     img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))

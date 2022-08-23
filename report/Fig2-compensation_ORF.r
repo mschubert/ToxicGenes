@@ -100,7 +100,7 @@ comp_tcga_ccle = function(comp) {
         geom_boxplot(outlier.shape=NA),
         ggsignif::geom_signif(y_position=sigy, color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
-        labs(fill = "Driver status", x = "Gene type subset", y = "Δ Expression / expected"),
+        labs(fill = "Driver status", x = "Gene type subset"),
         theme_classic(),
         coord_cartesian(ylim=coordy),
         theme(axis.text.x = element_blank()),
@@ -110,10 +110,10 @@ comp_tcga_ccle = function(comp) {
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
         common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
-        labs(title = "CCLE")
+        labs(title = "CCLE", y="Δ Expression / expected")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
         common(both$estimate.y, c(-0.5, 1.4), c(1.0, 1.2)) +
-        labs(title = "TCGA")
+        labs(title = "TCGA", y="")
 
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
 }
@@ -189,12 +189,12 @@ sys$run({
     orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
-    orf_cors = (amp_del_orf(orfdata) | og_tsg_orf(orfdata))
+    orf_cors = og_tsg_orf(orfdata) | amp_del_orf(orfdata)
 
     top = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
-        ((go_tcga_ccle() / comp_tcga_ccle(comp)) + plot_layout(heights=c(3,2)))) +
+        ((comp_tcga_ccle(comp) / go_tcga_ccle()) + plot_layout(heights=c(2,3)))) +
         plot_layout(widths=c(1.3,1))
-    btm = (orf_volc(orfdata) | ((go_orf() / orf_cors) + plot_layout(heights=c(3,2)))) +
+    btm = (orf_volc(orfdata) | ((orf_cors / go_orf()) + plot_layout(heights=c(2,3)))) +
         plot_layout(widths=c(1,1.3))
 
     asm = (top / btm) + plot_annotation(tag_levels='a') &

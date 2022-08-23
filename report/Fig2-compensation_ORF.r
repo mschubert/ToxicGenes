@@ -7,11 +7,11 @@ fig1 = import('./Fig1-Motivation')
 
 tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     dx = ggplot(both, aes(x=estimate.x)) +
-        geom_density(fill="#dedede") +
+        geom_density(fill="#bdd3df") +
         theme_void() +
         scale_y_continuous(expand=c(0,0))
     dy = ggplot(both, aes(x=estimate.y)) +
-        geom_density(fill="#dedede") +
+        geom_density(fill="#b9d6cd") +
         theme_void() +
         scale_x_continuous(expand=c(0,0)) +
         coord_flip(expand=FALSE) +
@@ -66,7 +66,7 @@ go_tcga_ccle = function() {
         geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
-        scale_fill_manual(values=c(TCGA="#cce2db", CCLE="#f6eac2"), name="Data set") +
+        scale_fill_manual(values=c(TCGA="#b9d6cd", CCLE="#bdd3df"), name="Dataset") +
         labs(x = "Gene Ontology", y = "Mean compensation in CCLE and TCGA") +
         theme_classic() +
         theme(axis.text.y = element_blank())
@@ -80,7 +80,8 @@ go_orf = function() {
         mutate(label = forcats::fct_reorder(name, estimate, .desc=TRUE))
 
     ggplot(dset, aes(x=label, y=estimate)) +
-        geom_col(fill="#12121223") +
+        geom_col(aes(fill="ORF")) +
+        scale_fill_manual(values=c(ORF="#fbcba6a0"), name="Dataset") +
         geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +

@@ -86,7 +86,7 @@ go_orf = function() {
         geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
-        labs(x = "Gene Ontology", y = "ORF dropout (mean z-score)") +
+        labs(x = "Gene Ontology", y = "ORF dropout (mean Wald statistic)") +
         theme_classic() +
         theme(axis.text.y = element_blank())
 }

@@ -60,10 +60,11 @@ go_tcga_ccle = function() {
         tidyr::pivot_longer(c(est_CCLE, est_TCGA),
                             names_pattern="_(TCGA|CCLE)",
                             names_to="dset")
+    txt = dset %>% select(label) %>% distinct()
 
     ggplot(dset, aes(x=label, y=value)) +
-        geom_col(aes(fill=dset), width=1.5, position=position_dodge(width=0.3)) +
-        geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
+        geom_col(aes(fill=dset), width=1.2, position=position_dodge(width=0.6)) +
+        geom_text(data=txt, aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
         scale_fill_manual(values=c(TCGA="#b9d6cd", CCLE="#bdd3df"), name="Dataset") +

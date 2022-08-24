@@ -30,8 +30,12 @@ overlap_venn = function(dset) {
     ov = list(CCLE = unique(dset$gene[dset$est_ccle < -0.3]),
               TCGA = unique(dset$gene[dset$est_tcga < -0.3]),
               ORF = unique(dset$gene[dset$stat_orf < -5 & !is.na(dset$stat_orf)]))
+    all3 = Reduce(intersect, ov)
     plt$venn(ov, alpha=0.4) +
-        scale_fill_manual(values=c(TCGA="#74ad9b", CCLE="#226b94", ORF="#f7974e"))
+        scale_fill_manual(values=c(TCGA="#74ad9b", CCLE="#226b94", ORF="#f7974e")) +
+        annotate("text", x=-8, y=8, label=paste(all3, collapse="\n"), size=4, hjust=1) +
+        annotate("segment", x=-7.5, y=4, xend=-7.5, yend=11.8) +
+        annotate("segment", x=-7, y=8, xend=2.8, yend=-0.1)
 }
 
 test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA", "ZBTB14")) {

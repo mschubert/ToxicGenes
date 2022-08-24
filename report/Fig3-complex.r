@@ -101,7 +101,9 @@ complex_plot = function() {
                min(res$avg_orf[res$p.value<0.2], na.rm=TRUE))) +
         theme_classic() +
         labs(x = "Mean ORF dropout compensated genes (Wald statistic)",
-             y = "Overlap compensated genes (Fisher's Exact Test)")
+             y = "Overlap compensated genes (Fisher's Exact Test)",
+             size = "Complex\nmembers",
+             fill = "Contains\nhit gene")
 }
 
 sys$run({

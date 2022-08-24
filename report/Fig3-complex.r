@@ -113,15 +113,18 @@ sys$run({
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
         inner_join(gistic_amp)
 
+    top = plt$text("onco/tsg + comp/hyp along genome")
     boxes = wrap_elements(comp_hyp_box(dset))
     ov = overlap_venn(dset)
     cplx = complex_plot() #gistic_amp)
 
-    asm = (((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
-        plot_layout(widths=c(1,1.8)) + plot_annotation(tag_levels='a') &
+    asm = (top /
+        ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
+        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,3.4))) +
+        plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig3-complex.pdf", 14, 8)
+    cairo_pdf("Fig3-complex.pdf", 14, 11)
     print(asm)
     dev.off()
 })

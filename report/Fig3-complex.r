@@ -54,13 +54,16 @@ test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA
 }
 
 complex_plot = function() {
-    library("scales")
-    reverselog_trans <- function(base = exp(1)) {
-        trans <- function(x) -log(x, base)
-        inv <- function(x) base^(-x)
-        trans_new(paste0("reverselog-", format(base)), trans, inv,
-                  log_breaks(base = base),
-                  domain = c(1e-100, Inf))
+    .reverselog_trans = function(base=exp(1)) {
+        scales::trans_new(paste0("log-", format(base)),
+                          function(x) -log(x, base),
+                          function(x) base^-x,
+                          scales::log_breaks(base = base),
+                          domain = c(1e-100, Inf))
+    }
+    .scientific_10 = function(x) {
+        fmt = ifelse(x < 0.01, scales::scientific_format()(x), x)
+        parse(text=gsub("1e", "10^", fmt))
     }
 
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
@@ -76,19 +79,23 @@ complex_plot = function() {
                               (p.value < 0.1 & avg_orf < -4), set_name, NA))
 
     # names too long for nice alignment
-    res$label[grepl("CPSF6|Cleavage", res$label)] = NA
+    res$label[grepl("CPSF6|Cleavage|CDC5L", res$label)] = NA
     res$label = sub("components-", "", res$label)
+    res$p.value[res$label == "Large Drosha complex"] = 1e-9 # 1e-13
 
     res2 = res %>%
         mutate(label = sub("(.*)", "`\\1`", label),
                label = ifelse(is.na(label) | !has_hit, label,
                               sprintf("%s^{%s}", label, hit_str)))
+    res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~p<10^{-10}~`)`"
+    fdr = mean(c(res2$p.value[res$adj.p>0.2][1], rev(res2$p.value[res$adj.p<0.2])[1]))
 
     ggplot(res2, aes(x=avg_orf, y=p.value)) +
-        geom_rect(ymin=-Inf, ymax=2, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
+        geom_rect(ymin=-Inf, ymax=1, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
-        geom_hline(yintercept=0.4, linetype="dashed", size=2, color="grey") +
         geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
+        geom_hline(yintercept=fdr, linetype="dashed", color="black") +
+        annotate("text", y=fdr, x=-5.45, vjust=-1, hjust=0, label="20% FDR", size=3) +
         geom_point(data=res %>% filter(!has_hit), aes(size=n, fill=has_hit), shape=21) +
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=10, segment.alpha=0.3,
@@ -96,14 +103,14 @@ complex_plot = function() {
             max.iter=1e5, max.time=10) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`="#FA524E")) +
         scale_size_binned_area(max_size=10) +
-        scale_y_continuous(trans=reverselog_trans(10)) +
+        scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),
                min(res$avg_orf[res$p.value<0.2], na.rm=TRUE))) +
         theme_classic() +
         labs(x = "Mean ORF dropout compensated genes (Wald statistic)",
-             y = "Overlap compensated genes (Fisher's Exact Test)",
-             size = "Complex\nmembers",
-             fill = "Contains\nhit gene")
+             y = "Overlap compensated genes (p-value Fisher's Exact Test)",
+             size = "Protein\ncomplex\nmembers",
+             fill = "Contains\ngene of\ninterest")
 }
 
 sys$run({
@@ -116,7 +123,7 @@ sys$run({
     top = plt$text("onco/tsg + comp/hyp along genome")
     boxes = wrap_elements(comp_hyp_box(dset))
     ov = overlap_venn(dset)
-    cplx = complex_plot() #gistic_amp)
+    cplx = complex_plot()
 
     asm = (top /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +

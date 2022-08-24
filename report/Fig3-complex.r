@@ -5,9 +5,28 @@ plt = import('plot')
 gset = import('genesets')
 fig1 = import('./Fig1-Motivation')
 
-overlap_venn = function() {
-    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
-        inner_join(gistic_amp)
+comp_hyp_box = function(dset) {
+    ds = dset %>%
+        mutate(type = case_when(
+            est_ccle < -0.3 & est_tcga < -0.3 ~ "Compensated",
+            est_ccle > 0.3 & est_tcga > 0.3 ~ "Hyperactivated",
+            TRUE ~ "Background"
+        )) %>%
+        mutate(type = factor(type, levels=c("Background", "Compensated", "Hyperactivated")))
+
+    ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
+        geom_boxplot(outlier.shape=NA) +
+        ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=wilcox.test,
+            comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
+        coord_cartesian(ylim=c(-7, 9)) +
+        labs(fill = "Status", x = "Compensation set", y = "Δ ORF (Wald statistic)") +
+        theme_classic() +
+        theme(axis.text.x = element_blank()) +
+        geom_hline(yintercept=median(ds$stat_orf[ds$type=="Background"], na.rm=TRUE),
+                   linetype="dashed", color="black")
+}
+
+overlap_venn = function(dset) {
     ov = list(CCLE = unique(dset$gene[dset$est_ccle < -0.3]),
               TCGA = unique(dset$gene[dset$est_tcga < -0.3]),
               ORF = unique(dset$gene[dset$stat_orf < -5 & !is.na(dset$stat_orf)]))
@@ -75,12 +94,18 @@ sys$run({
     gistic_amp = fig1$get_gistic_scores() %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene=gene_name, frac)
+    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
+        inner_join(gistic_amp)
 
-    p = complex_plot() #gistic_amp)
+    boxes = wrap_elements(comp_hyp_box(dset))
+    ov = overlap_venn(dset)
+    cplx = complex_plot() #gistic_amp)
 
-    asm = overlap_venn() | complex_plot()
+    asm = (((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
+        plot_layout(widths=c(1,1.8)) + plot_annotation(tag_levels='a') &
+        theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig3-complex.pdf", 14, 8)
-    print(p)
+    cairo_pdf("Fig3-complex.pdf", 14, 8)
+    print(asm)
     dev.off()
 })

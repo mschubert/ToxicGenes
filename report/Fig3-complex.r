@@ -49,7 +49,8 @@ test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA
     broom::tidy(fisher.test(mat)) %>%
         mutate(n = length(corum[[set]]),
                avg_orf = mean(dset$stat_orf[dset$gene %in% corum[[set]]], na.rm=TRUE),
-               has_hit = length(intersect(hits, corum[[set]])) != 0)
+               hit_str = paste(sprintf("bold(`%s`)", intersect(hits, corum[[set]])), collapse=", "),
+               has_hit = hit_str != "")
 }
 
 complex_plot = function() {
@@ -73,9 +74,17 @@ complex_plot = function() {
         arrange(adj.p, p.value) %>%
         mutate(label = ifelse(p.value < 0.002 | (has_hit & avg_orf < -1) |
                               (p.value < 0.1 & avg_orf < -4), set_name, NA))
-    res$label[grepl("CPSF6|Cleavage", res$label)] = NA # name too long for nice alignment
 
-    ggplot(res, aes(x=avg_orf, y=p.value)) +
+    # names too long for nice alignment
+    res$label[grepl("CPSF6|Cleavage", res$label)] = NA
+    res$label = sub("components-", "", res$label)
+
+    res2 = res %>%
+        mutate(label = sub("(.*)", "`\\1`", label),
+               label = ifelse(is.na(label) | !has_hit, label,
+                              sprintf("%s^{%s}", label, hit_str)))
+
+    ggplot(res2, aes(x=avg_orf, y=p.value)) +
         geom_rect(ymin=-Inf, ymax=2, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
         geom_hline(yintercept=0.4, linetype="dashed", size=2, color="grey") +
@@ -83,7 +92,8 @@ complex_plot = function() {
         geom_point(data=res %>% filter(!has_hit), aes(size=n, fill=has_hit), shape=21) +
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=10, segment.alpha=0.3,
-            label.size=NA, fill="#ffffffa0", min.segment.length=0) +
+            label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
+            max.iter=1e5, max.time=10) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`="#FA524E")) +
         scale_size_binned_area(max_size=10) +
         scale_y_continuous(trans=reverselog_trans(10)) +

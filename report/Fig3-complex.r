@@ -1,16 +1,18 @@
 library(dplyr)
 library(ggplot2)
 sys = import('sys')
+plt = import('plot')
 gset = import('genesets')
 fig1 = import('./Fig1-Motivation')
 
-library("scales")
-reverselog_trans <- function(base = exp(1)) {
-    trans <- function(x) -log(x, base)
-    inv <- function(x) base^(-x)
-    trans_new(paste0("reverselog-", format(base)), trans, inv,
-              log_breaks(base = base),
-              domain = c(1e-100, Inf))
+overlap_venn = function() {
+    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
+        inner_join(gistic_amp)
+    ov = list(CCLE = unique(dset$gene[dset$est_ccle < -0.3]),
+              TCGA = unique(dset$gene[dset$est_tcga < -0.3]),
+              ORF = unique(dset$gene[dset$stat_orf < -5 & !is.na(dset$stat_orf)]))
+    plt$venn(ov, alpha=0.4) +
+        scale_fill_manual(values=c(TCGA="#74ad9b", CCLE="#226b94", ORF="#f7974e"))
 }
 
 test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA", "ZBTB14")) {
@@ -28,6 +30,15 @@ test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA
 }
 
 complex_plot = function() {
+    library("scales")
+    reverselog_trans <- function(base = exp(1)) {
+        trans <- function(x) -log(x, base)
+        inv <- function(x) base^(-x)
+        trans_new(paste0("reverselog-", format(base)), trans, inv,
+                  log_breaks(base = base),
+                  domain = c(1e-100, Inf))
+    }
+
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     corum = gset$get_human("CORUM_all") %>%
         gset$filter(min=3, valid=dset$gene)
@@ -67,7 +78,9 @@ sys$run({
 
     p = complex_plot() #gistic_amp)
 
-    pdf("Fig3-complex.pdf", 9, 8)
+    asm = overlap_venn() | complex_plot()
+
+    pdf("Fig3-complex.pdf", 14, 8)
     print(p)
     dev.off()
 })

@@ -18,22 +18,29 @@ overlap = function() {
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
-cna_along_genome = function(gistic_scores, hlg=c()) {
-    labs = gistic_scores %>% filter(gene_name %in% hlg) %>%
+cna_along_genome = function(gistic, hlg=c()) {
+    labs = gistic$genes %>% filter(gene_name %in% hlg) %>%
         group_by(gene_name) %>%
             slice_max(abs(frac)) %>%
-        ungroup()
+        ungroup() %>%
+        inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
+        rowwise() %>%
+        mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
 
-    ggplot(gistic_scores, aes(x=tss)) +
+    smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
+        mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
+               type = stringr::str_to_title(type))
+    ggplot(smooth, aes(x=tss)) +
         geom_hline(yintercept=0, color="black") +
-#todo: recurrent amps with line width?
-        geom_rect(xmin=-Inf, ymin=0.15, xmax=Inf, ymax=Inf, fill="#fff9f5de",
-                  linetype="dashed", aes(color="Amplified")) +
-        scale_color_manual(values=c(Amplified="orange"), name="Area") +
+        geom_hline(yintercept=0.15, color="black", linetype="dashed") +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
-        scale_fill_manual(values=c(amplification="firebrick", deletion="navy"), name="CNA") +
-        geom_point(data=labs, aes(y=frac), color="black") +
-        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), point.size=5) +
+        scale_fill_manual(values=c(Amplification="firebrick", Deletion="navy"), name="CNA") +
+        geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
+                  lineend="round", size=1) +
+        scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
+        geom_point(data=labs, aes(y=frac), color="black", fill="white", shape=21) +
+        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), size=3,
+                                 point.size=10, max.iter=1e5, max.time=10) +
         facet_grid(. ~ chr, scales="free", space="free") +
         labs(y = "Alteration frequency") +
         theme_minimal() +
@@ -61,7 +68,7 @@ get_cosmic_annot = function() {
 }
 
 sys$run({
-    gistic = readRDS("../data/gistic_smooth.rds")$genes
+    gistic = readRDS("../data/gistic_smooth.rds")
 
     top = (schema() | overlap()) + plot_layout(widths=c(3,2))
     btm = wrap_elements(cna_along_genome(gistic, hlg))

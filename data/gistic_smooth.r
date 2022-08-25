@@ -24,8 +24,8 @@ cna2smooth = function(chr, steps) {
     gam = mgcv::gam(frac ~ s(tss), data=fracs)
 
     res = dplyr::tibble(tss = steps)
-    res$freq = predict(gam, newdata=res)
-    res
+    res$frac = predict(gam, newdata=res)
+    tibble(gam=list(gam), steps=list(res))
 }
 
 args = sys$cmd$parse(
@@ -37,16 +37,14 @@ gistic = readRDS(args$infile)
 scores = get_gistic_scores(gistic)
 pred_x = seq$chr_step("GRCh38", step=1e6, chrs=c(1:22,'X'))
 
-res = scores %>%
+smooth = scores %>%
     group_by(type, chr) %>%
     tidyr::nest() %>%
     arrange(type, chr) %>%
     inner_join(pred_x) %>%
     rowwise() %>%
-    mutate(gam = list(cna2smooth(data, steps)))
-
-smooth = res %>%
-    select(type, chr, gam) %>%
-    tidyr::unnest(gam)
+    mutate(smooth = cna2smooth(data, steps)) %>%
+    select(-steps, -data) %>%
+    tidyr::unnest(smooth)
 
 saveRDS(list(genes=scores, smooth=smooth), file=args$outfile)

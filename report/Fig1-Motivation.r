@@ -18,23 +18,6 @@ overlap = function() {
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
-get_gistic_scores = function() {
-    gt = seq$gene_table() %>%
-        transmute(chr = factor(chromosome_name, levels=c(1:22,'X')),
-                  gene_name = external_gene_name,
-                  tss = transcription_start_site) %>%
-        filter(!is.na(chr)) %>%
-        group_by(chr, gene_name) %>%
-            summarize(tss = mean(tss)) %>%
-        ungroup()
-
-    readRDS("../data/tcga_prod2-gistic.rds") %>%
-        transmute(gene_name = SYMBOL,
-                  type = ALT_TYPE,
-                  frac = ifelse(type == "amplification", OVERALL_FREQ, -OVERALL_FREQ)) %>%
-        inner_join(gt)
-}
-
 cna_along_genome = function(gistic_scores, hlg=c()) {
     labs = gistic_scores %>% filter(gene_name %in% hlg) %>%
         group_by(gene_name) %>%
@@ -78,7 +61,7 @@ get_cosmic_annot = function() {
 }
 
 sys$run({
-    gistic = get_gistic_scores()
+    gistic = readRDS("../data/gistic_smooth.rds")$genes
 
     top = (schema() | overlap()) + plot_layout(widths=c(3,2))
     btm = wrap_elements(cna_along_genome(gistic, hlg))

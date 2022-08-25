@@ -30,3 +30,22 @@ rule tcga:
     shell:
         "Rscript {input.rscript}"
             " --outfile {output.outfile}"
+
+rule gistic:
+    input:
+        rscript = "tcga_prod2-gistic.r"
+    output:
+        outfile = "tcga_prod2-gistic.rds"
+    shell:
+        "Rscript {input.rscript}"
+
+rule gistic_smooth:
+    input:
+        rscript = "gistic_smooth.rds"
+        infile = "tcga_prod2-gistic.rds"
+    output:
+        outfile = "gistic_smooth.rds"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --outfile {output.outfile}"

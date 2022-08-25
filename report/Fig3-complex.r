@@ -5,6 +5,55 @@ plt = import('plot')
 gset = import('genesets')
 fig1 = import('./Fig1-Motivation')
 
+along_genome = function(gistic) {
+    cosmic = fig1$get_cosmic_annot() %>% select(-tier)
+    genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
+
+    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
+    comp = tibble(type="Compensated", gene_name=dset$gene[dset$est_ccle < -0.3 & dset$est_tcga < -0.3])
+    hyp = tibble(type="Hyperactivated", gene_name=dset$gene[dset$est_ccle > 0.3 & dset$est_tcga > 0.3])
+    orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$stat_orf < -5])
+
+    smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
+        filter(type == "amplification") %>%
+        mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
+               type = stringr::str_to_title(type))
+
+    dots = bind_rows(genes, cosmic, comp, hyp, orf) %>%
+        mutate(type = factor(type, levels=unique(type))) %>%
+        inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
+        na.omit()
+    dens = ggplot(dots, aes(x=tss, y=type, fill=type)) +
+        ggridges::geom_density_ridges(scale=0.9, bandwidth=5e6, jittered_points=TRUE,
+            position = ggridges::position_points_jitter(width=0.05, height=0),
+            point_shape='|', point_size=2, point_alpha=1, alpha=0.7) +
+        facet_grid(. ~ chr, scales="free", space="free") +
+        theme_void() +
+        theme(panel.spacing.x = unit(1, "mm")) +
+        coord_cartesian(clip="off", expand=FALSE) +
+        scale_y_discrete(limits=rev) +
+        scale_fill_discrete(name="") +
+        plot_layout(tag_level="new")
+
+    amp = ggplot(smooth, aes(x=tss)) +
+        geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
+        scale_fill_manual(values=c(Amplification="firebrick"), name="CNA") +
+        geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
+                  lineend="round", size=1) +
+        scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
+        facet_grid(. ~ chr, scales="free", space="free") +
+        theme_minimal() +
+        guides(fill="none") +
+        theme(axis.title = element_blank(),
+              axis.text = element_blank(),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank(),
+              panel.spacing.x = unit(1, "mm")) +
+        coord_cartesian(clip="off", expand=FALSE)
+
+    (amp / dens) + plot_layout(heights=c(1,4))
+}
+
 comp_hyp_box = function(dset) {
     ds = dset %>%
         mutate(type = case_when(
@@ -114,18 +163,19 @@ complex_plot = function() {
 }
 
 sys$run({
-    gistic_amp = fig1$get_gistic_scores() %>%
+    gistic = readRDS("../data/gistic_smooth.rds")
+    gistic_amp = gistic$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene=gene_name, frac)
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
         inner_join(gistic_amp)
 
-    top = plt$text("onco/tsg + comp/hyp along genome")
+    top = along_genome(gistic)
     boxes = wrap_elements(comp_hyp_box(dset))
     ov = overlap_venn(dset)
     cplx = complex_plot()
 
-    asm = (top /
+    asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
         plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,3.4))) +
         plot_annotation(tag_levels='a') &

@@ -2,10 +2,16 @@ library(dplyr)
 library(ggplot2)
 sys = import('sys')
 plt = import('plot')
+seq = import('seq')
 gset = import('genesets')
 fig1 = import('./Fig1-Motivation')
 
 along_genome = function(gistic) {
+    lens = seq$chr_lengths("GRCh38", chrs=c(1:22,'X')) %>%
+        stack() %>% transmute(x=1, xend=values, chr=ind) %>%
+        rowwise() %>%
+        mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
+
     cosmic = fig1$get_cosmic_annot() %>% select(-tier)
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
 
@@ -18,40 +24,52 @@ along_genome = function(gistic) {
         filter(type == "amplification") %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
+    sm_bg = smooth %>%
+        group_by(chr) %>%
+            mutate(seg_n = cumsum(is.na(frac_amp))) %>%
+        na.omit() %>%
+        group_by(chr, seg_n) %>%
+            summarize(xmin=min(tss), xmax=max(tss)) %>%
+        ungroup()
 
     dots = bind_rows(genes, cosmic, comp, hyp, orf) %>%
         mutate(type = factor(type, levels=unique(type))) %>%
         inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
         na.omit()
     dens = ggplot(dots, aes(x=tss, y=type, fill=type)) +
-        ggridges::geom_density_ridges(scale=0.9, bandwidth=5e6, jittered_points=TRUE,
-            position = ggridges::position_points_jitter(width=0.05, height=0),
-            point_shape='|', point_size=2, point_alpha=1, alpha=0.7) +
+        geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
+                  fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
+        ggridges::geom_density_ridges(scale=0.9, bandwidth=5e6, alpha=0.7) +
         facet_grid(. ~ chr, scales="free", space="free") +
+        ggh4x::facetted_pos_scales(x=lens$scales) +
         theme_void() +
-        theme(panel.spacing.x = unit(1, "mm")) +
-        coord_cartesian(clip="off", expand=FALSE) +
-        scale_y_discrete(limits=rev) +
+        theme(panel.background = element_rect(color=NA, fill="#efefef80"),
+              panel.spacing.x = unit(1, "mm"),
+              plot.margin = unit(c(0,0,5,0), "mm")) +
+        scale_y_discrete(limits=rev, expand=c(0,0.2)) +
         scale_fill_discrete(name="") +
         plot_layout(tag_level="new")
 
     amp = ggplot(smooth, aes(x=tss)) +
+        geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
         scale_fill_manual(values=c(Amplification="firebrick"), name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
+        ggh4x::facetted_pos_scales(x=lens$scales) +
         theme_minimal() +
         guides(fill="none") +
         theme(axis.title = element_blank(),
               axis.text = element_blank(),
+              strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
               panel.spacing.x = unit(1, "mm")) +
         coord_cartesian(clip="off", expand=FALSE)
 
-    (amp / dens) + plot_layout(heights=c(1,4))
+    (amp / dens) + plot_layout(heights=c(1,5))
 }
 
 comp_hyp_box = function(dset) {
@@ -177,7 +195,7 @@ sys$run({
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
-        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,3.4))) +
+        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.5))) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 

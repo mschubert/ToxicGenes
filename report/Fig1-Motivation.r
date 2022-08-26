@@ -43,7 +43,7 @@ cna_along_genome = function(gistic, hlg=c()) {
         ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), size=3,
                                  point.size=10, max.iter=1e5, max.time=10) +
         facet_grid(. ~ chr, scales="free", space="free") +
-        labs(y = "Alteration frequency") +
+        labs(y = "Alteration frequency TCGA") +
         theme_minimal() +
         theme(axis.title.x = element_blank(),
               axis.text.x = element_blank(),
@@ -74,10 +74,10 @@ sys$run({
     top = (schema() | overlap()) + plot_layout(widths=c(3,2))
     btm = wrap_elements(cna_along_genome(gistic, hlg))
 
-    asm = (btm / top) + plot_layout(heights=c(2,3)) + plot_annotation(tag_levels='a') &
+    asm = (btm / top) + plot_layout(heights=c(1,2)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig1-Motivation.pdf", 14, 8)
+    pdf("Fig1-Motivation.pdf", 14, 7)
     print(asm)
     dev.off()
 })

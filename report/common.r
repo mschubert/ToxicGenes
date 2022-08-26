@@ -1,10 +1,10 @@
 cols = c(
     Genes="grey", Background="grey",
-    Amplification="firebrick", Deletion="navy",
-    Amplified="firebrick", Deleted="navy", "Amp+Del"="#6d6875",
-    Oncogene="#6a3d9a", TSG="#b15928",
-    "OG+TSG"="#6d6875", Both="#6d6875",
-    Compensated="#41cb5d", Hyperactivated="#eae2b7",
+    Amplification="#b06166", Deletion="#8484A8",
+    Amplified="#b06166", Deleted="#8484A8", "Amp+Del"="#f0f0f0",
+    Oncogene="#9f7ccd", TSG="#4ec472", "OG+TSG"="#d59e88",
+    Compensated="#de493d", Hyperactivated="#adc5ee",
     CCLE="#226b94", TCGA="#74ad9b", ORF="#f7974e",
-    "ORF dropout"="#f7974e"
+    "ORF dropout"="#f7974e",
+    "Comp+ORF"="#E55F42"
 )

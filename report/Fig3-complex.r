@@ -172,7 +172,7 @@ complex_plot = function() {
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=10, segment.alpha=0.3,
             label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
             max.iter=1e5, max.time=10) +
-        scale_fill_manual(values=c(`FALSE`="grey", `TRUE`="#FA524E")) +
+        scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
         scale_size_binned_area(max_size=10) +
         scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),

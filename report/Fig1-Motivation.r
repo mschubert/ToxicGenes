@@ -65,7 +65,7 @@ get_cosmic_annot = function() {
                   tier = sub(".*Tier([12])$", "\\1", ind)) %>%
         distinct() %>%
         group_by(gene_name, tier) %>%
-        summarize(type = ifelse(length(type) == 1, as.character(type), "Both"))
+        summarize(type = ifelse(length(type) == 1, as.character(type), "OG+TSG"))
 }
 
 sys$run({

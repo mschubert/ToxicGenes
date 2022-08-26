@@ -13,7 +13,7 @@ along_genome = function(gistic) {
         rowwise() %>%
         mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
 
-    cosmic = fig1$get_cosmic_annot() %>% select(-tier)
+    cosmic = fig1$get_cosmic_annot() %>% select(-tier) %>% filter(type != "OG+TSG")
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
 
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
@@ -50,7 +50,7 @@ along_genome = function(gistic) {
               plot.margin = unit(c(0,0,5,0), "mm")) +
         scale_y_discrete(limits=rev, expand=c(0,0.2)) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
-            "Both", "Compensated", "Hyperactivated", "ORF dropout")], name="") +
+            "Compensated", "Hyperactivated", "ORF dropout")], name="") +
         plot_layout(tag_level="new")
 
     amp = ggplot(smooth, aes(x=tss)) +

@@ -3,7 +3,6 @@ library(ggplot2)
 library(patchwork)
 sys = import('sys')
 plt = import('plot')
-fig1 = import('./Fig1-Motivation')
 cm = import('./common')
 
 tcga_ccle_cor = function(both, gistic_amp, cosmic) {
@@ -141,7 +140,7 @@ orf_volc = function(orfdata) {
 }
 
 og_tsg_orf = function(orfdata) {
-    cosmic = fig1$get_cosmic_annot()
+    cosmic = cm$get_cosmic_annot()
     both = left_join(orfdata, cosmic) %>%
         mutate(type = ifelse(is.na(type), "Background", type),
                type = ifelse(type == "Both", "OG+TSG", type),
@@ -187,7 +186,7 @@ amp_del_orf = function(gistic, orfdata) {
 }
 
 sys$run({
-    cosmic = fig1$get_cosmic_annot()
+    cosmic = cm$get_cosmic_annot()
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     gistic_amp = gistic %>%
         filter(type == "amplification", frac > 0.15) %>%

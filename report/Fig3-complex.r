@@ -4,7 +4,6 @@ sys = import('sys')
 plt = import('plot')
 seq = import('seq')
 gset = import('genesets')
-fig1 = import('./Fig1-Motivation')
 cm = import('./common')
 
 along_genome = function(gistic) {
@@ -13,7 +12,7 @@ along_genome = function(gistic) {
         rowwise() %>%
         mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
 
-    cosmic = fig1$get_cosmic_annot() %>% select(-tier) %>% filter(type != "OG+TSG")
+    cosmic = cm$get_cosmic_annot() %>% select(-tier) %>% filter(type != "OG+TSG")
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
 
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")

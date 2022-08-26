@@ -6,9 +6,6 @@ seq = import('seq')
 tcga = import('data/tcga')
 cm = import('./common')
 
-hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
-        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "CCNE1", "PIK3CA", "AURKA")
-
 schema = function() {
     img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
@@ -53,26 +50,11 @@ cna_along_genome = function(gistic, hlg=c()) {
         coord_cartesian(clip="off", expand=FALSE)
 }
 
-get_cosmic_annot = function() {
-    manual = readRDS("../data/genesets/manual.rds")
-    manual[grepl("Cosmic_(OG|TSG)_Tier", names(manual))] %>%
-        stack() %>% as_tibble() %>%
-        transmute(gene_name = values,
-                  type = case_when(
-                      grepl("OG", ind) ~ "Oncogene",
-                      grepl("TSG", ind) ~ "TSG"
-                  ),
-                  tier = sub(".*Tier([12])$", "\\1", ind)) %>%
-        distinct() %>%
-        group_by(gene_name, tier) %>%
-        summarize(type = ifelse(length(type) == 1, as.character(type), "OG+TSG"))
-}
-
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
 
     top = (schema() | overlap()) + plot_layout(widths=c(3,2))
-    btm = wrap_elements(cna_along_genome(gistic, hlg))
+    btm = wrap_elements(cna_along_genome(gistic, cm$hlg))
 
     asm = (btm / top) + plot_layout(heights=c(1,2)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))

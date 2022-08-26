@@ -205,7 +205,7 @@ sys$run({
     orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
-    orf_cors = og_tsg_orf(orfdata) | amp_del_orf(gistic, orfdata)
+    orf_cors = amp_del_orf(gistic, orfdata) | og_tsg_orf(orfdata)
 
     top = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
         ((comp_tcga_ccle(comp) / go_tcga_ccle()) + plot_layout(heights=c(2,3)))) +

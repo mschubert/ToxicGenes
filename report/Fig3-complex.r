@@ -106,7 +106,8 @@ overlap_venn = function(dset) {
         scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
         annotate("text", x=-8, y=8, label=paste(all3, collapse="\n"), size=4, hjust=1) +
         annotate("segment", x=-7.5, y=4, xend=-7.5, yend=11.8) +
-        annotate("segment", x=-7, y=8, xend=2.8, yend=-0.1)
+        annotate("segment", x=-7, y=8, xend=2.78, yend=-0.1) +
+        coord_fixed(clip="off")
 }
 
 test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA", "ZBTB14")) {

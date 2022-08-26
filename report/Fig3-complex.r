@@ -5,6 +5,7 @@ plt = import('plot')
 seq = import('seq')
 gset = import('genesets')
 fig1 = import('./Fig1-Motivation')
+cm = import('./common')
 
 along_genome = function(gistic) {
     lens = seq$chr_lengths("GRCh38", chrs=c(1:22,'X')) %>%
@@ -43,17 +44,19 @@ along_genome = function(gistic) {
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +
         theme_void() +
-        theme(panel.background = element_rect(color=NA, fill="#efefef80"),
+        theme(strip.placement = "outside",
+              panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.x = unit(1, "mm"),
               plot.margin = unit(c(0,0,5,0), "mm")) +
         scale_y_discrete(limits=rev, expand=c(0,0.2)) +
-        scale_fill_discrete(name="") +
+        scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
+            "Both", "Compensated", "Hyperactivated", "ORF dropout")], name="") +
         plot_layout(tag_level="new")
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
-        scale_fill_manual(values=c(Amplification="firebrick"), name="CNA") +
+        scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
@@ -82,11 +85,12 @@ comp_hyp_box = function(dset) {
         mutate(type = factor(type, levels=c("Background", "Compensated", "Hyperactivated")))
 
     ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
+        geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
         coord_cartesian(ylim=c(-7, 9)) +
         labs(fill = "Status", x = "Compensation set", y = "Δ ORF (Wald statistic)") +
+        scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(ds$stat_orf[ds$type=="Background"], na.rm=TRUE),
@@ -99,7 +103,7 @@ overlap_venn = function(dset) {
               ORF = unique(dset$gene[dset$stat_orf < -5 & !is.na(dset$stat_orf)]))
     all3 = Reduce(intersect, ov)
     plt$venn(ov, alpha=0.4) +
-        scale_fill_manual(values=c(TCGA="#74ad9b", CCLE="#226b94", ORF="#f7974e")) +
+        scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
         annotate("text", x=-8, y=8, label=paste(all3, collapse="\n"), size=4, hjust=1) +
         annotate("segment", x=-7.5, y=4, xend=-7.5, yend=11.8) +
         annotate("segment", x=-7, y=8, xend=2.8, yend=-0.1)

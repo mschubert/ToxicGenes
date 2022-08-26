@@ -4,6 +4,7 @@ library(patchwork)
 sys = import('sys')
 seq = import('seq')
 tcga = import('data/tcga')
+cm = import('./common')
 
 hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
         "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "CCNE1", "PIK3CA", "AURKA")
@@ -34,7 +35,7 @@ cna_along_genome = function(gistic, hlg=c()) {
         geom_hline(yintercept=0, color="black") +
         geom_hline(yintercept=0.15, color="black", linetype="dashed") +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
-        scale_fill_manual(values=c(Amplification="firebrick", Deletion="navy"), name="CNA") +
+        scale_fill_manual(values=cm$cols[c("Amplification", "Deletion")], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +

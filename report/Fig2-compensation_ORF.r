@@ -4,14 +4,15 @@ library(patchwork)
 sys = import('sys')
 plt = import('plot')
 fig1 = import('./Fig1-Motivation')
+cm = import('./common')
 
 tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     dx = ggplot(both, aes(x=estimate.x)) +
-        geom_density(fill="#bdd3df") +
+        geom_density(fill=cm$cols["CCLE"], alpha=0.5) +
         theme_void() +
         scale_y_continuous(expand=c(0,0))
     dy = ggplot(both, aes(x=estimate.y)) +
-        geom_density(fill="#b9d6cd") +
+        geom_density(fill=cm$cols["TCGA"], alpha=0.5) +
         theme_void() +
         scale_x_continuous(expand=c(0,0)) +
         coord_flip(expand=FALSE) +
@@ -24,14 +25,15 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     p = ggplot(both, aes(x=estimate.x, y=estimate.y)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
-        geom_rect(xmin=-Inf, ymin=-Inf, xmax=-0.3, ymax=-0.3, color="orange",
-                  linetype="dashed", aes(fill="Compensated")) +
+        geom_rect(xmin=-Inf, ymin=-Inf, xmax=-0.3, ymax=-0.3, linetype="dashed",
+                  color=cm$cols["Compensated"], aes(fill="Compensated")) +
         scale_fill_manual(values=c(Compensated="#fff9f5de"), name="Area") +
         geom_point(data=both %>% filter(is.na(type)),
                    aes(size=n_aneup.y), alpha=0.2) +
         geom_density2d(color="white", breaks=c(0.5, 0.99)) +
         geom_point(data=both %>% filter(!is.na(type)),
                    aes(size=n_aneup.y, color=type), alpha=0.7) +
+        scale_color_manual(values=cm$cols[c("Oncogene", "TSG", "OG+TSG")]) +
         geom_smooth(method="lm", color="blue") +
         annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue", parse=TRUE) +
         ggrepel::geom_label_repel(data=both %>% filter(!is.na(type)),
@@ -63,11 +65,11 @@ go_tcga_ccle = function() {
     txt = dset %>% select(label) %>% distinct()
 
     ggplot(dset, aes(x=label, y=value)) +
-        geom_col(aes(fill=dset), width=1.2, position=position_dodge(width=0.6)) +
+        geom_col(aes(fill=dset), width=1.2, position=position_dodge(width=0.6), alpha=0.5) +
         geom_text(data=txt, aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
-        scale_fill_manual(values=c(TCGA="#b9d6cd", CCLE="#bdd3df"), name="Dataset") +
+        scale_fill_manual(values=cm$cols[c("TCGA", "CCLE")], name="Dataset") +
         labs(x = "Gene Ontology", y = "Mean compensation in CCLE and TCGA") +
         theme_classic() +
         theme(axis.text.y = element_blank())
@@ -81,8 +83,8 @@ go_orf = function() {
         mutate(label = forcats::fct_reorder(name, estimate, .desc=TRUE))
 
     ggplot(dset, aes(x=label, y=estimate)) +
-        geom_col(aes(fill="ORF")) +
-        scale_fill_manual(values=c(ORF="#fbcba6a0"), name="Dataset") +
+        geom_col(aes(fill="ORF"), alpha=0.5) +
+        scale_fill_manual(values=cm$cols["ORF"], name="Dataset") +
         geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
@@ -98,9 +100,10 @@ comp_tcga_ccle = function(comp) {
                type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
 
     common = function(y, coordy, sigy) list(
-        geom_boxplot(outlier.shape=NA),
+        geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
+        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]),
         labs(fill = "Driver status", x = "Gene type subset"),
         theme_classic(),
         coord_cartesian(ylim=coordy),
@@ -136,10 +139,11 @@ og_tsg_orf = function(orfdata) {
                type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
+        geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
+        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]) +
         labs(fill = "Driver status", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
@@ -147,8 +151,8 @@ og_tsg_orf = function(orfdata) {
                    linetype="dashed", color="black")
 }
 
-amp_del_orf = function(orfdata) {
-    gwide = fig1$get_gistic_scores() %>%
+amp_del_orf = function(gistic, orfdata) {
+    gwide = gistic %>%
         tidyr::pivot_wider(names_from="type", values_from="frac") %>%
         mutate(type = case_when(
             amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
@@ -161,10 +165,11 @@ amp_del_orf = function(orfdata) {
         mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
+        geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=wilcox.test,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
         coord_cartesian(ylim=c(-5, 8)) +
+        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted", "Amp+Del")]) +
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)") +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
@@ -174,7 +179,8 @@ amp_del_orf = function(orfdata) {
 
 sys$run({
     cosmic = fig1$get_cosmic_annot()
-    gistic_amp = fig1$get_gistic_scores() %>%
+    gistic = readRDS("../data/gistic_smooth.rds")$genes
+    gistic_amp = gistic %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
@@ -190,7 +196,7 @@ sys$run({
     orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
-    orf_cors = og_tsg_orf(orfdata) | amp_del_orf(orfdata)
+    orf_cors = og_tsg_orf(orfdata) | amp_del_orf(gistic, orfdata)
 
     top = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
         ((comp_tcga_ccle(comp) / go_tcga_ccle()) + plot_layout(heights=c(2,3)))) +

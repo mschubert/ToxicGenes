@@ -36,14 +36,16 @@ screen_cor = function(ov) {
     cmat = cor(mat) %>%
         reshape2::melt() %>%
         plt$cluster(value ~ Var1 + Var2)
-    plt$matrix(cmat, value ~ Var1 + Var2, geom="circle") +
+    plt$matrix(cmat, value ~ Var1 + Var2, geom="tile") +
         scale_fill_distiller(palette="RdBu", name="Pearson\ncorrelation") +
-        theme(axis.title = element_blank())
+        theme(axis.title = element_blank()) +
+        coord_fixed()
 }
 
-# volc GO
-
-# genes covered by ORF vs. genome
+go_volc = function() {
+    res = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx")
+    plt$volcano(res, label_top=35) + guides(size="none")
+}
 
 sys$run({
     ov = readRDS("../orf/overview.rds") %>%
@@ -56,14 +58,13 @@ sys$run({
         ylim(c(-9,9)) +
         coord_cartesian(ylim=c(-6,6), clip="off")
 
-#    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
-#        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
-#        filter(gene_name != "LOC254896") # not in tcga/ccle data
+    cors = wrap_elements(screen_cor(ov))
 
-    asm = (naive / corr) + plot_annotation(tag_levels='a') &
+    asm = (((naive / corr) | ((cors / go_volc()) + plot_layout(heights=c(1,2)))) +
+        plot_layout(widths=c(1.5,1))) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS3-ORFscreen.pdf", 8, 10)
+    pdf("FigS3-ORFscreen.pdf", 14, 10)
     print(asm)
     dev.off()
 })

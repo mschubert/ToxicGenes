@@ -26,7 +26,20 @@ facet_plot = function(ov, aes) {
         theme(strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
 
-# cor between screens
+screen_cor = function(ov) {
+    wide = ov %>%
+        select(`Construct IDs`, cells, `LFC DMSO/ETP`) %>%
+        tidyr::pivot_wider(names_from=cells, values_from=`LFC DMSO/ETP`)
+    mat = data.matrix(wide[-1])
+    rownames(mat) = wide[[1]]
+
+    cmat = cor(mat) %>%
+        reshape2::melt() %>%
+        plt$cluster(value ~ Var1 + Var2)
+    plt$matrix(cmat, value ~ Var1 + Var2, geom="circle") +
+        scale_fill_distiller(palette="RdBu", name="Pearson\ncorrelation") +
+        theme(axis.title = element_blank())
+}
 
 # volc GO
 

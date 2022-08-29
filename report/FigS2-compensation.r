@@ -29,7 +29,7 @@ tcga_vs_ccle = function() {
                angle = atan(slope) * 180/pi) %>%
         select(-tidy, -mod) %>%
         tidyr::unnest(glance) %>%
-        mutate(label = sprintf("R^2~`=`~%.2f~\n~p~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
+        mutate(label = sprintf("R^2~`=`~%.2f~p~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
 
     ggplot(dset, aes(x=CCLE, y=value)) +
         geom_vline(xintercept=0, color="grey", linetype="dashed", size=1) +
@@ -38,14 +38,15 @@ tcga_vs_ccle = function() {
         scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
-        geom_smooth(method="lm", color="red", se=FALSE, size=1) +
+        geom_smooth(method="lm", color="red", se=FALSE, size=0.7) +
         geom_text(data=mods, aes(x=0, y=intcp, label=label, angle=angle), parse=TRUE,
                   color="red", hjust=0.4, vjust=-0.5, size=3) +
-        labs(x = "Expression over expected TCGA",
-             y = "Expression over expected CCLE") +
+        labs(y = "Expression over expected TCGA",
+             x = "Expression over expected CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +
         theme_minimal() +
-        theme(strip.background = element_rect(color=NA, fill="#ffffffc0"))
+        theme(strip.text = element_text(size=12),
+              strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
 
 # mcmc traces of some example genes

@@ -17,8 +17,8 @@ overlap = function() {
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
-cna_along_genome = function(gistic, hlg=c()) {
-    labs = gistic$genes %>% filter(gene_name %in% hlg) %>%
+cna_along_genome = function(gistic) {
+    labs = gistic$genes %>% filter(gene_name %in% cm$hlg) %>%
         group_by(gene_name) %>%
             slice_max(abs(frac)) %>%
         ungroup() %>%
@@ -83,14 +83,15 @@ cna_expr_scales = function() {
 }
 
 find_vul = function() {
-    plt$text("vulns?")
+    img = grid::rasterGrob(magick::image_read("external/vulns.svg"))
+    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
     cosmic = cm$get_cosmic_annot()
 
-    top = cna_along_genome(gistic, cm$hlg)
+    top = cna_along_genome(gistic)
     mid = og_tsg_cna(gistic, cosmic) | cna_expr_scales() | find_vul()
     btm = (schema() | overlap()) + plot_layout(widths=c(3,2))
 

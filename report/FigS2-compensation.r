@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 sys = import('sys')
+plt = import('plot')
 
 tcga_vs_ccle = function() {
     ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
@@ -49,18 +50,34 @@ tcga_vs_ccle = function() {
               strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
 
+volcs = function() {
+    ccle_genes = readRDS("../ccle/pan/stan-nb.rds")$amp
+    tcga_genes = readRDS("../tcga/pan/stan-nb_puradj.rds")
+    ccle_go = readRDS("../ccle/pan/stan-nb/all/GO_Biological_Process_2021.rds")$amp
+    tcga_go = readRDS("../tcga/pan/stan-nb_puradj/all/GO_Biological_Process_2021.rds")[[1]]
+
+    padj = "Adjusted p-values (FDR)"
+    ccle = (plt$volcano(ccle_genes) + guides(size="none")) |
+        (plt$volcano(ccle_go) + labs(size="Set size", y=padj)) +
+        plot_layout(guides="collect")
+    tcga = (plt$volcano(tcga_genes) + guides(size="none")) |
+        (plt$volcano(tcga_go, pos_label_bias=0.5) + labs(size="Set size", y=padj)) +
+        plot_layout(guides="collect")
+
+    ccle / tcga
+}
+
 # mcmc traces of some example genes
 
-# volcano plots for GSEA (+genes?)
 # + cor plot tcga vs ccle for gene sets
 
 sys$run({
-    asm = tcga_vs_ccle()
+    asm = (tcga_vs_ccle() / volcs()) + plot_layout(heights=c(1,4))
 
     asm = asm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("FigS2-compensation.pdf", 10, 4)
+    cairo_pdf("FigS2-compensation.pdf", 10, 14)
     print(asm)
     dev.off()
 })

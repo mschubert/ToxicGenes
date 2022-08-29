@@ -20,27 +20,33 @@ tcga_vs_ccle = function() {
         tidyr::gather("type", "value", -gene, -CCLE)
 
     mods = dset %>% group_by(type) %>%
-        summarize(res = list(broom::glance(lm(value ~ CCLE)))) %>%
-        tidyr::unnest(res) %>%
-        mutate(label = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", adj.r.squared, p.value),
-               label = sub("e", "%*%10^", label))
+        summarize(mod = list(lm(value ~ CCLE))) %>%
+        rowwise() %>%
+        mutate(tidy = list(broom::tidy(mod)),
+               glance = list(broom::glance(mod)),
+               intcp = tidy$estimate[tidy$term == "(Intercept)"],
+               slope = tidy$estimate[tidy$term == "CCLE"],
+               angle = atan(slope) * 180/pi) %>%
+        select(-tidy, -mod) %>%
+        tidyr::unnest(glance) %>%
+        mutate(label = sprintf("R^2~`=`~%.2f~\n~p~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
 
     ggplot(dset, aes(x=CCLE, y=value)) +
+        geom_vline(xintercept=0, color="grey", linetype="dashed", size=1) +
+        geom_hline(yintercept=0, color="grey", linetype="dashed", size=1) +
         geom_hex(aes(color=..count..), bins=50) +
         scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
-        geom_smooth(method="lm", color="red", se=FALSE) +
-        geom_label(data=mods, aes(x=-0.9, y=1, label=label), parse=TRUE,
-                   color="red", fill="#ffffffa0", label.size=NA, hjust=0) +
+        geom_smooth(method="lm", color="red", se=FALSE, size=1) +
+        geom_text(data=mods, aes(x=0, y=intcp, label=label, angle=angle), parse=TRUE,
+                  color="red", hjust=0.4, vjust=-0.5, size=3) +
         labs(x = "Expression over expected TCGA",
              y = "Expression over expected CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +
         theme_minimal() +
         theme(strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
-
-# tcga-vs-ccle comp purity correction plots
 
 # mcmc traces of some example genes
 
@@ -53,7 +59,7 @@ sys$run({
     asm = asm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("FigS2-compensation.pdf", 14, 5)
+    cairo_pdf("FigS2-compensation.pdf", 10, 4)
     print(asm)
     dev.off()
 })

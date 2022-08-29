@@ -3,7 +3,6 @@ library(ggplot2)
 library(patchwork)
 sys = import('sys')
 seq = import('seq')
-plt = import('plot')
 tcga = import('data/tcga')
 cm = import('./common')
 
@@ -65,7 +64,7 @@ og_tsg_cna = function(gistic, cosmic) {
     ggplot(dset, aes(x=type, y=frac, fill=type)) +
         geom_boxplot(outlier.shape=NA) +
         scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Frequency", x ="Gene type subset", fill="Driver status") +
+        labs(y="Frequency TCGA", x ="Gene type subset", fill="Driver status") +
         geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
             y_position=c(0.43,0.48,0.43,0.48), color="black", test=wilcox.test, textsize=3) +
@@ -79,7 +78,24 @@ og_tsg_cna = function(gistic, cosmic) {
 }
 
 cna_expr_scales = function() {
-    plt$text("expr follows CN")
+    dset = readRDS("../data/df_ccle.rds") %>%
+        group_by(gene, covar) %>%
+            filter(n() > 30, sum(expr == 0) < 0.1, mean(expr) > 10, mean(copies > 3) > 0.15) %>%
+            mutate(expr = expr/sf, expr = expr/mean(expr[abs(2-copies)<0.15])) %>%
+        ungroup()
+
+    ggplot(dset, aes(x=copies, y=expr)) +
+        geom_hex(aes(color=..count..), bins=50) +
+        geom_hline(yintercept=0, color="white", linetype="dashed") +
+        geom_vline(xintercept=0, color="white", linetype="dashed") +
+        geom_density2d(color="black", bins=8, size=0.3) +
+        scale_color_distiller(palette="Greys", direction=1, guide="none") +
+        scale_fill_distiller(palette="Greys", direction=1, breaks=c(100,1000)) +
+        xlim(c(0, 4)) + ylim(c(0,2)) +
+        geom_abline(slope=0.5, intercept=0, color="blue", linetype="dashed") +
+        labs(x="DNA copies", y="Normalized\nexpression CCLE") +
+        theme_classic() +
+        coord_fixed(ratio=2, expand=FALSE)
 }
 
 find_vul = function() {

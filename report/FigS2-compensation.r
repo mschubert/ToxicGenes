@@ -16,9 +16,10 @@ tcga_vs_ccle = function() {
 
     dset = ccle %>% select(gene, CCLE=estimate) %>%
         left_join(tcga1 %>% select(gene, `No purity correction`=estimate)) %>%
-        left_join(tcga2 %>% select(gene, `Purity overall`=estimate)) %>%
+        left_join(tcga2 %>% select(gene, `Common purity term`=estimate)) %>%
         left_join(tcga3 %>% select(gene, `Purity per tissue`=estimate)) %>%
-        tidyr::gather("type", "value", -gene, -CCLE)
+        tidyr::gather("type", "value", -gene, -CCLE) %>%
+        mutate(type = factor(type) %>% relevel("No purity correction"))
 
     mods = dset %>% group_by(type) %>%
         summarize(mod = list(lm(value ~ CCLE))) %>%

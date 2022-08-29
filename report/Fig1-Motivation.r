@@ -3,6 +3,7 @@ library(ggplot2)
 library(patchwork)
 sys = import('sys')
 seq = import('seq')
+plt = import('plot')
 tcga = import('data/tcga')
 cm = import('./common')
 
@@ -50,16 +51,53 @@ cna_along_genome = function(gistic, hlg=c()) {
         coord_cartesian(clip="off", expand=FALSE)
 }
 
+og_tsg_cna = function(gistic, cosmic) {
+    dset = gistic$genes %>%
+        mutate(frac = abs(frac),
+               cna = stringr::str_to_title(type)) %>% select(-type) %>%
+        left_join(cosmic) %>%
+        mutate(type = ifelse(is.na(type), "Background", type),
+               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+
+    bg_line = dset %>% group_by(cna) %>%
+        summarize(frac = median(frac[type == "Background"], na.rm=TRUE))
+
+    ggplot(dset, aes(x=type, y=frac, fill=type)) +
+        geom_boxplot(outlier.shape=NA) +
+        scale_fill_manual(values=cm$cols[levels(dset$type)]) +
+        labs(y="Frequency", x ="Gene type subset", fill="Driver status") +
+        geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
+        ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
+            y_position=c(0.43,0.48,0.43,0.48), color="black", test=wilcox.test, textsize=3) +
+        facet_wrap(~ cna) +
+        coord_cartesian(ylim=c(0.02, 0.52)) +
+        theme_classic() +
+        theme(strip.background = element_blank(),
+              strip.placement = "outside",
+              strip.text.x = element_text(size=12),
+              axis.text.x = element_blank())
+}
+
+cna_expr_scales = function() {
+    plt$text("expr follows CN")
+}
+
+find_vul = function() {
+    plt$text("vulns?")
+}
+
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
+    cosmic = cm$get_cosmic_annot()
 
-    top = (schema() | overlap()) + plot_layout(widths=c(3,2))
-    btm = wrap_elements(cna_along_genome(gistic, cm$hlg))
+    top = cna_along_genome(gistic, cm$hlg)
+    mid = og_tsg_cna(gistic, cosmic) | cna_expr_scales() | find_vul()
+    btm = (schema() | overlap()) + plot_layout(widths=c(3,2))
 
-    asm = (btm / top) + plot_layout(heights=c(1,2)) + plot_annotation(tag_levels='a') &
+    asm = (top / mid / btm) + plot_layout(heights=c(1,1,2)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig1-Motivation.pdf", 14, 7)
+    pdf("Fig1-Motivation.pdf", 14, 9)
     print(asm)
     dev.off()
 })

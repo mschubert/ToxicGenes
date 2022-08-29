@@ -19,12 +19,20 @@ tcga_vs_ccle = function() {
         left_join(tcga3 %>% select(gene, `Purity per tissue`=estimate)) %>%
         tidyr::gather("type", "value", -gene, -CCLE)
 
+    mods = dset %>% group_by(type) %>%
+        summarize(res = list(broom::glance(lm(value ~ CCLE)))) %>%
+        tidyr::unnest(res) %>%
+        mutate(label = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", adj.r.squared, p.value),
+               label = sub("e", "%*%10^", label))
+
     ggplot(dset, aes(x=CCLE, y=value)) +
         geom_hex(aes(color=..count..), bins=50) +
         scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
         geom_smooth(method="lm", color="red", se=FALSE) +
+        geom_label(data=mods, aes(x=-0.9, y=1, label=label), parse=TRUE,
+                   color="red", fill="#ffffffa0", label.size=NA, hjust=0) +
         labs(x = "Expression over expected TCGA",
              y = "Expression over expected CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +

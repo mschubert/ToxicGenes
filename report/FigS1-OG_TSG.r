@@ -34,14 +34,15 @@ venn_amp_del = function(gistic, cosmic) {
     amps = gistic %>% filter(type == "amplification")
     dels =  gistic %>% filter(type == "deletion")
     sets = list(
-        `All genes` = unique(gistic$gene_name),
-        `Frequently\namplified` = unique(amps$gene_name[amps$frac > 0.15]),
-        `Frequently\ndeleted` = unique(dels$gene_name[dels$frac < -0.15])
+        `Frequently amplified` = unique(amps$gene_name[amps$frac > 0.15]),
+        `Frequently deleted` = unique(dels$gene_name[dels$frac < -0.15])
     )
-    cols = cm$cols[c("Background", "Amplified", "Deleted")]
+    sets$Neither = setdiff(unique(gistic$gene_name), unlist(sets, use.names=FALSE))
+    cols = cm$cols[c("Amplified", "Deleted", "Background")]
     names(cols) = names(sets)
     plt$venn(sets, alpha=0.3) +
-        scale_fill_manual(values=cols)
+        scale_fill_manual(values=cols) +
+        theme(plot.margin = margin(0,5,0,5, unit="mm"))
 }
 
 venn_og_tsg = function(gistic, cosmic) {
@@ -55,7 +56,8 @@ venn_og_tsg = function(gistic, cosmic) {
     cols = cm$cols[c("Oncogene", "TSG", "Amplified")]
     names(cols)[3] = names(sets)[1]
     plt$venn(sets, alpha=0.3) +
-        scale_fill_manual(values=cols)
+        scale_fill_manual(values=cols) +
+        theme(plot.margin = margin(0,5,0,5, unit="mm"))
 }
 
 # DE normal-cancer for OG/TSG
@@ -66,13 +68,16 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     cosmic = cm$get_cosmic_annot()
 
-    btm = (og_vs_tsg(gistic, cosmic) | venn_amp_del(gistic, cosmic) | venn_og_tsg(gistic, cosmic)) +
-        plot_layout(widths=c(3,2,2))
+    venns = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic)) +
+        plot_layout(heights=c(3,4))
+
+    btm = (og_vs_tsg(gistic, cosmic) | venns) +
+        plot_layout(widths=c(4,3))
 
     asm = btm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 14, 5.5)
+    pdf("FigS1-OG_TSG.pdf", 10, 5.5)
     print(asm)
     dev.off()
 })

@@ -58,11 +58,14 @@ volcs = function() {
     tcga_go = readRDS("../tcga/pan/stan-nb_puradj/all/GO_Biological_Process_2021.rds")[[1]]
 
     padj = "Adjusted p-values (FDR)"
-    ccle = (plt$volcano(ccle_genes) + guides(size="none")) |
-        (plt$volcano(ccle_go) + labs(size="Set size", y=padj)) +
+    pp = ylab("Posterior probability crossing zero")
+    xc = xlab("Expression over expected CCLE")
+    xt = xlab("Expression over expected TCGA")
+    ccle = (plt$volcano(ccle_genes) + pp + xc + guides(size="none")) |
+        (plt$volcano(ccle_go) + labs(size="Set size", y=padj) + xc) +
         plot_layout(guides="collect")
-    tcga = (plt$volcano(tcga_genes) + guides(size="none")) |
-        (plt$volcano(tcga_go, pos_label_bias=0.5) + labs(size="Set size", y=padj)) +
+    tcga = (plt$volcano(tcga_genes) + pp + xt + guides(size="none")) |
+        (plt$volcano(tcga_go, pos_label_bias=0.5) + labs(size="Set size", y=padj) + xt) +
         plot_layout(guides="collect")
 
     ccle / tcga

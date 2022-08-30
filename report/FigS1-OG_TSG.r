@@ -60,7 +60,9 @@ venn_og_tsg = function(gistic, cosmic) {
         theme(plot.margin = margin(0,5,0,5, unit="mm"))
 }
 
+de_og_tsg = function() {
 # DE normal-cancer for OG/TSG
+}
 
 # RPE-1 common parental DE with amps?
 
@@ -77,7 +79,7 @@ sys$run({
     asm = btm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 10, 5.5)
+    pdf("FigS1-OG_TSG.pdf", 11, 5.5)
     print(asm)
     dev.off()
 })

@@ -44,7 +44,8 @@ screen_cor = function(ov) {
 
 go_volc = function() {
     res = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx")
-    plt$volcano(res, label_top=35) + guides(size="none")
+    plt$volcano(res, label_top=35) + guides(size="none") +
+        xlab("Mean z-score LFC")
 }
 
 sys$run({

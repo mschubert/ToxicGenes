@@ -30,10 +30,25 @@ og_vs_tsg = function(gistic, cosmic) {
              y = "Amplification frequency")
 }
 
-freq_amp = function(gistic, cosmic) {
+venn_amp_del = function(gistic, cosmic) {
     amps = gistic %>% filter(type == "amplification")
+    dels =  gistic %>% filter(type == "deletion")
     sets = list(
-        `Frequently\namplified` = unique(amps$gene_name[gistic$frac > 0.15]),
+        `All genes` = unique(gistic$gene_name),
+        `Frequently\namplified` = unique(amps$gene_name[amps$frac > 0.15]),
+        `Frequently\ndeleted` = unique(dels$gene_name[dels$frac < -0.15])
+    )
+    cols = cm$cols[c("Background", "Amplified", "Deleted")]
+    names(cols) = names(sets)
+    plt$venn(sets, alpha=0.3) +
+        scale_fill_manual(values=cols)
+}
+
+venn_og_tsg = function(gistic, cosmic) {
+    amps = gistic %>% filter(type == "amplification")
+    dels =  gistic %>% filter(type == "deletion")
+    sets = list(
+        `Frequently\namplified` = unique(amps$gene_name[amps$frac > 0.15]),
         Oncogene = cosmic$gene_name[grepl("^O", cosmic$type)],
         TSG = cosmic$gene_name[grepl("TSG", cosmic$type)]
     )
@@ -51,13 +66,13 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     cosmic = cm$get_cosmic_annot()
 
-    btm = (og_vs_tsg(gistic, cosmic) | freq_amp(gistic, cosmic)) +
-        plot_layout(widths=c(3,2))
+    btm = (og_vs_tsg(gistic, cosmic) | venn_amp_del(gistic, cosmic) | venn_og_tsg(gistic, cosmic)) +
+        plot_layout(widths=c(3,2,2))
 
     asm = btm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 10, 5.5)
+    pdf("FigS1-OG_TSG.pdf", 14, 5.5)
     print(asm)
     dev.off()
 })

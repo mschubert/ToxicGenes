@@ -8,15 +8,6 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 og_vs_tsg = function(gistic, cosmic) {
-    sets = list(
-        Oncogene = cosmic$gene_name[grepl("^O", cosmic$type)],
-        TSG = cosmic$gene_name[grepl("TSG", cosmic$type)]
-    )
-    venn = plt$venn(sets, label=FALSE) +
-        scale_fill_manual(values=cm$cols[c("Oncogene", "TSG")]) +
-        annotate("text", x=0, y=0, label=length(intersect(sets$Oncogene, sets$TSG))) +
-        plot_layout(tag_level="new")
-
     gwide = tidyr::pivot_wider(gistic, names_from="type", values_from="frac") %>%
         left_join(cosmic) %>%
         mutate(label = ifelse(!is.na(type) & gene_name %in% cm$hlg, gene_name, NA))
@@ -36,11 +27,21 @@ og_vs_tsg = function(gistic, cosmic) {
         coord_fixed() +
         theme_classic() +
         labs(x = "Deletion frequency",
-             y = "Amplification frequency") +
-        inset_element(venn, right=0.95, top=1, left=0.5, bottom=0.6)
+             y = "Amplification frequency")
 }
 
-# venn overlap fAmp + OG/TSG
+freq_amp = function(gistic, cosmic) {
+    amps = gistic %>% filter(type == "amplification")
+    sets = list(
+        `Frequently\namplified` = unique(amps$gene_name[gistic$frac > 0.15]),
+        Oncogene = cosmic$gene_name[grepl("^O", cosmic$type)],
+        TSG = cosmic$gene_name[grepl("TSG", cosmic$type)]
+    )
+    cols = cm$cols[c("Oncogene", "TSG", "Amplified")]
+    names(cols)[3] = names(sets)[1]
+    plt$venn(sets, alpha=0.3) +
+        scale_fill_manual(values=cols)
+}
 
 # DE normal-cancer for OG/TSG
 
@@ -50,12 +51,13 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     cosmic = cm$get_cosmic_annot()
 
-    btm = og_vs_tsg(gistic, cosmic)
+    btm = (og_vs_tsg(gistic, cosmic) | freq_amp(gistic, cosmic)) +
+        plot_layout(widths=c(3,2))
 
     asm = btm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 6, 5.5)
+    pdf("FigS1-OG_TSG.pdf", 10, 5.5)
     print(asm)
     dev.off()
 })

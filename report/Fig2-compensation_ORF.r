@@ -34,16 +34,16 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
             color=cm$cols[comphyp$fill], fill="#ffffff00", linetype="dashed", inherit.aes=FALSE) +
         geom_point(data=both %>% filter(is.na(type)),
                    aes(size=n_aneup.y), alpha=0.2) +
-        geom_density2d(color="white", breaks=c(0.5, 0.99)) +
+#        geom_density2d(color="white", breaks=c(0.5, 0.99)) +
         geom_point(data=both %>% filter(!is.na(type)),
                    aes(size=n_aneup.y, color=type), alpha=0.7) +
         scale_color_manual(values=cm$cols[c("Oncogene", "TSG", "OG+TSG")], name="Driver status") +
-        geom_smooth(method="lm", color="blue") +
+#        geom_smooth(method="lm", se=FALSE, color="blue") +
         annotate("text", x=0.2, y=-0.8, label="Compensated", color=cm$cols[["Compensated"]],
                  size=6, fontface="bold", alpha=0.7) +
         annotate("text", x=0.4, y=1.55, label="Hyperactivated", color=cm$cols[["Hyperactivated"]],
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
-        annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue", parse=TRUE) +
+#        annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue", parse=TRUE) +
         ggrepel::geom_label_repel(data=both %>% filter(!is.na(type)),
                    aes(label=gene_name, color=type), max.overlaps=11,
                    size=3, min.segment.length=0,

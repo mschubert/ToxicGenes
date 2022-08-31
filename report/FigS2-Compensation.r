@@ -81,7 +81,7 @@ sys$run({
     asm = asm + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("FigS2-compensation.pdf", 10, 14)
+    cairo_pdf("FigS2-Compensation.pdf", 10, 14)
     print(asm)
     dev.off()
 })

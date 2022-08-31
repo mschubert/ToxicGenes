@@ -7,8 +7,9 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 schema = function() {
-    img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))
-    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
+#    img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))
+#    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
+    import('plot')$text("schema of overall reasoning goes here")
 }
 
 overlap = function() {

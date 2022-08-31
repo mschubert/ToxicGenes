@@ -46,7 +46,7 @@ sys$run({
     asm = comp_orf(all, gistic_amp) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS4-overlap.pdf", 7, 6)
+    pdf("FigS4-Overlap.pdf", 7, 6)
     print(asm)
     dev.off()
 })

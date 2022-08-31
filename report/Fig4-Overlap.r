@@ -204,7 +204,7 @@ sys$run({
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig3-complex.pdf", 14, 11)
+    cairo_pdf("Fig4-Overlap.pdf", 14, 11)
     print(asm)
     dev.off()
 })

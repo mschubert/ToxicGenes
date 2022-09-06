@@ -59,13 +59,14 @@ og_tsg_orf = function(orfdata) {
 
 amp_del_orf = function(gistic, orfdata) {
     gwide = gistic %>%
-        tidyr::pivot_wider(names_from="type", values_from="frac") %>%
+        tidyr::pivot_wider(names_from="type", values_from="frac")
+    gwide = gwide %>%
         mutate(type = case_when(
             amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
             amplification > 0.15 ~ "Amplified",
             deletion < -0.15 ~ "Deleted",
-            TRUE ~ "Background"
-        ))
+            TRUE ~ NA_character_
+        )) %>% filter(!is.na(type)) %>% bind_rows(gwide %>% mutate(type="Background"))
 
     both = inner_join(orfdata, gwide) %>%
         mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))

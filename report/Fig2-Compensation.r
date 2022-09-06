@@ -91,13 +91,14 @@ go_tcga_ccle = function() {
 
 cna_comp = function(gistic, comp_all) {
     gwide = gistic %>%
-        tidyr::pivot_wider(names_from="type", values_from="frac") %>%
+        tidyr::pivot_wider(names_from="type", values_from="frac")
+    gwide = gwide %>%
         mutate(type = case_when(
             amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
             amplification > 0.15 ~ "Amplified",
             deletion < -0.15 ~ "Deleted",
-            TRUE ~ "Background"
-        ))
+            TRUE ~ NA_character_
+        )) %>% filter(!is.na(type)) %>% bind_rows(gwide %>% mutate(type="Background"))
 
     both = inner_join(comp_all %>% select(-type), gwide) %>%
         mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
@@ -111,7 +112,7 @@ cna_comp = function(gistic, comp_all) {
         theme_classic(),
         coord_cartesian(ylim=coordy),
         theme(axis.text.x = element_blank()),
-        geom_hline(yintercept=median(y[both$type=="Background"]),
+        geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
                    linetype="dashed", color="black")
     )
 
@@ -139,7 +140,7 @@ comp_tcga_ccle = function(comp) {
         theme_classic(),
         coord_cartesian(ylim=coordy),
         theme(axis.text.x = element_blank()),
-        geom_hline(yintercept=median(y[both$type=="Background"]),
+        geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
                    linetype="dashed", color="black")
     )
 

@@ -81,7 +81,7 @@ og_tsg_cna = function(gistic, cosmic) {
 cna_expr_scales = function() {
     dset = readRDS("../data/df_ccle.rds") %>%
         group_by(gene, covar) %>%
-            filter(n() > 30, sum(expr == 0) < 0.1, mean(expr) > 10, mean(copies > 3) > 0.15) %>%
+            filter(n() > 30, sum(expr == 0) < 0.1, mean(expr) > 10, mean(abs(copies-2) > 1) > 0.15) %>%
             mutate(expr = expr/sf, expr = expr/mean(expr[abs(2-copies)<0.15])) %>%
         ungroup()
 

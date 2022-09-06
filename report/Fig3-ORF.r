@@ -14,7 +14,7 @@ go_orf = function() {
     dset = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx") %>%
         filter(adj.p < 0.05) %>%
         arrange(estimate) %>%
-        head(15) %>%
+        head(10) %>%
         mutate(label = forcats::fct_reorder(name, estimate, .desc=TRUE))
 
     ggplot(dset, aes(x=label, y=estimate)) +
@@ -23,9 +23,10 @@ go_orf = function() {
         geom_text(aes(label=paste(" ", label)), y=0, hjust=0) +
         coord_flip(expand=FALSE, clip="off") +
         scale_y_reverse() +
-        labs(x = "Gene Ontology", y = "ORF dropout (mean Wald statistic)") +
+        labs(x = "Gene Ontology", y = "log fold-chance (Wald statistic)") +
         theme_classic() +
-        theme(axis.text.y = element_blank())
+        theme(axis.text.y = element_blank()) +
+        ggtitle("ORF dropout")
 }
 
 orf_volc = function(orfdata) {

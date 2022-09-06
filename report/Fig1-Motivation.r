@@ -68,7 +68,7 @@ og_tsg_cna = function(gistic, cosmic) {
         labs(y="Frequency TCGA", x ="Gene type subset", fill="Driver status") +
         geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
-            y_position=c(0.43,0.48,0.43,0.48), color="black", test=wilcox.test, textsize=3) +
+            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
         facet_wrap(~ cna) +
         coord_cartesian(ylim=c(0.02, 0.52)) +
         theme_classic() +

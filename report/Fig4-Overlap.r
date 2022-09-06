@@ -86,7 +86,7 @@ comp_hyp_box = function(dset) {
 
     ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
-        ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=wilcox.test,
+        ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=t.test,
             comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
         coord_cartesian(ylim=c(-7, 9)) +
         labs(fill = "Status", x = "Compensation set", y = "Δ ORF (Wald statistic)") +

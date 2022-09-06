@@ -55,38 +55,44 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         theme_classic() +
         labs(size = "Aneuploid\nsamples",
-             x = "Expression over expected CCLE",
-             y = "Expression over expected TCGA") +
+             x = "Δ Expression over expected CCLE",
+             y = "Δ Expression over expected TCGA") +
         plot_layout(tag_level="new")
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +
         plot_layout(widths=c(10,1,2), heights=c(1,10), guides="collect")
 }
 
-go_tcga_ccle = function() {
+go_tcga_ccle = function(n=5) {
     ccle = readRDS("../ccle/pan/stan-nb/all/GO_Biological_Process_2021.rds")$amp %>%
-        transmute(label=label, est_CCLE=estimate, fdr_CCLE=adj.p)
+        transmute(label=label, stat_CCLE=statistic, fdr_CCLE=adj.p)
     tcga = readRDS("../tcga/pan/stan-nb_puradj/all/GO_Biological_Process_2021.rds")[[1]] %>%
-        transmute(label=label, est_TCGA=estimate, fdr_TCGA=adj.p)
+        transmute(label=label, stat_TCGA=statistic, fdr_TCGA=adj.p)
     dset = inner_join(ccle, tcga) %>%
-        mutate(mean_est = rowMeans(cbind(est_CCLE, est_TCGA))) %>%
-        arrange(mean_est) %>%
-        head(15) %>%
-        mutate(label = forcats::fct_reorder(label, mean_est, .desc=TRUE)) %>%
-        tidyr::pivot_longer(c(est_CCLE, est_TCGA),
+        mutate(mean_stat = rowMeans(cbind(stat_CCLE, stat_TCGA))) %>%
+        arrange(mean_stat)
+    dset = bind_rows(Compensated=head(dset, n), Hyperactivated=tail(dset,n), .id="type") %>%
+        tidyr::pivot_longer(c(stat_CCLE, stat_TCGA),
                             names_pattern="_(TCGA|CCLE)",
                             names_to="dset")
-    txt = dset %>% select(label) %>% distinct()
 
-    ggplot(dset, aes(x=label, y=value)) +
-        geom_col(aes(fill=dset), width=1.2, position=position_dodge(width=0.6), alpha=0.5) +
-        geom_text(data=txt, aes(label=paste(" ", label)), y=0, hjust=0) +
-        coord_flip(expand=FALSE, clip="off") +
-        scale_y_reverse() +
-        scale_fill_manual(values=cm$cols[c("TCGA", "CCLE")], name="Dataset") +
-        labs(x = "Gene Ontology", y = "Mean compensation score in CCLE/TCGA") +
-        theme_classic() +
-        theme(axis.text.y = element_blank())
+    plot_one = function(dset, .desc) {
+        dset$label = forcats::fct_reorder(dset$label, dset$mean_stat, .desc=.desc)
+        txt = dset %>% select(label) %>% distinct()
+        ggplot(dset, aes(x=label, y=value)) +
+            geom_col(aes(fill=dset), width=1.2, position=position_dodge(width=0.6), alpha=0.5) +
+            geom_text(data=txt, aes(label=paste(" ", label)), y=0, hjust=0) +
+            coord_flip(expand=FALSE, clip="off") +
+            scale_fill_manual(values=cm$cols[c("TCGA", "CCLE")], name="Dataset") +
+            labs(x = "Gene Ontology", y = "Δ Expression over expected in CCLE/TCGA (Wald statistic)") +
+            theme_classic() +
+            theme(axis.text.y = element_blank())
+    }
+    p1 = plot_one(dset %>% filter(type == "Compensated"), TRUE) +
+        ggtitle("Compensated") + scale_y_reverse() + theme(axis.title.x = element_blank())
+    p2 = plot_one(dset %>% filter(type == "Hyperactivated"), FALSE) +
+        ggtitle("Hyperactivated") + plot_layout(tag_level="new")
+    (p1 / p2) + plot_layout(guides="collect")
 }
 
 cna_comp = function(gistic, comp_all) {
@@ -170,11 +176,11 @@ sys$run({
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    left = wrap_elements(schema()) / wrap_elements(tcga_ccle_cor(comp, gistic_amp, cosmic))
+    left = schema() / tcga_ccle_cor(comp, gistic_amp, cosmic)
     right = cna_comp(gistic, comp_all) / comp_tcga_ccle(comp) / go_tcga_ccle()
 
     asm = ((left + plot_layout(heights=c(1,3))) |
-        (right + plot_layout(heights=c(1,1,1.9)))) + plot_layout(widths=c(3,2)) +
+        (right + plot_layout(heights=c(1,1,2)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("Fig2-Compensation.pdf", 15, 10)

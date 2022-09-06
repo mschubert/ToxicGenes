@@ -89,6 +89,42 @@ go_tcga_ccle = function() {
         theme(axis.text.y = element_blank())
 }
 
+cna_comp = function(gistic, comp_all) {
+    gwide = gistic %>%
+        tidyr::pivot_wider(names_from="type", values_from="frac") %>%
+        mutate(type = case_when(
+            amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
+            amplification > 0.15 ~ "Amplified",
+            deletion < -0.15 ~ "Deleted",
+            TRUE ~ "Background"
+        ))
+
+    both = inner_join(comp_all %>% select(-type), gwide) %>%
+        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
+
+    common = function(y, coordy, sigy) list(
+        geom_boxplot(outlier.shape=NA, alpha=0.7),
+        ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
+        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted", "Amp+Del")]),
+        labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
+        theme_classic(),
+        coord_cartesian(ylim=coordy),
+        theme(axis.text.x = element_blank()),
+        geom_hline(yintercept=median(y[both$type=="Background"]),
+                   linetype="dashed", color="black")
+    )
+
+    p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
+        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
+        labs(title = "CCLE", y="Δ Expression / expected")
+    p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.95, 1.2)) +
+        labs(title = "TCGA", y="")
+
+    (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
+}
+
 comp_tcga_ccle = function(comp) {
     both = comp %>%
         mutate(type = ifelse(is.na(type), "Background", type),
@@ -96,7 +132,7 @@ comp_tcga_ccle = function(comp) {
 
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
-        ggsignif::geom_signif(y_position=sigy, color="black", test=wilcox.test,
+        ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]),
         labs(fill = "Driver status", x = "Gene type subset"),
@@ -128,18 +164,17 @@ sys$run({
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    comp = inner_join(ccle, tcga3, by="gene") %>%
+    comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
-        left_join(cosmic) %>%
-        inner_join(gistic_amp)
+        left_join(cosmic)
+    comp = comp_all %>% inner_join(gistic_amp)
 
-    top = schema()
-    btm = (tcga_ccle_cor(comp, gistic_amp, cosmic) |
-        ((comp_tcga_ccle(comp) / go_tcga_ccle()) + plot_layout(heights=c(2,3)))) +
-        plot_layout(widths=c(1.3,1))
+    left = wrap_elements(schema()) / wrap_elements(tcga_ccle_cor(comp, gistic_amp, cosmic))
+    right = cna_comp(gistic, comp_all) / comp_tcga_ccle(comp) / go_tcga_ccle()
 
-    asm = (top / btm) + plot_layout(heights=c(1,3)) + plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+    asm = ((left + plot_layout(heights=c(1,3))) |
+        (right + plot_layout(heights=c(1,1,1.9)))) + plot_layout(widths=c(3,2)) +
+        plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("Fig2-Compensation.pdf", 15, 10)
     print(asm)

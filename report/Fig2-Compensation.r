@@ -132,7 +132,7 @@ cna_comp = function(gistic, comp_all) {
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
 }
 
-comp_tcga_ccle = function(comp) {
+og_comp = function(comp) {
     both = comp %>%
         mutate(type = ifelse(is.na(type), "Background", type),
                type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
@@ -177,7 +177,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = schema() / tcga_ccle_cor(comp, gistic_amp, cosmic)
-    right = cna_comp(gistic, comp_all) / comp_tcga_ccle(comp) / go_tcga_ccle()
+    right = cna_comp(gistic, comp_all) / og_comp(comp) / go_tcga_ccle()
 
     asm = ((left + plot_layout(heights=c(1,3))) |
         (right + plot_layout(heights=c(1,1,2)))) + plot_layout(widths=c(3,2)) +

@@ -4,7 +4,8 @@ subworkflow ccle:
 rule all:
     input:
         "df_ccle.rds",
-        "df_tcga.rds"
+        "df_tcga.rds",
+        "de_tcga.rds"
 
 rule ccle:
     input:
@@ -26,6 +27,18 @@ rule tcga:
         outfile = "df_tcga.rds"
     resources:
         mem = 120 * 1024,
+        walltime = 120
+    shell:
+        "Rscript {input.rscript}"
+            " --outfile {output.outfile}"
+
+rule de_tcga:
+    input:
+        rscript = "de_tcga.r"
+    output:
+        outfile = "de_tcga.rds"
+    resources:
+        mem = 30 * 1024,
         walltime = 120
     shell:
         "Rscript {input.rscript}"

@@ -142,7 +142,7 @@ og_comp = function(comp) {
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]),
-        labs(fill = "Driver status", x = "Gene type subset"),
+        labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
         theme_classic(),
         coord_cartesian(ylim=coordy),
         theme(axis.text.x = element_blank()),

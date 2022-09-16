@@ -38,11 +38,13 @@ orf_volc = function(orfdata) {
              size = "# ORFs")
 }
 
-og_tsg_orf = function(orfdata) {
+og_tsg_orf = function(gistic, orfdata) {
+    freq_amp_genes = gistic %>%
+        filter(type == "amplification", frac > 0.15) %>% pull(gene_name)
     cosmic = cm$get_cosmic_annot()
     both = left_join(orfdata, cosmic) %>%
+        filter(gene_name %in% freq_amp_genes) %>%
         mutate(type = ifelse(is.na(type), "Background", type),
-               type = ifelse(type == "Both", "OG+TSG", type),
                type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
@@ -51,7 +53,7 @@ og_tsg_orf = function(orfdata) {
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]) +
-        labs(fill = "Driver status", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
+        labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
@@ -92,7 +94,7 @@ sys$run({
     orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
-    orf_cors = amp_del_orf(gistic, orfdata) | og_tsg_orf(orfdata)
+    orf_cors = amp_del_orf(gistic, orfdata) | og_tsg_orf(gistic, orfdata)
 
     top = schema()
     btm = (orf_volc(orfdata) | ((orf_cors / go_orf()) + plot_layout(heights=c(2,3)))) +

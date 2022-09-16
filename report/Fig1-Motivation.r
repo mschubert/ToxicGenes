@@ -7,9 +7,8 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 schema = function() {
-#    img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))
-#    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
-    import('plot')$text("schema of overall reasoning goes here")
+    img = grid::rasterGrob(magick::image_read("external/vulns.svg"))
+    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
 overlap = function() {
@@ -63,15 +62,48 @@ og_tsg_cna = function(gistic, cosmic) {
         summarize(frac = median(frac[type == "Background"], na.rm=TRUE))
 
     ggplot(dset, aes(x=type, y=frac, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
+        geom_boxplot(outlier.shape=NA, color="#707070") +
         scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Frequency TCGA", x ="Gene type subset", fill="Driver status") +
+        labs(y="Frequency TCGA", x ="Gene type subset",
+             fill="Driver status\n(whole genome)") +
         geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
             y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
         facet_wrap(~ cna) +
         coord_cartesian(ylim=c(0.02, 0.52)) +
         theme_classic() +
+        theme(strip.background = element_blank(),
+              strip.placement = "outside",
+              strip.text.x = element_text(size=12),
+              axis.text.x = element_blank())
+}
+
+og_tsg_expr = function(gistic, cosmic) {
+    freq_amp_genes = gistic$genes %>%
+        filter(type == "amplification", frac > 0.15) %>% pull(gene_name)
+    dset = readRDS("../data/de_tcga.rds") %>%
+        bind_rows(.id="cohort") %>%
+        filter(label %in% freq_amp_genes) %>%
+        dplyr::rename(gene_name = label) %>%
+        left_join(cosmic) %>%
+        mutate(title = "Gene Expression",
+               type = ifelse(is.na(type), "Background", type),
+               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+
+    bg_line = dset %>%
+        summarize(stat = median(stat[type == "Background"], na.rm=TRUE))
+
+    ggplot(dset, aes(x=type, y=stat, fill=type)) +
+        geom_boxplot(outlier.shape=NA) +
+        scale_fill_manual(values=cm$cols[levels(dset$type)]) +
+        labs(y="Cancer vs. Normal TCGA\n(Wald statistic)", x ="Gene type subset",
+             fill="Driver status\n(freq. amplified)") +
+        geom_hline(data=bg_line, aes(yintercept=stat), linetype="dashed", color="black") +
+        ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
+            y_position=c(10,13), color="black", test=t.test, textsize=3) +
+        coord_cartesian(ylim=c(-10, 18)) +
+        theme_classic() +
+        facet_wrap(~ title) +
         theme(strip.background = element_blank(),
               strip.placement = "outside",
               strip.text.x = element_text(size=12),
@@ -99,17 +131,13 @@ cna_expr_scales = function() {
         coord_fixed(ratio=2, expand=FALSE)
 }
 
-find_vul = function() {
-    img = grid::rasterGrob(magick::image_read("external/vulns.svg"))
-    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
-}
-
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
     cosmic = cm$get_cosmic_annot()
 
     top = cna_along_genome(gistic)
-    mid = og_tsg_cna(gistic, cosmic) | cna_expr_scales() | find_vul()
+    mid = (og_tsg_cna(gistic, cosmic) | og_tsg_expr(gistic, cosmic) | cna_expr_scales()) +
+        plot_layout(widths=c(1.9,1,1.1))
     btm = (schema() | overlap()) + plot_layout(widths=c(3,2))
 
     asm = (top / mid / btm) + plot_layout(heights=c(1,1,2)) + plot_annotation(tag_levels='a') &

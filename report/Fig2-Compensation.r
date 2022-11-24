@@ -22,12 +22,18 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         coord_flip(expand=FALSE) +
         plot_layout(tag_level="new")
 
-    comphyp = data.frame(
-        xmin = c(-Inf, 0.3), xmax = c(-0.3, Inf),
-        ymin = c(-Inf, 0.3), ymax = c(-0.3, Inf),
-        fill = c("Compensated", "Hyperactivated")
-    )
+    both$group = with(both, case_when(
+        estimate.x < -0.3 & estimate.y < -0.3 ~ "Compensated",
+        estimate.x > 0.3 & estimate.y > 0.3 ~ "Hyperactivated",
+        TRUE ~ "Background"
+    ))
+    both$pdist = with(both, sqrt(estimate.x^2 + estimate.y^2))
 
+    hl = c("RBM14", "CDKN1A", "SNRPA", "ZBTB14", "POU2F1", "STAT3", "BUB1",
+           "BRCA1", "RBM33", "DNMT3A", "CCNE1", "MDM2", "ERBB2", "CDC73",
+           "SRSF3", "AKT3", "BAX", "POLQ", "MPP2", "CYP1B1-AS1", "ZNF879",
+           "ID2", "ZNF418")
+    cols = cm$cols[c("Compensated", "Hyperactivated", "Background")]
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
@@ -35,23 +41,20 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     p = ggplot(both, aes(x=estimate.x, y=estimate.y)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
-        geom_rect(data=comphyp, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),
-            color=cm$cols[comphyp$fill], fill="#ffffff00", linetype="dashed", inherit.aes=FALSE) +
-        geom_point(data=both %>% filter(is.na(type)),
-                   aes(size=n_aneup.y), alpha=0.2) +
-#        geom_density2d(color="white", breaks=c(0.5, 0.99)) +
-        geom_point(data=both %>% filter(!is.na(type)),
-                   aes(size=n_aneup.y, color=type), alpha=0.7) +
-        scale_color_manual(values=cm$cols[c("Oncogene", "TSG", "OG+TSG")], name="Driver status") +
-#        geom_smooth(method="lm", se=FALSE, color="blue") +
-        annotate("text", x=0.2, y=-0.8, label="Compensated", color=cm$cols[["Compensated"]],
-                 size=6, fontface="bold", alpha=0.7) +
+        geom_point(data=both %>% filter(group == "Background"),
+                   aes(size=n_aneup.y, color=group), alpha=0.2) +
+        geom_point(data=both %>% filter(group != "Background"),
+                   aes(size=n_aneup.y, color=group), alpha=0.7) +
+        scale_color_manual(values=cols, name="Compensation\nstatus") +
+        scale_size_area(max_size=6, breaks=c(100, 500, 1000)) +
+        annotate("text", x=0.05, y=-0.8, label="Compensated", color=cm$cols[["Compensated"]],
+                 size=6, fontface="bold", alpha=0.7, hjust=0) +
         annotate("text", x=0.4, y=1.55, label="Hyperactivated", color=cm$cols[["Hyperactivated"]],
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
-#        annotate("text", y=1.3, x=-0.9, hjust=0, label=lab, color="blue", parse=TRUE) +
-        ggrepel::geom_label_repel(data=both %>% filter(!is.na(type)),
-                   aes(label=gene_name, color=type), max.overlaps=11,
-                   size=3, min.segment.length=0,
+        ggrepel::geom_label_repel(data=both %>% filter(pdist > 1 | gene_name %in% hl),
+                   aes(label=gene_name, color=group), max.overlaps=20,
+                   box.padding=unit(0.1, "lines"),
+                   size=3, min.segment.length=0, max.iter=1e6, max.time=30,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         theme_classic() +
         labs(size = "TCGA\nAmplifications",

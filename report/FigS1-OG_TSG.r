@@ -8,7 +8,7 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 og_tsg_cna = function(gistic, cosmic) {
-    dset = gistic$genes %>%
+    dset = gistic %>%
         mutate(frac = abs(frac),
                cna = stringr::str_to_title(type)) %>% select(-type) %>%
         left_join(cosmic) %>%
@@ -99,16 +99,16 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     cosmic = cm$get_cosmic_annot()
 
-    venns = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic)) +
+    left = (og_vs_tsg(gistic, cosmic) / og_tsg_cna(gistic, cosmic)) +
+        plot_layout(heights=c(2,1))
+
+    right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic))
         plot_layout(heights=c(3,4))
 
-    btm = (og_vs_tsg(gistic, cosmic) | venns) +
-        plot_layout(widths=c(4,3))
-
-    asm = btm + plot_annotation(tag_levels='a') &
+    asm = (left | right) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 11, 5.5)
+    pdf("FigS1-OG_TSG.pdf", 11, 8)
     print(asm)
     dev.off()
 })

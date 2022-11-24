@@ -57,6 +57,9 @@ cna_expr_scales = function() {
             mutate(expr = expr/sf, expr = expr/mean(expr[abs(2-copies)<0.15])) %>%
         ungroup()
 
+    m = broom::tidy(lm(expr ~ copies, data=dset)) %>%
+        filter(term == "copies")
+
     ggplot(dset, aes(x=copies, y=expr)) +
         geom_hex(aes(color=..count..), bins=50) +
         geom_hline(yintercept=0, color="white", linetype="dashed") +
@@ -67,6 +70,15 @@ cna_expr_scales = function() {
         xlim(c(0, 4)) + ylim(c(0,2)) +
         geom_abline(slope=0.5, intercept=0, color="blue", linetype="dashed") +
         labs(x="DNA copies", y="Normalized\nexpression CCLE") +
+        annotate("text", x=1, y=1.5, label="Higher than\nexpected", color=cm$cols["Hyperactivated"]) +
+        annotate("curve", x=1.8, y=1.6, xend=2.7, yend=1.7, color=cm$cols["Hyperactivated"],
+                 curvature=-0.2, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        annotate("text", x=3.1, y=0.4, label="Lower than\nexpected", color=cm$cols["Compensated"]) +
+        annotate("curve", x=3.1, y=0.65, xend=3.1, yend=1.1, color=cm$cols["Compensated"],
+                 curvature=0.2, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        annotate("text", x=0.8, y=0.2, label=sprintf("p=%.2g", m$p.value), color="blue", hjust=0) +
         theme_classic() +
         coord_fixed(ratio=2, expand=FALSE)
 }

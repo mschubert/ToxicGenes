@@ -50,35 +50,6 @@ cna_along_genome = function(gistic) {
         coord_cartesian(clip="off", expand=FALSE)
 }
 
-og_tsg_cna = function(gistic, cosmic) {
-    dset = gistic$genes %>%
-        mutate(frac = abs(frac),
-               cna = stringr::str_to_title(type)) %>% select(-type) %>%
-        left_join(cosmic) %>%
-        mutate(type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
-        filter(!is.na(type))
-
-    bg_line = dset %>% group_by(cna) %>%
-        summarize(frac = median(frac[type == "Background"], na.rm=TRUE))
-
-    ggplot(dset, aes(x=type, y=frac, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
-        scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Frequency TCGA", x ="Gene type subset",
-             fill="Driver status\n(whole genome)") +
-        geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
-        ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
-            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
-        facet_wrap(~ cna) +
-        coord_cartesian(ylim=c(0.02, 0.52)) +
-        theme_classic() +
-        theme(strip.background = element_blank(),
-              strip.placement = "outside",
-              strip.text.x = element_text(size=12),
-              axis.text.x = element_blank())
-}
-
 cna_expr_scales = function() {
     dset = readRDS("../data/df_ccle.rds") %>%
         group_by(gene, covar) %>%

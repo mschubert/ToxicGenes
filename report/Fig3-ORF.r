@@ -45,14 +45,15 @@ og_tsg_orf = function(gistic, orfdata) {
     both = left_join(orfdata, cosmic) %>%
         filter(gene_name %in% freq_amp_genes) %>%
         mutate(type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
+        filter(!is.na(type))
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=t.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
-        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]) +
+        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]) +
         labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
@@ -72,14 +73,15 @@ amp_del_orf = function(gistic, orfdata) {
         )) %>% filter(!is.na(type)) %>% bind_rows(gwide %>% mutate(type="Background"))
 
     both = inner_join(orfdata, gwide) %>%
-        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
+        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted"))) %>%
+        filter(!is.na(type))
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=t.test,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
         coord_cartesian(ylim=c(-5, 8)) +
-        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted", "Amp+Del")]) +
+        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]) +
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)") +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
@@ -98,12 +100,12 @@ sys$run({
 
     top = schema()
     btm = (orf_volc(orfdata) | ((orf_cors / go_orf()) + plot_layout(heights=c(2,3)))) +
-        plot_layout(widths=c(1,1.3))
+        plot_layout(widths=c(1,1.1))
 
     asm = (top / btm) + plot_layout(heights=c(1,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig3-ORF.pdf", 15, 10)
+    cairo_pdf("Fig3-ORF.pdf", 14, 10)
     print(asm)
     dev.off()
 })

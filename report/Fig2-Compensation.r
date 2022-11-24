@@ -54,7 +54,7 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
                    size=3, min.segment.length=0,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         theme_classic() +
-        labs(size = "Aneuploid\nsamples",
+        labs(size = "TCGA\nAmplifications",
              x = "Δ Expression over expected CCLE",
              y = "Δ Expression over expected TCGA") +
         plot_layout(tag_level="new")
@@ -107,13 +107,14 @@ cna_comp = function(gistic, comp_all) {
         )) %>% filter(!is.na(type)) %>% bind_rows(gwide %>% mutate(type="Background"))
 
     both = inner_join(comp_all %>% select(-type), gwide) %>%
-        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted", "Amp+Del")))
+        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted"))) %>%
+        filter(!is.na(type))
 
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
-        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted", "Amp+Del")]),
+        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
         theme_classic(),
         coord_cartesian(ylim=coordy),
@@ -135,13 +136,14 @@ cna_comp = function(gistic, comp_all) {
 og_comp = function(comp) {
     both = comp %>%
         mutate(type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
+        filter(!is.na(type))
 
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
-        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG", "OG+TSG")]),
+        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
         labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
         theme_classic(),
         coord_cartesian(ylim=coordy),
@@ -176,14 +178,15 @@ sys$run({
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    left = schema() / tcga_ccle_cor(comp, gistic_amp, cosmic)
+    left = (wrap_elements(schema() + theme(plot.margin=margin(0,5,0,-10,"mm")))) /
+        tcga_ccle_cor(comp, gistic_amp, cosmic)
     right = cna_comp(gistic, comp_all) / og_comp(comp) / go_tcga_ccle()
 
     asm = ((left + plot_layout(heights=c(1,3))) |
-        (right + plot_layout(heights=c(1,1,2)))) + plot_layout(widths=c(3,2)) +
+        (right + plot_layout(heights=c(1,1,2)))) + plot_layout(widths=c(3.5,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig2-Compensation.pdf", 15, 10)
+    cairo_pdf("Fig2-Compensation.pdf", 14, 10)
     print(asm)
     dev.off()
 })

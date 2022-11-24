@@ -7,12 +7,12 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 schema = function() {
-    img = grid::rasterGrob(magick::image_read("external/vulns.svg"))
+    img = grid::rasterGrob(magick::image_read("external/schema.svg", density=300))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
 overlap = function() {
-    img = grid::rasterGrob(magick::image_read("external/overlap.svg"))
+    img = grid::rasterGrob(magick::image_read("external/overlap2.svg"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -79,39 +79,6 @@ og_tsg_cna = function(gistic, cosmic) {
               axis.text.x = element_blank())
 }
 
-og_tsg_expr = function(gistic, cosmic) {
-    freq_amp_genes = gistic$genes %>%
-        filter(type == "amplification", frac > 0.15) %>% pull(gene_name)
-    dset = readRDS("../data/de_tcga.rds") %>%
-        bind_rows(.id="cohort") %>%
-        filter(label %in% freq_amp_genes) %>%
-        dplyr::rename(gene_name = label) %>%
-        left_join(cosmic) %>%
-        mutate(title = "Gene Expression",
-               type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
-        filter(!is.na(type))
-
-    bg_line = dset %>%
-        summarize(stat = median(stat[type == "Background"], na.rm=TRUE))
-
-    ggplot(dset, aes(x=type, y=stat, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
-        scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Cancer vs. Normal TCGA\n(Wald statistic)", x ="Gene type subset",
-             fill="Driver status\n(freq. amplified)") +
-        geom_hline(data=bg_line, aes(yintercept=stat), linetype="dashed", color="black") +
-        ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
-            y_position=c(10,13), color="black", test=t.test, textsize=3) +
-        coord_cartesian(ylim=c(-10, 18)) +
-        theme_classic() +
-        facet_wrap(~ title) +
-        theme(strip.background = element_blank(),
-              strip.placement = "outside",
-              strip.text.x = element_text(size=12),
-              axis.text.x = element_blank())
-}
-
 cna_expr_scales = function() {
     dset = readRDS("../data/df_ccle.rds") %>%
         group_by(gene, covar) %>%
@@ -138,14 +105,16 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
 
     top = cna_along_genome(gistic)
-    mid = (og_tsg_cna(gistic, cosmic) | og_tsg_expr(gistic, cosmic) | cna_expr_scales()) +
-        plot_layout(widths=c(1.9,1,1.1))
-    btm = (schema() | overlap()) + plot_layout(widths=c(3,2))
+    left = (wrap_elements(cna_expr_scales()) /
+            wrap_elements(overlap() + theme(plot.margin=margin(0,0,0,-15,"mm")))) +
+        plot_layout(heights=c(2.5,3))
+    right = schema()
 
-    asm = (top / mid / btm) + plot_layout(heights=c(1,1,2)) + plot_annotation(tag_levels='a') &
+    asm = (top / ((left | right) + plot_layout(widths=c(1,2)))) +
+        plot_layout(heights=c(1,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig1-Motivation.pdf", 14, 9)
+    pdf("Fig1-Motivation.pdf", 14, 10)
     print(asm)
     dev.off()
 })

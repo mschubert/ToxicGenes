@@ -12,7 +12,7 @@ schema = function() {
 }
 
 overlap = function() {
-    img = grid::rasterGrob(magick::image_read("external/overlap2.svg"))
+    img = grid::rasterGrob(magick::image_read("external/overlap2.svg", density=300))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -76,7 +76,7 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
 
     top = cna_along_genome(gistic)
-    left = (wrap_elements(cna_expr_scales()) /
+    left = (wrap_elements(cna_expr_scales() + theme(plot.margin=margin(0,0,0,-10,"mm"))) /
             wrap_elements(overlap() + theme(plot.margin=margin(0,0,0,-15,"mm")))) +
         plot_layout(heights=c(2.5,3))
     right = schema()

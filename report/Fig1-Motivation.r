@@ -56,13 +56,14 @@ og_tsg_cna = function(gistic, cosmic) {
                cna = stringr::str_to_title(type)) %>% select(-type) %>%
         left_join(cosmic) %>%
         mutate(type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
+        filter(!is.na(type))
 
     bg_line = dset %>% group_by(cna) %>%
         summarize(frac = median(frac[type == "Background"], na.rm=TRUE))
 
     ggplot(dset, aes(x=type, y=frac, fill=type)) +
-        geom_boxplot(outlier.shape=NA, color="#707070") +
+        geom_boxplot(outlier.shape=NA) +
         scale_fill_manual(values=cm$cols[levels(dset$type)]) +
         labs(y="Frequency TCGA", x ="Gene type subset",
              fill="Driver status\n(whole genome)") +
@@ -88,7 +89,8 @@ og_tsg_expr = function(gistic, cosmic) {
         left_join(cosmic) %>%
         mutate(title = "Gene Expression",
                type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
+               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
+        filter(!is.na(type))
 
     bg_line = dset %>%
         summarize(stat = median(stat[type == "Background"], na.rm=TRUE))

@@ -89,32 +89,11 @@ venn_og_tsg = function(gistic, cosmic) {
         theme(plot.margin = margin(0,5,0,5, unit="mm"))
 }
 
-rpe_scaling = function() {
-    segs = readRDS("../../dorine/data/dna_vs_rna-compensation.rds") %>%
-        filter(clone %in% c("14.10", "14.20", "14.21"), condition == "early") %>%
-        tidyr::unnest(combined) %>%
-        group_by(clone, condition, seqnames, seg_id) %>%
-            summarize(lfc_DNA = unique(log2FoldChange.x),
-                      lfc_RNA = mean(log2FoldChange.y)) %>%
-        ungroup() %>%
-        tidyr::pivot_longer(c(lfc_DNA, lfc_RNA), names_to="type",
-                            names_prefix="lfc_", values_to="lfc")
-    gt = seq$gene_table() %>%
-        group_by(ensembl_gene_id, seqnames=chromosome_name) %>%
-            summarize(loc = mean(c(start_position, end_position))) %>%
-        ungroup()
-    diff_expr = readRDS("../../dorine/basic_diff_expr/clones_vs_parental-copynaive.rds") %>%
-        filter(clone %in% c("14.10", "14.20", "14.21"), condition == "early") %>%
-        select(clone, genes) %>%
-        tidyr::unnest(genes) %>%
-        inner_join(gt) %>%
-        filter(lfcSE < 4, seqnames != "10") %>%
-        mutate(seqnames = droplevels(factor(seqnames, levels=c(1:22,'X'))))
-
-    p1 = ggplot(diff_expr, aes(x=loc, y=log2FoldChange)) +
+rpe_scaling = function(rpe) {
+    p1 = ggplot(rpe$diff_expr, aes(x=loc, y=log2FoldChange)) +
         geom_hline(yintercept=c(log2((1:4)/2)), color="firebrick", linetype="dashed") +
         geom_point(size=0.5, alpha=0.1) +
-        geom_segment(data=segs, aes(color=type, y=lfc, yend=lfc),
+        geom_segment(data=rpe$segs, aes(color=type, y=lfc, yend=lfc),
                      x=-Inf, xend=Inf, size=2, alpha=0.8) +
         facet_grid(clone ~ seqnames, scales="free", space="free") +
         coord_cartesian(ylim=c(-3,3)) +
@@ -128,11 +107,12 @@ rpe_scaling = function() {
               panel.grid.minor = element_blank()) +
         xlab("Genomic location")
 
-    comp = segs %>% group_by(clone, seqnames, seg_id) %>%
+    comp = rpe$segs %>% group_by(clone, seqnames, seg_id) %>%
         summarize(is_amp = cut(lfc[type=="DNA"], c(-Inf, -0.2, 0.2, Inf),
                                labels=c("Deleted", "Euploid", "Amplified")),
                   lfc_diff = lfc[type=="RNA"]-lfc[type=="DNA"]) %>%
         filter(is_amp != "Deleted")
+
     p2 = ggplot(comp, aes(x=is_amp, y=lfc_diff)) +
         geom_boxplot(aes(fill=is_amp), outlier.shape=NA, alpha=0.5) +
         scale_fill_manual(values=cm$cols[c("Euploid", "Amplified")], guide="none") +
@@ -150,7 +130,8 @@ rpe_scaling = function() {
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     cosmic = cm$get_cosmic_annot()
-    rs = rpe_scaling()
+    rpe = readRDS("../data/dorine_compare.rds")
+    rs = rpe_scaling(rpe)
 
     left = (og_vs_tsg(gistic, cosmic) / og_tsg_cna(gistic, cosmic)) +
         plot_layout(heights=c(2,1))

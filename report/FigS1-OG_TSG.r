@@ -94,7 +94,7 @@ rpe_scaling = function(rpe) {
         geom_hline(yintercept=c(log2((1:4)/2)), color="firebrick", linetype="dashed") +
         geom_point(size=0.5, alpha=0.1) +
         geom_segment(data=rpe$segs, aes(color=type, y=lfc, yend=lfc),
-                     x=-Inf, xend=Inf, size=2, alpha=0.8) +
+                     x=-Inf, xend=Inf, size=1.5, alpha=0.8) +
         facet_grid(clone ~ seqnames, scales="free", space="free") +
         coord_cartesian(ylim=c(-3,3)) +
         scale_color_manual(values=c(DNA="purple", RNA="green"), name="Data type") +
@@ -139,11 +139,11 @@ sys$run({
     right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic) / rs$quant) +
         plot_layout(heights=c(3,4,4))
 
-    asm = (((left | right) + plot_layout(widths=c(3,2))) / rs$genome) + plot_layout(heights=c(2,3)) +
+    asm = (((left | right) + plot_layout(widths=c(3,2))) / rs$genome) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 11, 18)
+    pdf("FigS1-OG_TSG.pdf", 11, 15)
     print(asm)
     dev.off()
 })

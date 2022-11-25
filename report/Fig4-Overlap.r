@@ -182,7 +182,7 @@ complex_plot = function() {
         labs(x = "Mean ORF dropout compensated genes (Wald statistic)",
              y = "Overlap compensated genes (p-value Fisher's Exact Test)",
              size = "Protein\ncomplex\nmembers",
-             fill = "Contains\ngene of\ninterest")
+             fill = "Contains\nARGOS\ngene")
 }
 
 sys$run({

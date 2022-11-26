@@ -36,7 +36,7 @@ comp_orf = function(all, gistic_amp) {
              y = "ORF log fold-chance (Wald statistic)")
 }
 
-rpe = function(rpe, all) {
+rpe_comp = function(rpe, all) {
     gclass = all %>%
         dplyr::rename(label = gene) %>%
         mutate(gclass = case_when(
@@ -48,22 +48,33 @@ rpe = function(rpe, all) {
 
     comp2 = rpe$segs %>% filter(type == "DNA") %>%
         inner_join(rpe$diff_expr, by=c("clone", "seqnames")) %>%
-        mutate(is_amp = cut(lfc[type=="DNA"], c(-Inf, -0.2, 0.2, Inf),
+        mutate(cna = cut(lfc[type=="DNA"], c(-Inf, -0.15, 0.15, Inf),
                             labels=c("Deleted", "Euploid", "Amplified")),
                lfc_diff = log2FoldChange-lfc) %>%
-        filter(is_amp != "Deleted") %>%
         group_by(seqnames) %>%
-            filter(any(is_amp == "Amplified")) %>%
+            mutate(chr_has_amp = any(cna == "Amplified")) %>%
         ungroup() %>%
-        inner_join(gclass)
+        inner_join(gclass) %>%
+        mutate(group = case_when(
+            chr_has_amp & cna == "Euploid" & gclass == "Background" ~ "Euploid",
+            cna == "Euploid" & gclass == "Background" ~ "Background",
+            cna == "Amplified" & gclass == "Background" ~ "Amplified",
+            cna == "Amplified" & gclass == "Compensated" ~ "Amplified+Compensated"
+        )) %>% filter(!is.na(group)) %>%
+            mutate(group = factor(group, levels=c("Background",
+                    "Euploid", "Amplified", "Amplified+Compensated")))
 
-    ggplot(comp2, aes(x=gclass, y=lfc_diff)) +
+    ggplot(comp2, aes(x=group, y=lfc_diff)) +
         geom_boxplot(outlier.shape=NA) +
-#        ggbeeswarm::geom_quasirandom() +
-        coord_cartesian(ylim=c(-2,2)) +
-        ggsignif::geom_signif(comparisons=list(c("Background", "Compensated"),
-                                               c("Background", "Hyperactivated")),
-            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3)
+        coord_cartesian(ylim=c(-2,2.5)) +
+        theme_classic() +
+        ggsignif::geom_signif(comparisons=list(
+                c("Background", "Euploid"),
+                c("Background", "Amplified"),
+                c("Background", "Amplified+Compensated"),
+                c("Amplified", "Amplified+Compensated")),
+            y_position=c(1.5,1.3,1.1,0.9), color="black", test=t.test, textsize=3,
+            tip_length=0.002)
 }
 
 sys$run({
@@ -74,10 +85,10 @@ sys$run({
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     rpe = readRDS("../data/dorine_compare.rds")
 
-    asm = comp_orf(all, gistic_amp) + plot_annotation(tag_levels='a') &
+    asm = (comp_orf(all, gistic_amp) | rpe_comp(rpe, all)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS4-Overlap.pdf", 7, 6)
+    pdf("FigS4-Overlap.pdf", 14, 6)
     print(asm)
     dev.off()
 })

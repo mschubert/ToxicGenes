@@ -121,6 +121,7 @@ rpe_scaling = function(rpe) {
         ggsignif::geom_signif(comparisons=list(c("Euploid", "Amplified")),
             y_position=c(0.25,0.28), color="black", test=t.test, textsize=3) +
         theme_classic() +
+        coord_cartesian(clip="off") +
         ylab("LFC RNA/DNA chromosome") +
         theme(axis.title.x = element_blank())
 

@@ -117,14 +117,12 @@ rpe_comp = function(rpe, all) {
 
 # mcmc traces of some example genes
 
-# + cor plot tcga vs ccle for gene sets
-
 sys$run({
     rpe = readRDS("../data/dorine_compare.rds")
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (plot_spacer() / rpe_comp(rpe, all)) + plot_layout(heights=c(2,1))
+    right = (rpe_comp(rpe, all) / plot_spacer()) + plot_layout(heights=c(1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +
         plot_annotation(tag_levels='a') &

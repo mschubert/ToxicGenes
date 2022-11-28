@@ -56,23 +56,23 @@ rpe_comp = function(rpe, all) {
         ungroup() %>%
         inner_join(gclass) %>%
         mutate(group = case_when(
-            chr_has_amp & cna == "Euploid" & gclass == "Background" ~ "Euploid",
+            chr_has_amp & cna == "Euploid" & gclass == "Background" ~ "Euploid\nchr 8,12,13,16,20",
             cna == "Euploid" & gclass == "Background" ~ "Background",
-            cna == "Amplified" & gclass == "Background" ~ "Amplified",
-            cna == "Amplified" & gclass == "Compensated" ~ "Amplified+Compensated"
+            cna == "Amplified" & gclass == "Background" ~ "Amplified\nNon-Compensated",
+            cna == "Amplified" & gclass == "Compensated" ~ "Amplified\nCompensated"
         )) %>% filter(!is.na(group)) %>%
-            mutate(group = factor(group, levels=c("Background",
-                    "Euploid", "Amplified", "Amplified+Compensated")))
+            mutate(group = factor(group, levels=c("Background", "Euploid\nchr 8,12,13,16,20",
+                "Amplified\nNon-Compensated", "Amplified\nCompensated")))
 
     ggplot(comp2, aes(x=group, y=lfc_diff)) +
         geom_boxplot(outlier.shape=NA) +
         coord_cartesian(ylim=c(-2,2.5)) +
         theme_classic() +
         ggsignif::geom_signif(comparisons=list(
-                c("Background", "Euploid"),
-                c("Background", "Amplified"),
-                c("Background", "Amplified+Compensated"),
-                c("Amplified", "Amplified+Compensated")),
+                c("Background", "Euploid\nchr 8,12,13,16,20"),
+                c("Background", "Amplified\nNon-Compensated"),
+                c("Background", "Amplified\nCompensated"),
+                c("Amplified\nNon-Compensated", "Amplified\nCompensated")),
             y_position=c(1.5,1.3,1.1,0.9), color="black", test=t.test, textsize=3,
             tip_length=0.002)
 }

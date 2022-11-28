@@ -36,56 +36,14 @@ comp_orf = function(all, gistic_amp) {
              y = "ORF log fold-chance (Wald statistic)")
 }
 
-rpe_comp = function(rpe, all) {
-    gclass = all %>%
-        dplyr::rename(label = gene) %>%
-        mutate(gclass = case_when(
-            est_ccle < -0.3 & est_tcga < -0.3 ~ "Compensated",
-            est_ccle > 0.3 & est_tcga > 0.3 ~ "Hyperactivated",
-#            abs(est_ccle) < 0.3 & abs(est_tcga) < 0.3 ~ "Background"
-            TRUE ~ "Background"
-        ))
-
-    comp2 = rpe$segs %>% filter(type == "DNA") %>%
-        inner_join(rpe$diff_expr, by=c("clone", "seqnames")) %>%
-        mutate(cna = cut(lfc[type=="DNA"], c(-Inf, -0.15, 0.15, Inf),
-                            labels=c("Deleted", "Euploid", "Amplified")),
-               lfc_diff = log2FoldChange-lfc) %>%
-        group_by(seqnames) %>%
-            mutate(chr_has_amp = any(cna == "Amplified")) %>%
-        ungroup() %>%
-        inner_join(gclass) %>%
-        mutate(group = case_when(
-            chr_has_amp & cna == "Euploid" & gclass == "Background" ~ "Euploid\nchr 8,12,13,16,20",
-            cna == "Euploid" & gclass == "Background" ~ "Background",
-            cna == "Amplified" & gclass == "Background" ~ "Amplified\nNon-Compensated",
-            cna == "Amplified" & gclass == "Compensated" ~ "Amplified\nCompensated"
-        )) %>% filter(!is.na(group)) %>%
-            mutate(group = factor(group, levels=c("Background", "Euploid\nchr 8,12,13,16,20",
-                "Amplified\nNon-Compensated", "Amplified\nCompensated")))
-
-    ggplot(comp2, aes(x=group, y=lfc_diff)) +
-        geom_boxplot(outlier.shape=NA) +
-        coord_cartesian(ylim=c(-2,2.5)) +
-        theme_classic() +
-        ggsignif::geom_signif(comparisons=list(
-                c("Background", "Euploid\nchr 8,12,13,16,20"),
-                c("Background", "Amplified\nNon-Compensated"),
-                c("Background", "Amplified\nCompensated"),
-                c("Amplified\nNon-Compensated", "Amplified\nCompensated")),
-            y_position=c(1.5,1.3,1.1,0.9), color="black", test=t.test, textsize=3,
-            tip_length=0.002)
-}
-
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
-    rpe = readRDS("../data/dorine_compare.rds")
 
-    asm = (comp_orf(all, gistic_amp) | rpe_comp(rpe, all)) + plot_annotation(tag_levels='a') &
+    asm = (comp_orf(all, gistic_amp) | plot_spacer()) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
     pdf("FigS4-Overlap.pdf", 14, 6)

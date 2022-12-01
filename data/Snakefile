@@ -54,7 +54,7 @@ rule gistic:
 
 rule gistic_smooth:
     input:
-        rscript = "gistic_smooth.rds"
+        rscript = "gistic_smooth.rds",
         infile = "tcga_prod2-gistic.rds"
     output:
         outfile = "gistic_smooth.rds"

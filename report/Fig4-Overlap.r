@@ -7,8 +7,8 @@ seq = import('seq')
 gset = import('genesets')
 cm = import('./common')
 
-along_genome = function(gistic) {
-    lens = seq$chr_lengths("GRCh38", chrs=c(1:22,'X')) %>%
+along_genome = function(gistic, chrs=1:22) {
+    lens = seq$chr_lengths("GRCh38", chrs=chrs) %>%
         stack() %>% transmute(x=1, xend=values, chr=ind) %>%
         rowwise() %>%
         mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
@@ -22,7 +22,7 @@ along_genome = function(gistic) {
     orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$stat_orf < -5])
 
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
-        filter(type == "amplification") %>%
+        filter(type == "amplification", chr %in% chrs) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
     sm_bg = smooth %>%
@@ -36,7 +36,8 @@ along_genome = function(gistic) {
     dots = bind_rows(genes, cosmic, comp, hyp, orf) %>%
         mutate(type = factor(type, levels=unique(type))) %>%
         inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
-        na.omit()
+        na.omit() %>%
+        filter(chr %in% chrs)
     dens = ggplot(dots, aes(x=tss, y=type, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +

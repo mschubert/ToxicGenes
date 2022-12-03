@@ -3,6 +3,7 @@ library(ggplot2)
 library(patchwork)
 sys = import('sys')
 plt = import('plot')
+cm = import('./common')
 
 tcga_vs_ccle = function() {
     ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
@@ -71,6 +72,73 @@ go_cors = function() {
         annotate("text", x=11, y=-6.5, color="blue", label=lab, parse=TRUE)
 }
 
+cna_comp = function(gistic, comp_all) {
+    gwide = gistic %>%
+        tidyr::pivot_wider(names_from="type", values_from="frac")
+    gwide = gwide %>%
+        mutate(type = case_when(
+            amplification > 0.15 & deletion < -0.15 ~ "Amp+Del",
+            amplification > 0.15 ~ "Amplified",
+            deletion < -0.15 ~ "Deleted",
+            TRUE ~ NA_character_
+        )) %>% filter(!is.na(type)) %>% bind_rows(gwide %>% mutate(type="Background"))
+
+    both = inner_join(comp_all %>% select(-type), gwide) %>%
+        mutate(type = factor(type, levels=c("Background", "Amplified", "Deleted"))) %>%
+        filter(!is.na(type))
+
+    common = function(y, coordy, sigy) list(
+        geom_boxplot(outlier.shape=NA, alpha=0.7),
+        ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
+        scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
+        labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
+        theme_classic(),
+        coord_cartesian(ylim=coordy),
+        theme(axis.text.x = element_blank()),
+        geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
+                   linetype="dashed", color="black")
+    )
+
+    p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
+        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
+        labs(title = "CCLE", y="Δ Expression / expected")
+    p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.95, 1.2)) +
+        labs(title = "TCGA", y="")
+
+    (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
+}
+
+og_comp = function(comp) {
+    both = comp %>%
+        mutate(type = ifelse(is.na(type), "Background", type),
+               type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
+        filter(!is.na(type))
+
+    common = function(y, coordy, sigy) list(
+        geom_boxplot(outlier.shape=NA, alpha=0.7),
+        ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
+        scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
+        labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
+        theme_classic(),
+        coord_cartesian(ylim=coordy),
+        theme(axis.text.x = element_blank()),
+        geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
+                   linetype="dashed", color="black")
+    )
+
+    p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
+        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
+        labs(title = "CCLE", y="Δ Expression / expected")
+    p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(1.0, 1.2)) +
+        labs(title = "TCGA", y="")
+
+    (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
+}
+
 rpe_comp = function(rpe, all) {
     gclass = all %>%
         dplyr::rename(label = gene) %>%
@@ -96,14 +164,16 @@ rpe_comp = function(rpe, all) {
             cna == "Amplified" & gclass == "Background" ~ "Amplified\nNon-Comp.",
             cna == "Amplified" & gclass == "Compensated" ~ "Amplified\nCompensated"
         )) %>% filter(!is.na(group)) %>%
-            mutate(group = factor(group, levels=c("Background\nother chr",
+            mutate(group2 = ifelse(grepl("Compensated", group), "Compensated", "Background"),
+                   group = factor(group, levels=c("Background\nother chr",
                 "Euploid\nchr 8,12,13,16,20", "Amplified\nNon-Comp.", "Amplified\nCompensated")))
 
-    ggplot(comp2, aes(x=group, y=lfc_diff)) +
+    ggplot(comp2, aes(x=group, y=lfc_diff, fill=group2)) +
         geom_boxplot(outlier.shape=NA) +
-        geom_hline(yintercept=0, linetype="dashed", color="grey") +
+        geom_hline(yintercept=0, linetype="dashed", color="black") +
         coord_cartesian(ylim=c(-2,2.8), clip="off") +
         theme_classic() +
+        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation") +
         ggsignif::geom_signif(comparisons=list(
                 c("Background\nother chr", "Euploid\nchr 8,12,13,16,20"),
                 c("Background\nother chr", "Amplified\nNon-Comp."),
@@ -121,8 +191,24 @@ sys$run({
     rpe = readRDS("../data/dorine_compare.rds")
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
+    cosmic = cm$get_cosmic_annot()
+    gistic = readRDS("../data/gistic_smooth.rds")$genes
+    gistic_amp = gistic %>%
+        filter(type == "amplification", frac > 0.15) %>%
+        select(gene_name, frac)
+
+    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
+        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    comp_all = inner_join(ccle, tcga3, by="gene") %>%
+        dplyr::rename(gene_name = gene) %>%
+        left_join(cosmic)
+    comp = comp_all %>% inner_join(gistic_amp)
+
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (rpe_comp(rpe, all) / plot_spacer()) + plot_layout(heights=c(1,2))
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp(rpe, all)) +
+        plot_layout(heights=c(1,1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +
         plot_annotation(tag_levels='a') &

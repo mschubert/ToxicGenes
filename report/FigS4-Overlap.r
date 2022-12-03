@@ -55,7 +55,7 @@ go_cors = function() {
                max_ov=30, draw_label=120) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
-        ylim(c(-25,NA)) +
+        ylim(c(-24,NA)) +
         annotate("text", x=6, y=-11, color="blue", label=lab, parse=TRUE) +
         labs(x = "Mean expression over expected CCLE/TCGA (Wald statistic)",
              y = "Mean dropout ORF screen (Wald statistic)")

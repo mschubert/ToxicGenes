@@ -89,7 +89,7 @@ comp_hyp_box = function(dset) {
         ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=t.test,
             comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
         coord_cartesian(ylim=c(-7.5, 9)) +
-        labs(fill = "Status", x = "Compensation set", y = "Δ ORF (Wald statistic)") +
+        labs(fill = "Status", x = "Compensation status", y = "Δ ORF (Wald statistic)") +
         scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         theme_classic() +
         theme(axis.text.x = element_blank()) +

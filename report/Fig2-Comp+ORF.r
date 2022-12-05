@@ -71,7 +71,7 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
 }
 
 orf_volc = function(orfdata) {
-    orfdata$fill = orfdata$statistic < -5
+    orfdata$fill = orfdata$statistic < -5 & orfdata$estimate < log2(0.7)
     orfdata$circle =  TRUE
     plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
         labs(x = "log fold-change ORF screen",

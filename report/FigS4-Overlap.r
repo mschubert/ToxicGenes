@@ -6,7 +6,7 @@ plt = import('plot')
 cm = import('./common')
 
 comp_orf = function(all, gistic_amp) {
-    dset = inner_join(all %>% dplyr::rename(gene_name=gene), gistic_amp) %>%
+    dset = left_join(all %>% dplyr::rename(gene_name=gene), gistic_amp) %>%
         mutate(type = case_when(
                    est_tcga < -0.3 & est_ccle < -0.3 ~ "Compensated",
                    est_tcga > 0.3 & est_ccle > 0.3 ~ "Hyperactivated",

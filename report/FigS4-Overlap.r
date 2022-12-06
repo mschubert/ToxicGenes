@@ -53,7 +53,7 @@ go_cors = function() {
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=tcga_ccle, y=stat_orf, label=label), size=size_used,
-               max_ov=30, draw_label=120) +
+               max_ov=20, draw_label=120) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         ylim(c(-24,NA)) +

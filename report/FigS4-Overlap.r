@@ -62,6 +62,37 @@ go_cors = function() {
              y = "Mean dropout ORF screen (Wald statistic)")
 }
 
+dens_ov = function() {
+    res = readRDS("Fig3-Overlap.rds") %>%
+        mutate(x = sprintf("%s:%i", chr, round(x / 1e6))) %>%
+        select(-chr) %>%
+        tidyr::spread(x, y)
+    mat = na.omit(t(data.matrix(res[-1])))
+    ltit = "Pearson\ncorrelation\nof density"
+
+    cors = cor(mat)
+    colnames(cors) = rownames(cors) = res$type
+    df = reshape2::melt(cors)
+    p1 = plt$matrix(df, value ~ Var1 + Var2, geom="tile") +
+        scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
+        theme(axis.title = element_blank()) +
+        coord_fixed() +
+        theme(axis.text.x = element_blank()) +
+        ggtitle("Naive")
+
+    pcors = corpcor::cor2pcor(cors)
+    colnames(pcors) = rownames(pcors) = res$type
+    df2 = reshape2::melt(pcors)
+    p2 = plt$matrix(df2, value ~ Var1 + Var2, geom="tile") +
+        scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
+        theme(axis.title = element_blank()) +
+        coord_fixed() +
+        plot_layout(tag_level="new") +
+        ggtitle("Full-rank partial")
+
+    (p1 / p2) + plot_layout(guides="collect")
+}
+
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
@@ -69,7 +100,7 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
-    top = (comp_orf(all, gistic_amp) | plot_spacer()) + plot_layout(widths=c(3,2))
+    top = (comp_orf(all, gistic_amp) | dens_ov()) + plot_layout(widths=c(3,2))
     mid = go_cors()
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +

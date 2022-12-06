@@ -54,6 +54,7 @@ along_genome = function(dset, gistic, chrs=1:22) {
         group_by(type) %>%
             mutate(y = y/max(y)) %>%
         ungroup()
+    saveRDS(res, file="Fig3-Overlap.rds")
 
     dens = ggplot(res, aes(x=x, y=y, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,

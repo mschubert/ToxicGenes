@@ -37,21 +37,40 @@ along_genome = function(dset, gistic, chrs=1:22) {
         inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
         na.omit() %>%
         filter(chr %in% chrs)
-    dens = ggplot(dots, aes(x=tss, y=type, fill=type)) +
+
+    make_dens = function(tss, x, xend) {
+        if (length(na.omit(tss)) == 0)
+            return(tibble(x=c(x,xend), y=c(0,0)))
+        dens = density(tss, from=unique(x), to=unique(xend), n=xend/1e6, bw=5e6,
+            weights=rep(1, length(tss)), subdensity=TRUE)
+        tibble(x=dens$x, y=dens$y)
+    }
+    res = tidyr::complete(dots, type, chr) %>%
+        inner_join(lens) %>%
+        group_by(type, chr) %>%
+            arrange(tss) %>%
+            summarize(dens = list(make_dens(tss, x, xend))) %>%
+            tidyr::unnest(dens) %>%
+        group_by(type) %>%
+            mutate(y = y/max(y)) %>%
+        ungroup()
+
+    dens = ggplot(res, aes(x=x, y=y, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
-        ggridges::geom_density_ridges(scale=0.9, bandwidth=5e6, alpha=0.7) +
-        facet_grid(. ~ chr, scales="free", space="free") +
-        ggh4x::facetted_pos_scales(x=lens$scales) +
+        geom_area(color="black", alpha=0.7) +
+        facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
-        theme(strip.placement = "outside",
+        theme(strip.background = element_blank(),
+              strip.text.y = element_blank(),
               panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,5,0), "mm")) +
-        scale_y_discrete(limits=rev, expand=c(0,0.2)) +
+              plot.margin = unit(c(0,0,5,0), "mm"),
+              panel.spacing.y = unit(0, "mm")) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
-        plot_layout(tag_level="new")
+        plot_layout(tag_level="new") +
+        expand_limits(y=1.1)
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
@@ -69,10 +88,10 @@ along_genome = function(dset, gistic, chrs=1:22) {
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
-              panel.spacing.x = unit(1, "mm")) +
-        coord_cartesian(clip="off", expand=FALSE)
+              panel.spacing.x = unit(1, "mm"))
 
-    (amp / dens) + plot_layout(heights=c(1,5))
+    (amp / dens) + plot_layout(heights=c(1,5)) &
+        coord_cartesian(clip="off", expand=FALSE)
 }
 
 comp_hyp_box = function(dset) {

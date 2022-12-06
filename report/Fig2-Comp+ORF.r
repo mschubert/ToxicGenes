@@ -99,9 +99,9 @@ sys$run({
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
 
-    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,5,0,-10,"mm")))) /
+    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,15,0,-5,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic)
-    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(0,-15,0,-5,"mm"))) /
+    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(0,-15,0,0,"mm"))) /
         orf_volc(orfdata)
 
     asm = ((left + plot_layout(heights=c(1,3))) |

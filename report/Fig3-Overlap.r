@@ -121,7 +121,7 @@ overlap_venn = function(dset, gistic_amp) {
               TCGA = unique(with(dset, gene[est_tcga < -0.3])),
               ORF = unique(with(dset, gene[is_orf_hit])))
     all3 = Reduce(intersect, ov)
-#    ff = c("plain", "bold")[as.integer(all3 %in% gistic_amp$gene)+1]
+    all3 = ifelse(all3 %in% gistic_amp$gene, paste("▲", all3), all3)
     plt$venn(ov, alpha=0.4) +
         scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
         annotate("text", x=-11, y=13, label=paste(all3, collapse="\n"), size=3.5, hjust=1) +

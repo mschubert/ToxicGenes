@@ -100,7 +100,7 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
-    top = (comp_orf(all, gistic_amp) | dens_ov()) + plot_layout(widths=c(3,2))
+    top = (dens_ov() | comp_orf(all, gistic_amp)) + plot_layout(widths=c(2,3))
     mid = go_cors()
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +

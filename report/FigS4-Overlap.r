@@ -26,7 +26,8 @@ comp_orf = function(all, gistic_amp) {
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_point(aes(color=type, alpha=dropout)) +
         ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
-            min.segment.length=0, segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
+            box.padding=unit(0.1, "lines"), min.segment.length=0,
+            segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.4), name="Dropout") +
         annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +

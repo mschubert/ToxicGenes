@@ -70,7 +70,7 @@ cna_expr_scales = function() {
         xlim(c(0, 4)) + ylim(c(0,2)) +
         geom_abline(slope=0.5, intercept=0, color="blue", linetype="dashed") +
         labs(x="DNA copies", y="Normalized\nexpression CCLE") +
-        annotate("text", x=1, y=1.5, label="Higher than\nexpected", color=cm$cols["Hyperactivated"]) +
+        annotate("text", x=1, y=1.5, label="Higher than\nexpected", color=cm$cols["Hyp2"]) +
         annotate("curve", x=1.8, y=1.6, xend=2.7, yend=1.7, color=cm$cols["Hyperactivated"],
                  curvature=-0.2, lineend="round", linejoin="round",
                  arrow=arrow(type="closed", length=unit(2.5,"mm"))) +

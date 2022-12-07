@@ -14,5 +14,5 @@ OVSAHO	OV	mut	metastatic site: abdomen
 SK-NEP-1	EWS	mut	pleural effusion; often misidentified as Wilms tumor
 SKBr3	BRCA	mut	metastatic site: pleural effusion
 T47D	BRCA	mut	metastatic site: pleural effusion
-TC32	PrimNeur	NA	
+TC32	EWS	NA	
 WM266-4	SKCM	NA	metastatic site: thigh skin

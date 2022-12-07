@@ -7,13 +7,12 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 schema = function() {
-#    img = grid::rasterGrob(magick::image_read("external/comp+tox.svg"))
-#    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
-    import('plot')$text("schema of overall reasoning goes here")
+    img = grid::rasterGrob(magick::image_read("external/schema.svg", density=300))
+    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
 overlap = function() {
-    img = grid::rasterGrob(magick::image_read("external/overlap.svg"))
+    img = grid::rasterGrob(magick::image_read("external/overlap2.svg", density=300))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -51,39 +50,15 @@ cna_along_genome = function(gistic) {
         coord_cartesian(clip="off", expand=FALSE)
 }
 
-og_tsg_cna = function(gistic, cosmic) {
-    dset = gistic$genes %>%
-        mutate(frac = abs(frac),
-               cna = stringr::str_to_title(type)) %>% select(-type) %>%
-        left_join(cosmic) %>%
-        mutate(type = ifelse(is.na(type), "Background", type),
-               type = factor(type, levels=c("Background", "Oncogene", "TSG", "OG+TSG")))
-
-    bg_line = dset %>% group_by(cna) %>%
-        summarize(frac = median(frac[type == "Background"], na.rm=TRUE))
-
-    ggplot(dset, aes(x=type, y=frac, fill=type)) +
-        geom_boxplot(outlier.shape=NA) +
-        scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Frequency TCGA", x ="Gene type subset", fill="Driver status") +
-        geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
-        ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
-            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
-        facet_wrap(~ cna) +
-        coord_cartesian(ylim=c(0.02, 0.52)) +
-        theme_classic() +
-        theme(strip.background = element_blank(),
-              strip.placement = "outside",
-              strip.text.x = element_text(size=12),
-              axis.text.x = element_blank())
-}
-
 cna_expr_scales = function() {
     dset = readRDS("../data/df_ccle.rds") %>%
         group_by(gene, covar) %>%
             filter(n() > 30, sum(expr == 0) < 0.1, mean(expr) > 10, mean(abs(copies-2) > 1) > 0.15) %>%
             mutate(expr = expr/sf, expr = expr/mean(expr[abs(2-copies)<0.15])) %>%
         ungroup()
+
+    m = broom::tidy(lm(expr ~ copies, data=dset)) %>%
+        filter(term == "copies")
 
     ggplot(dset, aes(x=copies, y=expr)) +
         geom_hex(aes(color=..count..), bins=50) +
@@ -95,13 +70,17 @@ cna_expr_scales = function() {
         xlim(c(0, 4)) + ylim(c(0,2)) +
         geom_abline(slope=0.5, intercept=0, color="blue", linetype="dashed") +
         labs(x="DNA copies", y="Normalized\nexpression CCLE") +
+        annotate("text", x=1, y=1.5, label="Higher than\nexpected", color=cm$cols["Hyp2"]) +
+        annotate("curve", x=1.8, y=1.6, xend=2.7, yend=1.7, color=cm$cols["Hyperactivated"],
+                 curvature=-0.2, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        annotate("text", x=3.1, y=0.4, label="Lower than\nexpected", color=cm$cols["Compensated"]) +
+        annotate("curve", x=3.1, y=0.65, xend=3.1, yend=1.1, color=cm$cols["Compensated"],
+                 curvature=0.2, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        annotate("text", x=0.8, y=0.2, label=sprintf("p=%.2g", m$p.value), color="blue", hjust=0) +
         theme_classic() +
         coord_fixed(ratio=2, expand=FALSE)
-}
-
-find_vul = function() {
-    img = grid::rasterGrob(magick::image_read("external/vulns.svg"))
-    ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
 sys$run({
@@ -109,13 +88,16 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
 
     top = cna_along_genome(gistic)
-    mid = og_tsg_cna(gistic, cosmic) | cna_expr_scales() | find_vul()
-    btm = (schema() | overlap()) + plot_layout(widths=c(3,2))
+    left = (wrap_elements(cna_expr_scales() + theme(plot.margin=margin(0,0,0,-10,"mm"))) /
+            wrap_elements(overlap() + theme(plot.margin=margin(0,0,0,-15,"mm")))) +
+        plot_layout(heights=c(2.5,3))
+    right = schema()
 
-    asm = (top / mid / btm) + plot_layout(heights=c(1,1,2)) + plot_annotation(tag_levels='a') &
+    asm = (top / ((left | right) + plot_layout(widths=c(1,2)))) +
+        plot_layout(heights=c(1,3)) + plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig1-Motivation.pdf", 14, 9)
+    pdf("Fig1-Motivation.pdf", 14, 10)
     print(asm)
     dev.off()
 })

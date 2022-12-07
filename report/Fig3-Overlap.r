@@ -7,8 +7,8 @@ seq = import('seq')
 gset = import('genesets')
 cm = import('./common')
 
-along_genome = function(gistic) {
-    lens = seq$chr_lengths("GRCh38", chrs=c(1:22,'X')) %>%
+along_genome = function(dset, gistic, chrs=1:22) {
+    lens = seq$chr_lengths("GRCh38", chrs=chrs) %>%
         stack() %>% transmute(x=1, xend=values, chr=ind) %>%
         rowwise() %>%
         mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
@@ -16,13 +16,12 @@ along_genome = function(gistic) {
     cosmic = cm$get_cosmic_annot() %>% select(-tier) %>% filter(type != "OG+TSG")
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
 
-    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     comp = tibble(type="Compensated", gene_name=dset$gene[dset$est_ccle < -0.3 & dset$est_tcga < -0.3])
     hyp = tibble(type="Hyperactivated", gene_name=dset$gene[dset$est_ccle > 0.3 & dset$est_tcga > 0.3])
-    orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$stat_orf < -5])
+    orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$is_orf_hit])
 
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
-        filter(type == "amplification") %>%
+        filter(type == "amplification", chr %in% chrs) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
     sm_bg = smooth %>%
@@ -36,22 +35,43 @@ along_genome = function(gistic) {
     dots = bind_rows(genes, cosmic, comp, hyp, orf) %>%
         mutate(type = factor(type, levels=unique(type))) %>%
         inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
-        na.omit()
-    dens = ggplot(dots, aes(x=tss, y=type, fill=type)) +
+        na.omit() %>%
+        filter(chr %in% chrs)
+
+    make_dens = function(tss, x, xend) {
+        if (length(na.omit(tss)) == 0)
+            return(tibble(x=c(x,xend), y=c(0,0)))
+        dens = density(tss, from=unique(x), to=unique(xend), n=xend/1e6, bw=5e6,
+            weights=rep(1, length(tss)), subdensity=TRUE)
+        tibble(x=dens$x, y=dens$y)
+    }
+    res = tidyr::complete(dots, type, chr) %>%
+        inner_join(lens) %>%
+        group_by(type, chr) %>%
+            arrange(tss) %>%
+            summarize(dens = list(make_dens(tss, x, xend))) %>%
+            tidyr::unnest(dens) %>%
+        group_by(type) %>%
+            mutate(y = y/max(y)) %>%
+        ungroup()
+    saveRDS(res, file="Fig3-Overlap.rds")
+
+    dens = ggplot(res, aes(x=x, y=y, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
-        ggridges::geom_density_ridges(scale=0.9, bandwidth=5e6, alpha=0.7) +
-        facet_grid(. ~ chr, scales="free", space="free") +
-        ggh4x::facetted_pos_scales(x=lens$scales) +
+        geom_area(color="black", alpha=0.7) +
+        facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
-        theme(strip.placement = "outside",
+        theme(strip.background = element_blank(),
+              strip.text.y = element_blank(),
               panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,5,0), "mm")) +
-        scale_y_discrete(limits=rev, expand=c(0,0.2)) +
+              plot.margin = unit(c(0,0,5,0), "mm"),
+              panel.spacing.y = unit(0, "mm")) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
-        plot_layout(tag_level="new")
+        plot_layout(tag_level="new") +
+        expand_limits(y=1.1)
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
@@ -69,10 +89,10 @@ along_genome = function(gistic) {
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
-              panel.spacing.x = unit(1, "mm")) +
-        coord_cartesian(clip="off", expand=FALSE)
+              panel.spacing.x = unit(1, "mm"))
 
-    (amp / dens) + plot_layout(heights=c(1,5))
+    (amp / dens) + plot_layout(heights=c(1,5)) &
+        coord_cartesian(clip="off", expand=FALSE)
 }
 
 comp_hyp_box = function(dset) {
@@ -88,8 +108,8 @@ comp_hyp_box = function(dset) {
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=t.test,
             comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
-        coord_cartesian(ylim=c(-7, 9)) +
-        labs(fill = "Status", x = "Compensation set", y = "Δ ORF (Wald statistic)") +
+        coord_cartesian(ylim=c(-7.5, 9)) +
+        labs(fill = "Status", x = "Compensation status", y = "Δ ORF (Wald statistic)") +
         scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         theme_classic() +
         theme(axis.text.x = element_blank()) +
@@ -97,20 +117,21 @@ comp_hyp_box = function(dset) {
                    linetype="dashed", color="black")
 }
 
-overlap_venn = function(dset) {
-    ov = list(CCLE = unique(dset$gene[dset$est_ccle < -0.3]),
-              TCGA = unique(dset$gene[dset$est_tcga < -0.3]),
-              ORF = unique(dset$gene[dset$stat_orf < -5 & !is.na(dset$stat_orf)]))
+overlap_venn = function(dset, gistic_amp) {
+    ov = list(CCLE = unique(with(dset, gene[est_ccle < -0.3])),
+              TCGA = unique(with(dset, gene[est_tcga < -0.3])),
+              ORF = unique(with(dset, gene[is_orf_hit])))
     all3 = Reduce(intersect, ov)
+    all3 = ifelse(all3 %in% gistic_amp$gene, paste("▲", all3), all3)
     plt$venn(ov, alpha=0.4) +
         scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
-        annotate("text", x=-8, y=8, label=paste(all3, collapse="\n"), size=4, hjust=1) +
-        annotate("segment", x=-7.5, y=4, xend=-7.5, yend=11.8) +
-        annotate("segment", x=-7, y=8, xend=2.78, yend=-0.1) +
+        annotate("text", x=-11, y=13, label=paste(all3, collapse="\n"), size=3.5, hjust=1) +
+        annotate("segment", x=-10.5, y=4.5, xend=-10.5, yend=21.5) +
+        annotate("segment", x=-10, y=15, xend=4.5, yend=0.2) +
         coord_fixed(clip="off")
 }
 
-test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA", "ZBTB14")) {
+test_fet = function(set, corum, dset, hits) {
     mat = matrix(nrow=2, c(
         length(intersect(corum[[set]], dset$gene[dset$hit])),
         length(dset$gene[dset$hit]),
@@ -125,7 +146,7 @@ test_fet = function(set, corum, dset, hits=c("RBM14", "POU2F1", "CDKN1A", "SNRPA
                has_hit = hit_str != "")
 }
 
-complex_plot = function() {
+complex_plot = function(dset, hits) {
     .reverselog_trans = function(base=exp(1)) {
         scales::trans_new(paste0("log-", format(base)),
                           function(x) -log(x, base),
@@ -138,11 +159,10 @@ complex_plot = function() {
         parse(text=gsub("1e", "10^", fmt))
     }
 
-    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     corum = gset$get_human("CORUM_all") %>%
         gset$filter(min=3, valid=dset$gene)
 
-    res = sapply(names(corum), test_fet, simplify=FALSE, corum=corum, dset=dset) %>%
+    res = sapply(names(corum), test_fet, simplify=FALSE, corum=corum, dset=dset, hits=hits) %>%
         bind_rows(.id="set_name") %>%
         select(-method, -alternative) %>%
         mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
@@ -151,7 +171,7 @@ complex_plot = function() {
                               (p.value < 0.1 & avg_orf < -4), set_name, NA))
 
     # names too long for nice alignment
-    res$label[grepl("CPSF6|Cleavage|CDC5L", res$label)] = NA
+    res$label[grepl("CPSF6|Cleavage|CDC5L|p130|SIN3B", res$label)] = NA
     res$label = sub("components-", "", res$label)
     res$p.value[res$label == "Large Drosha complex"] = 1e-9 # 1e-13
 
@@ -170,7 +190,7 @@ complex_plot = function() {
         annotate("text", y=fdr, x=-5.45, vjust=-1, hjust=0, label="20% FDR", size=3) +
         geom_point(data=res %>% filter(!has_hit), aes(size=n, fill=has_hit), shape=21) +
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
-        ggrepel::geom_label_repel(aes(label=label), max.overlaps=10, segment.alpha=0.3,
+        ggrepel::geom_label_repel(aes(label=label), max.overlaps=12, segment.alpha=0.3,
             label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
             max.iter=1e5, max.time=10) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
@@ -182,7 +202,7 @@ complex_plot = function() {
         labs(x = "Mean ORF dropout compensated genes (Wald statistic)",
              y = "Overlap compensated genes (p-value Fisher's Exact Test)",
              size = "Protein\ncomplex\nmembers",
-             fill = "Contains\ngene of\ninterest")
+             fill = "Contains\nARGOS\ngene")
 }
 
 sys$run({
@@ -191,12 +211,13 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene=gene_name, frac)
     dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
-        inner_join(gistic_amp)
+        left_join(gistic_amp) %>%
+        mutate(is_orf_hit = stat_orf < -5 & est_orf < log2(0.7) & !is.na(stat_orf))
 
-    top = along_genome(gistic)
+    top = along_genome(dset, gistic)
     boxes = wrap_elements(comp_hyp_box(dset))
-    ov = overlap_venn(dset)
-    cplx = complex_plot()
+    ov = overlap_venn(dset, gistic_amp)
+    cplx = complex_plot(dset, dset$gene[dset$hit & dset$is_orf_hit])
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
@@ -204,7 +225,7 @@ sys$run({
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    cairo_pdf("Fig4-Overlap.pdf", 14, 11)
+    cairo_pdf("Fig3-Overlap.pdf", 14, 11)
     print(asm)
     dev.off()
 })

@@ -31,5 +31,5 @@ cols = c(
 
 fmt_p = function(p) {
     lab = sprintf("italic(P)~`=`~%.2g", p)
-    sub("1e", "10^", lab)
+    sub("[0-9.]+e", "10^", lab)
 }

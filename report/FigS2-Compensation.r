@@ -63,7 +63,8 @@ go_cors = function() {
     lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
-    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used) +
+    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used,
+               palette="Greys", pal_alpha=0.5) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         labs(title = "Gene Ontology: Biological Process",

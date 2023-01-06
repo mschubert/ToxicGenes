@@ -28,3 +28,8 @@ cols = c(
     "ORF dropout"="#f7974e",
     "Comp+ORF"="#E35740"
 )
+
+fmt_p = function(p) {
+    lab = sprintf("italic(P)~`=`~%.2g", p)
+    sub("1e", "10^", lab)
+}

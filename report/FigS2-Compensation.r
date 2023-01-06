@@ -32,7 +32,7 @@ tcga_vs_ccle = function() {
                angle = atan(slope) * 180/pi) %>%
         select(-tidy, -mod) %>%
         tidyr::unnest(glance) %>%
-        mutate(label = sprintf("R^2~`=`~%.2f~p~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
+        mutate(label = sprintf("R^2~`=`~%.2f~italic(P)~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
 
     ggplot(dset, aes(x=CCLE, y=value)) +
         geom_vline(xintercept=0, color="grey", linetype="dashed", size=1) +
@@ -60,7 +60,7 @@ go_cors = function() {
     both = inner_join(ccle_go, tcga_go) %>% filter(size_used < 1000)
 
     m = broom::glance(lm(stat_ccle ~ stat_tcga, data=both))
-    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
+    lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used) +
@@ -90,6 +90,7 @@ cna_comp = function(gistic, comp_all) {
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
@@ -119,6 +120,7 @@ og_comp = function(comp) {
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
         labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
@@ -179,8 +181,8 @@ rpe_comp = function(rpe, all) {
                 c("Background\nother chr", "Amplified\nNon-Comp."),
                 c("Background\nother chr", "Amplified\nCompensated"),
                 c("Amplified\nNon-Comp.", "Amplified\nCompensated")),
-            y_position=c(1.8,1.5,1.2,0.9), color="black", test=t.test, textsize=3,
-            tip_length=0.002) +
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            y_position=c(1.8,1.5,1.2,0.9), color="black", test=t.test, textsize=3) +
         labs(x = "Group",
              y = "LFC DNA/RNA isogenic RPE-1 clones")
 }

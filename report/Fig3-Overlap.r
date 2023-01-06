@@ -107,6 +107,7 @@ comp_hyp_box = function(dset) {
     ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(4.5, 6.5), color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Compensated"), c("Background", "Hyperactivated"))) +
         coord_cartesian(ylim=c(-7.5, 9)) +
         labs(fill = "Status", x = "Compensation status", y = "Δ ORF (Wald statistic)") +
@@ -179,7 +180,7 @@ complex_plot = function(dset, hits) {
         mutate(label = sub("(.*)", "`\\1`", label),
                label = ifelse(is.na(label) | !has_hit, label,
                               sprintf("%s^{%s}", label, hit_str)))
-    res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~p<10^{-10}~`)`"
+    res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~italic(P)<10^{-10}~`)`"
     fdr = mean(c(res2$p.value[res$adj.p>0.2][1], rev(res2$p.value[res$adj.p<0.2])[1]))
 
     ggplot(res2, aes(x=avg_orf, y=p.value)) +

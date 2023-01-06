@@ -26,6 +26,7 @@ og_tsg_cna = function(gistic, cosmic) {
              fill="Driver status\n(whole genome)") +
         geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
         facet_wrap(~ cna) +
         coord_cartesian(ylim=c(0.02, 0.52)) +
@@ -119,6 +120,7 @@ rpe_scaling = function(rpe) {
         scale_color_brewer(palette="Dark2") +
         ggbeeswarm::geom_quasirandom(size=2, aes(color=clone)) +
         ggsignif::geom_signif(comparisons=list(c("Euploid", "Amplified")),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             y_position=c(0.25,0.28), color="black", test=t.test, textsize=3) +
         theme_classic() +
         coord_cartesian(clip="off") +

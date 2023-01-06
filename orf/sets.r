@@ -19,9 +19,7 @@ do_plot = function(res) {
     if (all(res$estimate[rank(res$p.value) < 10] > 0))
         res$label[res$estimate > 0] = NA
 
-    res %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate", thresh=0.1, dir=-1) %>%
-        plt$volcano(base.size=0.2, label_top=30, repel=TRUE, x_label_bias=4)
+    plt$volcano(res, base.size=0.2, label_top=30, repel=TRUE, x_label_bias=4)
 }
 
 sys$run({

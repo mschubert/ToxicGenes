@@ -24,16 +24,6 @@ do_fit = function(expr, fml) {
         arrange(adj.p, p.value)
 }
 
-do_plot = function(res) {
-    res$label = res$`GENE SYMBOL`
-    if (all(res$estimate[rank(res$p.value) < 10] > 0))
-        res$label[res$estimate > 0] = NA
-
-    res %>%
-        plt$color$p_effect(pvalue="adj.p", effect="estimate", thresh=0.1, dir=-1) %>%
-        plt$volcano(label_top=30, repel=TRUE, x_label_bias=4)
-}
-
 sys$run({
     args = sys$cmd$parse(
         opt('i', 'infile', 'rds', 'overview.rds'),
@@ -58,8 +48,10 @@ sys$run({
     result = c(pan, tissue)
 
     pdf(args$plotfile)
-    for (i in seq_along(result))
-        print(do_plot(result[[i]]) + ggtitle(names(result)[i]))
+    for (i in seq_along(result)) {
+        cur = result[[i]] %>% dplyr::rename(label = `GENE SYMBOL`)
+        plt$volcano(cur, label_top=30, repel=TRUE, x_label_bias=4, p=0.1)
+    }
     dev.off()
 
     writexl::write_xlsx(result, args$outfile)

@@ -24,7 +24,7 @@ rule gsets:
 rule fit:
     input:
         rscript = "fit_{fit}.r",
-        infile = data("df_ccle.rds"),
+        infile = data("df_ccle.rds")
     output:
         outfile = "{tissue}/{fit}.xlsx",
         outfile2 = "{tissue}/{fit}.rds"

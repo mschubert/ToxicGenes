@@ -188,10 +188,36 @@ rpe_comp = function(rpe, all) {
              y = "LFC DNA/RNA isogenic RPE-1 clones")
 }
 
-# mcmc traces of some example genes
+rpe2_comp = function(rpe2, all) {
+    comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
+    dset = rpe2 %>%
+        transmute(Gene = Gene, chr = sub("[pq].*$", "", Location),
+                  `+7` = (`SS6-1` + `SS6-2` + `SS6-3`) / (`SS48-1` + `SS48-2` + `SS48-3`),
+                  `+7 +22` = (`SS51-1` + `SS51-2` + `SS51-3`) / (`SS48-1` + `SS48-2` + `SS48-3`),
+                  `+8 +9 +18` = (`SS111-1` + `SS111-2` + `SS111-3`) / (`SS48-1` + `SS48-2` + `SS48-3`)) %>%
+        tidyr::gather("Sample", "FC", -Gene, -chr) %>%
+        filter((Sample == "+7" & chr == "7") |
+               (Sample == "+7 +22" & chr %in% c("7", "22")) |
+               (Sample == "+8 +9 +18" & chr %in% c("8", "9", "18"))) %>%
+        mutate(status = ifelse(Gene %in% comp, "Compensated", "Background"))
+
+    ggplot(dset, aes(color=status, y=FC, x=Sample)) +
+        geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
+        ggbeeswarm::geom_quasirandom(dodge.width=0.8, alpha=0.4) +
+        scale_y_log10() +
+        coord_cartesian(ylim=c(0.1, 20)) +
+        labs(x = "Clone with chromosome amplification",
+             y = "Fold-change amplified chr vs. parental") +
+        scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation") +
+        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation")
+        ggsignif::geom_signif(color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons=list(c("Background", "Compensated")))
+}
 
 sys$run({
-    rpe = readRDS("../data/dorine_compare.rds")
+#    rpe = readRDS("../data/dorine_compare.rds")
+    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
     cosmic = cm$get_cosmic_annot()
@@ -210,7 +236,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp(rpe, all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe2, all)) +
         plot_layout(heights=c(1,1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +

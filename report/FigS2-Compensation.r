@@ -212,7 +212,7 @@ rpe2_comp = function(rpe2, all) {
         ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
-        coord_cartesian(ylim=c(0.1, 15)) +
+        coord_cartesian(ylim=c(0.2, 15)) +
         labs(title = "Isogenic RPE-1 lines",
              x = "Clone with chromosome amplification",
              y = "Fold-change amplified chr vs. parental") +

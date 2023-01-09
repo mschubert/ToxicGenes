@@ -29,7 +29,7 @@ cols = c(
     "Comp+ORF"="#E35740"
 )
 
-fmt_p = function(p) {
-    lab = sprintf("italic(P)~`=`~%.2g", p)
+fmt_p = function(p, sig=2) {
+    lab = sprintf(paste0("italic(P)~`=`~%.", sig, "g"), p)
     sub("[0-9.]+e", "10^", lab)
 }

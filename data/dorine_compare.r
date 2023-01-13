@@ -7,7 +7,7 @@ args = sys$cmd$parse(
 )
 
 segs = readRDS("../../dorine/data/dna_vs_rna-compensation.rds") %>%
-    filter(clone %in% c("14.10", "14.20", "14.21"), condition == "early") %>%
+    filter(clone %in% c("14.10", "14.16", "14.20", "14.21"), condition == "early") %>%
     tidyr::unnest(combined) %>%
     group_by(clone, condition, seqnames, seg_id) %>%
         summarize(lfc_DNA = unique(log2FoldChange.x),
@@ -20,7 +20,7 @@ gt = seq$gene_table() %>%
         summarize(loc = mean(c(start_position, end_position))) %>%
     ungroup()
 diff_expr = readRDS("../../dorine/basic_diff_expr/clones_vs_parental-copynaive.rds") %>%
-    filter(clone %in% c("14.10", "14.20", "14.21"), condition == "early") %>%
+    filter(clone %in% c("14.10", "14.16", "14.20", "14.21"), condition == "early") %>%
     select(clone, genes) %>%
     tidyr::unnest(genes) %>%
     inner_join(gt) %>%

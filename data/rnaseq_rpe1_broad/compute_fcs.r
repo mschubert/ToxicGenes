@@ -44,3 +44,4 @@ both$sample = relevel(factor(both$sample), "RPE1SS48")
 res = deseq$genes(both, ~sample, extract="^sample_RPE") %>%
     mutate(term = sub("sample_RPE1(.+)_vs_.*", "\\1", term))
 
+saveRDS(res, file="compute_fcs.rds")

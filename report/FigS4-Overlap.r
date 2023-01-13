@@ -18,7 +18,7 @@ comp_orf = function(all, gistic_amp) {
                               stat_orf < -12 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
 
     m = lm(stat_orf ~ est_ccle_tcga, data=dset) %>% broom::glance()
-    lab = sprintf("R^2~`=`~%.3f~\n~p~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
+    lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
     ggplot(dset, aes(x=(est_ccle+est_tcga)/2, y=stat_orf)) +
@@ -49,11 +49,11 @@ go_cors = function() {
         mutate(tcga_ccle = (stat_ccle+stat_tcga)/2)
 
     m = broom::glance(lm(tcga_ccle ~ stat_orf, data=both))
-    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
+    lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=tcga_ccle, y=stat_orf, label=label), size=size_used,
-               max_ov=20, draw_label=120) +
+               max_ov=10, draw_label=80, palette="Greys", pal_alpha=0.5) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         ylim(c(-24,NA)) +

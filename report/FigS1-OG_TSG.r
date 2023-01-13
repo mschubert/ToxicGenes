@@ -130,6 +130,15 @@ rpe_scaling = function(rpe) {
     list(genome=p1, quant=p2)
 }
 
+# cleanup: copied/adapted from dorine/data/dna_vs_rna.r
+center_maxdens = function(y, bw=bw.nrd0) {
+    max_dens = function(y, bw=bw.nrd0) {
+        dens = density(y, kernel="gaussian")
+        dens$x[dens$y==max(dens$y)]
+    }
+    y - max_dens(y, bw=bw)
+}
+
 rpe2_scaling = function() {
     lookup = c(SS6="SS6 (+7)", SS51="SS51 (+7 +22)", SS111="SS111 (+8 +9 +18)")
     rna = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
@@ -152,27 +161,26 @@ rpe2_scaling = function() {
         mutate(Sample = lookup[sub("^RPE1-", "", Sample)]) %>%
         na.omit()
     both = inner_join(rna, dna) %>% filter(chr != "10")
+    dna_segs = both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy))
+    rna_segs = both %>% group_by(Sample, chr) %>% summarize(mean_FC=mean(FC, weights=1/lfcSE)) %>%
+        group_by(Sample) %>% mutate(mean_FC = center_maxdens(mean_FC))
 
     rna_plot = ggplot(both, aes(x=loc, y=2^FC)) + geom_point(alpha=0.1) +
         facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
         geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
-        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy)),
-            aes(yintercept=mean_copy), color="purple", linewidth=1) +
-        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_FC=2^mean(FC, weights=1/lfcSE)),
-            aes(yintercept=mean_FC), color="green", linewidth=1) +
+        geom_hline(data=dna_segs, aes(yintercept=mean_copy), color="purple", linewidth=1) +
+        geom_hline(data=rna_segs, aes(yintercept=2^mean_FC), color="green", linewidth=1) +
         coord_cartesian(ylim=c(0.15,5)) + ggtitle("RNA")
     dna_plot = ggplot(both, aes(x=loc, y=copy)) + geom_point(alpha=0.1) +
         facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
         geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
-        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy)),
-            aes(yintercept=mean_copy), color="purple", linewidth=1) +
+        geom_hline(data=dna_segs, aes(yintercept=mean_copy), color="purple", linewidth=1) +
         coord_cartesian(ylim=c(0.15,5)) + ggtitle("DNA")
 
-    comp = both %>% group_by(Sample, chr) %>%
-        summarize(mean_FC = 2^mean(FC, weights=1/lfcSE), mean_copy = mean(copy),
-                  is_amp = ifelse(mean(copy)<1.2, "Euploid", "Amplified") %>%
-                      factor(levels=c("Euploid", "Amplified")),
-                  lfc_diff = log2(mean_FC/mean_copy))
+    comp = inner_join(rna_segs, dna_segs) %>%
+        mutate(is_amp = ifelse(mean_copy<1.2, "Euploid", "Amplified") %>%
+                    factor(levels=c("Euploid", "Amplified")),
+               lfc_diff = mean_FC-log2(mean_copy))
     quant_plot = ggplot(comp, aes(x=is_amp, y=lfc_diff)) +
         geom_boxplot(aes(fill=is_amp), outlier.shape=NA, alpha=0.5) +
         scale_fill_manual(values=cm$cols[c("Euploid", "Amplified")], guide="none") +

@@ -191,7 +191,7 @@ rpe_comp = function(rpe, all) {
 rpe2_comp = function(rpe2, all) {
     lookup = c(SS6="SS6 (+7)", SS51="SS51 (+7 +22)", SS111="SS111 (+8 +9 +18)")
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
-    comp = all %>% filter(hit) %>% pull(gene) #est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
+    comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
     dset = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
         tidyr::unnest(genes) %>%
         inner_join(chrs) %>%

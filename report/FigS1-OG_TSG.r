@@ -135,7 +135,7 @@ rpe2_scaling = function() {
     rna = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
         tidyr::unnest(genes) %>%
         filter(lfcSE < 4) %>%
-        transmute(Sample=lookup[term], Gene=label, FC=2^log2FoldChange)
+        transmute(Sample=lookup[term], Gene=label, FC=log2FoldChange, lfcSE=lfcSE)
 #    means = function(mat) narray::map(mat, along=2, mean, subsets=sub("-[0-9]+$", "", colnames(mat)))
 #    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
 #    rna = rpe2 %>%
@@ -153,12 +153,12 @@ rpe2_scaling = function() {
         na.omit()
     both = inner_join(rna, dna) %>% filter(chr != "10")
 
-    rna_plot = ggplot(both, aes(x=loc, y=FC)) + geom_point(alpha=0.1) +
+    rna_plot = ggplot(both, aes(x=loc, y=2^FC)) + geom_point(alpha=0.1) +
         facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
         geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
         geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy)),
             aes(yintercept=mean_copy), color="purple", linewidth=1) +
-        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_FC=median(FC)),
+        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_FC=2^mean(FC, weights=1/lfcSE)),
             aes(yintercept=mean_FC), color="green", linewidth=1) +
         coord_cartesian(ylim=c(0.15,5)) + ggtitle("RNA")
     dna_plot = ggplot(both, aes(x=loc, y=copy)) + geom_point(alpha=0.1) +
@@ -169,7 +169,7 @@ rpe2_scaling = function() {
         coord_cartesian(ylim=c(0.15,5)) + ggtitle("DNA")
 
     comp = both %>% group_by(Sample, chr) %>%
-        summarize(mean_FC = median(FC), mean_copy = mean(copy),
+        summarize(mean_FC = 2^mean(FC, weights=1/lfcSE), mean_copy = mean(copy),
                   is_amp = ifelse(mean(copy)<1.2, "Euploid", "Amplified") %>%
                       factor(levels=c("Euploid", "Amplified")),
                   lfc_diff = log2(mean_FC/mean_copy))

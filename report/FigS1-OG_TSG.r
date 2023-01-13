@@ -91,13 +91,17 @@ venn_og_tsg = function(gistic, cosmic) {
 }
 
 rpe_scaling = function(rpe) {
-    p1 = ggplot(rpe$diff_expr, aes(x=loc, y=log2FoldChange)) +
+    lookup = c("14.10"="14.10 (+7 +16 +X)", "14.16"="14.16 (+20)", "14.21"="14.21 (+8)")
+    diff_expr = rpe$diff_expr %>% mutate(clone = lookup[clone])
+    segs = rpe$segs %>% mutate(clone = lookup[clone])
+
+    p1 = ggplot(diff_expr, aes(x=loc, y=log2FoldChange)) +
         geom_hline(yintercept=c(log2((1:4)/2)), color="firebrick", linetype="dashed") +
         geom_point(size=0.5, alpha=0.1) +
-        geom_segment(data=rpe$segs, aes(color=type, y=lfc, yend=lfc),
+        geom_segment(data=segs, aes(color=type, y=lfc, yend=lfc),
                      x=-Inf, xend=Inf, size=1.5, alpha=0.8) +
         facet_grid(clone ~ seqnames, scales="free", space="free") +
-        coord_cartesian(ylim=c(-3,3)) +
+        coord_cartesian(ylim=c(-1.8,1.8)) +
         scale_color_manual(values=c(DNA="purple", RNA="green"), name="Data type") +
         theme_minimal() +
         theme(axis.text.x = element_blank(),
@@ -108,11 +112,11 @@ rpe_scaling = function(rpe) {
               panel.grid.minor = element_blank()) +
         xlab("Genomic location")
 
-    comp = rpe$segs %>% group_by(clone, seqnames, seg_id) %>%
-        summarize(is_amp = cut(lfc[type=="DNA"], c(-Inf, -0.2, 0.2, Inf),
+    comp = segs %>% group_by(clone, seqnames, seg_id) %>%
+        summarize(is_amp = cut(lfc[type=="DNA"], c(-Inf, -0.25, 0.25, Inf),
                                labels=c("Deleted", "Euploid", "Amplified")),
                   lfc_diff = lfc[type=="RNA"]-lfc[type=="DNA"]) %>%
-        filter(is_amp != "Deleted")
+        filter(is_amp != "Deleted", seqnames != "10")
 
     p2 = ggplot(comp, aes(x=is_amp, y=lfc_diff)) +
         geom_boxplot(aes(fill=is_amp), outlier.shape=NA, alpha=0.5) +
@@ -210,11 +214,11 @@ sys$run({
     right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic) / rs$quant) +
         plot_layout(heights=c(3,4,4))
 
-    asm = (((left | right) + plot_layout(widths=c(3,2))) / rs$genome) +
+    asm = ((((left | right) + plot_layout(widths=c(3,2))) / rs$genome) + plot_layout(heights=c(3,2))) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 11, 15)
+    pdf("FigS1-OG_TSG.pdf", 11, 12)
     print(asm)
     dev.off()
 })

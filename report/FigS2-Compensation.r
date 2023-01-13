@@ -2,6 +2,7 @@ library(dplyr)
 library(ggplot2)
 library(patchwork)
 sys = import('sys')
+seq = import('seq')
 plt = import('plot')
 cm = import('./common')
 
@@ -188,6 +189,39 @@ rpe_comp = function(rpe, all) {
              y = "LFC DNA/RNA isogenic RPE-1 clones")
 }
 
+rpe1_comp = function(rpe, all) {
+    lookup = c("14.10"="14.10 (+7 +16 +X)", "14.16"="14.16 (+20)", "14.21"="14.21 (+8)")
+    comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
+    chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>%
+        filter(!is.na(label)) %>% distinct()
+    dset = rpe$diff_expr %>%
+        inner_join(chrs) %>%
+        filter((clone == "14.10" & chr %in% c("7", "16")) |
+               (clone == "14.16" & chr == "20") |
+               (clone == "14.21" & chr == "8")) %>%
+        mutate(clone = lookup[clone],
+               status = ifelse(label %in% comp, "Compensated", "Background"),
+               status = factor(status, levels=c("Background", "Compensated")))
+
+    ggplot(dset, aes(x=status, y=log2FoldChange, color=status)) +
+        geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
+        ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
+        facet_wrap(~ clone) +
+        coord_cartesian(ylim=c(-1.5, 2.5)) +
+        labs(title = "Isogenic RPE-1 lines",
+             x = "Clone with chromosome amplification",
+             y = "Fold-change amplified chr vs. parental") +
+        scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
+        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
+        scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
+        theme_minimal() +
+        theme(axis.text.x = element_blank()) +
+        ggsignif::geom_signif(color="black", y_position=1.5,
+            test=function(...) t.test(..., alternative="greater"),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons=list(c("Background", "Compensated")))
+}
+
 rpe2_comp = function(rpe2, all) {
     lookup = c(SS6="SS6 (+7)", SS51="SS51 (+7 +22)", SS111="SS111 (+8 +9 +18)")
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
@@ -227,7 +261,7 @@ rpe2_comp = function(rpe2, all) {
 }
 
 sys$run({
-#    rpe = readRDS("../data/dorine_compare.rds")
+    rpe = readRDS("../data/dorine_compare.rds")
     rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
@@ -247,7 +281,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe2, all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe1_comp(rpe, all)) +
         plot_layout(heights=c(1,1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +

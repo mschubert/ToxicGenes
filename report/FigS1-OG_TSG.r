@@ -131,36 +131,62 @@ rpe_scaling = function(rpe) {
 }
 
 rpe2_scaling = function() {
-    means = function(mat) narray::map(mat, along=2, mean, subsets=sub("-[0-9]+$", "", colnames(mat)))
-    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
     lookup = c(SS6="SS6 (+7)", SS51="SS51 (+7 +22)", SS111="SS111 (+8 +9 +18)")
-    rna = rpe2 %>%
-        transmute(Gene=Gene, chr=factor(sub("[pq].*$", "", Location), levels=c(1:22,'X'))) %>%
-        cbind(means(data.matrix(rpe2[-c(1,2)]))) %>% as_tibble() %>%
-        tidyr::gather("Sample", "expr", -Gene, -chr, -SS48) %>%
-        mutate(Sample = factor(lookup[Sample], levels=c(lookup)),
-               FC = expr / SS48) %>%
-        filter(SS48 >= 20 & expr >= 20, !is.na(Sample))
+    rna = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
+        tidyr::unnest(genes) %>%
+        filter(lfcSE < 4) %>%
+        transmute(Sample=lookup[term], Gene=label, FC=2^log2FoldChange)
+#    means = function(mat) narray::map(mat, along=2, mean, subsets=sub("-[0-9]+$", "", colnames(mat)))
+#    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
+#    rna = rpe2 %>%
+#        transmute(Gene=Gene, chr=factor(sub("[pq].*$", "", Location), levels=c(1:22,'X'))) %>%
+#        cbind(means(data.matrix(rpe2[-c(1,2)]))) %>% as_tibble() %>%
+#        tidyr::gather("Sample", "expr", -Gene, -chr, -SS48) %>%
+#        mutate(Sample = factor(lookup[Sample], levels=c(lookup)),
+#               FC = expr / SS48) %>%
+#        filter(SS48 >= 20 & expr >= 20, !is.na(Sample))
     dna = readxl::read_xlsx("../data/Supp Table 3 - Gene Copy Number analysis.xlsx") %>%
         mutate(chr=factor(sub("[pq].*$", "", `Chromosome localization`), levels=c(1:22,'X'))) %>%
         select(Gene = `Gene name`, chr, loc=`Gene start (bp)`, `RPE1-SS48`:`RPE1-SS111`) %>%
         tidyr::gather("Sample", "copy", -Gene, -chr, -loc) %>%
         mutate(Sample = lookup[sub("^RPE1-", "", Sample)]) %>%
         na.omit()
-    both = inner_join(rna, dna)
+    both = inner_join(rna, dna) %>% filter(chr != "10")
 
-    p0 = ggplot(both, aes(x=loc, y=FC)) + geom_point(alpha=0.1) +
-        facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
-        geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
-        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_FC=mean(FC)),
-            aes(yintercept=mean_FC), color="green", linewidth=1) +
-        coord_cartesian(ylim=c(0.15,5)) + ggtitle("RNA")
-    p1 = ggplot(both, aes(x=loc, y=copy)) + geom_point(alpha=0.1) +
+    rna_plot = ggplot(both, aes(x=loc, y=FC)) + geom_point(alpha=0.1) +
         facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
         geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
         geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy)),
-            aes(yintercept=mean_copy), color="green", linewidth=1) +
+            aes(yintercept=mean_copy), color="purple", linewidth=1) +
+        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_FC=median(FC)),
+            aes(yintercept=mean_FC), color="green", linewidth=1) +
+        coord_cartesian(ylim=c(0.15,5)) + ggtitle("RNA")
+    dna_plot = ggplot(both, aes(x=loc, y=copy)) + geom_point(alpha=0.1) +
+        facet_grid(Sample~chr, scale="free", space="free") + scale_y_log10() +
+        geom_hline(yintercept=c(1,2,3,4)/2, color="firebrick", linetype="dashed") +
+        geom_hline(data=both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy)),
+            aes(yintercept=mean_copy), color="purple", linewidth=1) +
         coord_cartesian(ylim=c(0.15,5)) + ggtitle("DNA")
+
+    comp = both %>% group_by(Sample, chr) %>%
+        summarize(mean_FC = median(FC), mean_copy = mean(copy),
+                  is_amp = ifelse(mean(copy)<1.2, "Euploid", "Amplified") %>%
+                      factor(levels=c("Euploid", "Amplified")),
+                  lfc_diff = log2(mean_FC/mean_copy))
+    quant_plot = ggplot(comp, aes(x=is_amp, y=lfc_diff)) +
+        geom_boxplot(aes(fill=is_amp), outlier.shape=NA, alpha=0.5) +
+        scale_fill_manual(values=cm$cols[c("Euploid", "Amplified")], guide="none") +
+        scale_color_brewer(palette="Dark2") +
+        ggbeeswarm::geom_quasirandom(size=2, aes(color=Sample)) +
+        ggsignif::geom_signif(comparisons=list(c("Euploid", "Amplified")),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            y_position=c(0.25,0.28), color="black", test=t.test, textsize=3) +
+        theme_classic() +
+        coord_cartesian(clip="off") +
+        ylab("LFC RNA/DNA chromosome") +
+        theme(axis.title.x = element_blank())
+
+    list(genome=rna_plot, quant=quant_plot)
 }
 
 sys$run({

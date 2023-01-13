@@ -162,7 +162,8 @@ rpe2_scaling = function() {
         na.omit()
     both = inner_join(rna, dna) %>% filter(chr != "10")
     dna_segs = both %>% group_by(Sample, chr) %>% summarize(mean_copy=mean(copy))
-    rna_segs = both %>% group_by(Sample, chr) %>% summarize(mean_FC=mean(FC, weights=1/lfcSE)) %>%
+    rna_segs = both %>% group_by(Sample, chr) %>%
+        summarize(mean_FC=mean(FC, weights=1/lfcSE, trim=0.2)) %>%
         group_by(Sample) %>% mutate(mean_FC = center_maxdens(mean_FC))
 
     rna_plot = ggplot(both, aes(x=loc, y=2^FC)) + geom_point(alpha=0.1) +

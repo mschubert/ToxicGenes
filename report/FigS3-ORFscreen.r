@@ -67,6 +67,7 @@ og_tsg_orf = function(gistic, orfdata) {
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(6.5, 9), color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]) +
@@ -95,6 +96,7 @@ amp_del_orf = function(gistic, orfdata) {
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
         coord_cartesian(ylim=c(-5, 8)) +
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]) +

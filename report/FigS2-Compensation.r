@@ -32,7 +32,7 @@ tcga_vs_ccle = function() {
                angle = atan(slope) * 180/pi) %>%
         select(-tidy, -mod) %>%
         tidyr::unnest(glance) %>%
-        mutate(label = sprintf("R^2~`=`~%.2f~p~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
+        mutate(label = sprintf("R^2~`=`~%.2f~italic(P)~`=`~10^%.0f", adj.r.squared, ceiling(log10(p.value))))
 
     ggplot(dset, aes(x=CCLE, y=value)) +
         geom_vline(xintercept=0, color="grey", linetype="dashed", size=1) +
@@ -60,10 +60,11 @@ go_cors = function() {
     both = inner_join(ccle_go, tcga_go) %>% filter(size_used < 1000)
 
     m = broom::glance(lm(stat_ccle ~ stat_tcga, data=both))
-    lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
+    lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
-    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used) +
+    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used,
+               palette="Greys", pal_alpha=0.5) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         labs(title = "Gene Ontology: Biological Process",
@@ -90,6 +91,7 @@ cna_comp = function(gistic, comp_all) {
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
@@ -119,6 +121,7 @@ og_comp = function(comp) {
     common = function(y, coordy, sigy) list(
         geom_boxplot(outlier.shape=NA, alpha=0.7),
         ggsignif::geom_signif(y_position=sigy, color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
         labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
@@ -179,16 +182,54 @@ rpe_comp = function(rpe, all) {
                 c("Background\nother chr", "Amplified\nNon-Comp."),
                 c("Background\nother chr", "Amplified\nCompensated"),
                 c("Amplified\nNon-Comp.", "Amplified\nCompensated")),
-            y_position=c(1.8,1.5,1.2,0.9), color="black", test=t.test, textsize=3,
-            tip_length=0.002) +
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            y_position=c(1.8,1.5,1.2,0.9), color="black", test=t.test, textsize=3) +
         labs(x = "Group",
              y = "LFC DNA/RNA isogenic RPE-1 clones")
 }
 
-# mcmc traces of some example genes
+rpe2_comp = function(rpe2, all) {
+    comp = all %>% filter(hit) %>% pull(gene) #est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
+    means = function(mat) narray::map(mat, along=2, mean, subsets=sub("-[0-9]+$", "", colnames(mat)))
+    dset = rpe2 %>%
+        transmute(Gene=Gene, chr=sub("[pq].*$", "", Location)) %>%
+        cbind(means(data.matrix(rpe2[-c(1,2)]))) %>%
+        as_tibble() %>%
+        tidyr::gather("Sample", "expr", -Gene, -chr, -SS48) %>%
+        filter(SS48 >= 20 & expr >= 20,
+               (Sample == "SS6" & chr == "7") |
+               (Sample == "SS51" & chr %in% c("7", "22")) |
+               (Sample == "SS111" & chr %in% c("8", "9", "18"))) %>%
+        mutate(Sample = case_when(Sample == "SS6" ~ "SS6 (+7)",
+                                  Sample == "SS51" ~ "SS51 (+7 +22)",
+                                  Sample == "SS111" ~ "SS111 (+8 +9 +18)"),
+               Sample = factor(Sample, levels=c("SS6 (+7)", "SS51 (+7 +22)", "SS111 (+8 +9 +18)")),
+               FC = expr / SS48,
+               status = ifelse(Gene %in% comp, "Compensated", "Background"))
+
+    ggplot(dset, aes(x=status, y=FC, color=status)) +
+        geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
+        ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
+        scale_y_log10() +
+        facet_wrap(~ Sample) +
+        coord_cartesian(ylim=c(0.2, 15)) +
+        labs(title = "Isogenic RPE-1 lines",
+             x = "Clone with chromosome amplification",
+             y = "Fold-change amplified chr vs. parental") +
+        scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation") +
+        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation") +
+        scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
+        theme_minimal() +
+        theme(axis.text.x = element_blank()) +
+        ggsignif::geom_signif(color="black", y_position=1,
+            test=function(...) t.test(..., alternative="greater"),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons=list(c("Background", "Compensated")))
+}
 
 sys$run({
-    rpe = readRDS("../data/dorine_compare.rds")
+#    rpe = readRDS("../data/dorine_compare.rds")
+    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
     cosmic = cm$get_cosmic_annot()
@@ -207,7 +248,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp(rpe, all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe2, all)) +
         plot_layout(heights=c(1,1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +

@@ -11,7 +11,7 @@ schema_comp = function() {
 }
 
 schema_orf = function() {
-    img = grid::rasterGrob(magick::image_read("external/tox2.svg"))
+    img = grid::rasterGrob(magick::image_read("external/ORF_screen_new.png"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -105,7 +105,7 @@ sys$run({
         orf_volc(orfdata)
 
     asm = ((left + plot_layout(heights=c(1,3))) |
-        (right + plot_layout(heights=c(1,3)))) + plot_layout(widths=c(3,2)) +
+        (right + plot_layout(heights=c(2,3)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("Fig2-Comp+ORF.pdf", 14, 10)

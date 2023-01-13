@@ -30,5 +30,17 @@ plt$pca(eset) +
     geom_text(aes(label=sample))
 
 # add dorine's RPE1s to combined DESeq data set
+nki = readRDS("../../../dorine/data/rnaseq_adaptation/eset.rds")
+ref = nki[,nki$sample == "p53kd"]
+common = intersect(rownames(eset), rownames(ref))
+colData(ref) = colData(ref)["sample"]
+both = cbind(eset[common,], ref[common,])
+plt$pca(both) +
+    geom_point() +
+    geom_text(aes(label=sample))
 
 # compute DE over the ref sample
+both$sample = relevel(factor(both$sample), "RPE1SS48")
+res = deseq$genes(both, ~sample, extract="^sample_RPE") %>%
+    mutate(term = sub("sample_RPE1(.+)_vs_.*", "\\1", term))
+

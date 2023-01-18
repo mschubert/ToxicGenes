@@ -51,15 +51,15 @@ cna_along_genome = function(gistic) {
 }
 
 cna_length = function() {
-    res2 = readRDS("../data/df_tcga_copysegments.rds") %>% arrange(-n_genes) %>%
+    res = readRDS("../data/df_tcga_copysegments.rds") %>% arrange(-n_genes) %>%
         mutate(frac = seq_len(nrow(.))/nrow(.))
-    res2 = res2[round(seq(from=1, to=nrow(res2), length.out=100)),] %>% arrange(-frac)
-    f50 = res2[res2$frac<0.5,][1,]
-    ggplot(res2, aes(x=n_genes, y=frac)) +
-        annotate("segment", x=0, xend=f50$n_genes, y=0.5, yend=0.5, color="grey", linetype="dashed") +
-        annotate("segment", x=f50$n_genes, xend=f50$n_genes, y=0.5, yend=-Inf, color="grey", linetype="dashed") +
-        annotate("text", x=f50$n_genes, y=0, label=f50$n_genes, color="grey", hjust=2) +
-        geom_step() +
+    res = res[round(seq(from=1, to=nrow(res), length.out=100)),] %>% arrange(-frac)
+    f50 = res[res$frac<0.5,][1,]
+    ggplot(res, aes(x=n_genes, y=frac)) +
+        annotate("segment", x=c(0, f50$n_genes), xend=rep(f50$n_genes, 2), y=c(0.5, 0.5),
+                 yend=c(0.5, -Inf), color="grey", linetype="dashed", linewidth=0.8) +
+        annotate("text", x=f50$n_genes, y=0.1, label=f50$n_genes, color="grey", hjust=2) +
+        geom_step(linewidth=0.8) +
         scale_x_log10() +
         labs(x = "At least containing N genes",
              y = "Fraction of CNA events") +
@@ -103,7 +103,8 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
     cosmic = cm$get_cosmic_annot()
 
-    top = (cna_along_genome(gistic) | cna_length) + plot_layout(widths=c(5,1), guides="collect")
+    top = (cna_along_genome(gistic) | (cna_length() + plot_layout(tag_level="new"))) +
+        plot_layout(widths=c(10,1), guides="collect")
     left = (wrap_elements(cna_expr_scales() + theme(plot.margin=margin(0,0,0,-10,"mm"))) /
             wrap_elements(overlap() + theme(plot.margin=margin(0,0,0,-15,"mm")))) +
         plot_layout(heights=c(2.5,3))

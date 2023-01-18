@@ -15,11 +15,6 @@ args = sys$cmd$parse(
 cohorts = tcga$cohorts()
 # excl x,y chroms
 
-purity = tcga$purity() %>%
-    filter(!is.na(estimate)) %>%
-    transmute(Sample = Sample,
-              purity = estimate)
-
 genes = seq$gene_table() %>%
     filter(gene_biotype == "protein_coding") %>%
     group_by(ensembl_gene_id) %>%
@@ -27,14 +22,14 @@ genes = seq$gene_table() %>%
         stop=max(end_position), strand=c("-","+")[unique(strand/2+1.5)]) %>%
     makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 
-segs = do.call(c, lapply(cohorts, tcga$cna_segments, granges=TRUE)) %>%
-    mutate(seg_id = seq_len(.))
-segs$purity = purity$purity[match(segs$Sample, purity$Sample)]
-segs = segs[with(segs, !is.na(purity) & abs((ploidy/2-1)/purity) > 0.75)]
-segs$seg_id = seq_along(segs)
+segs = readr::read_tsv("./gistic/TCGA.all_cancers.150601.zigg_events.160923.txt") %>%
+    transmute(Sample=sample, seqnames=chr, start=base_start, end=base_end,
+              seg_id = seq_len(nrow(.))) %>%
+    makeGRangesFromDataFrame(keep.extra.columns=TRUE)
 
-res = join_overlap_intersect_within(segs, genes) %>%
+res = join_overlap_intersect(segs, genes) %>%
     group_by(seg_id) %>%
-    summarize(n_genes = n_distinct(ensembl_gene_id))
+    summarize(n_genes = n_distinct(ensembl_gene_id)) %>%
+    as.data.frame() %>% as_tibble()
 
 saveRDS(res, file=args$outfile)

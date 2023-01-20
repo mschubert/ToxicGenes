@@ -22,10 +22,12 @@ along_genome = function(dset, gistic, chrs=1:22) {
 
     labs = gistic$genes %>%
         filter(type == "amplification",
-               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
+               gene_name %in% c("RBM14", "SNRPA", "CDKN1A", "POU2F1", "ZBTB14")) %>%
+#               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
         inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
         rowwise() %>%
         mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
+    labs2 = tidyr::expand_grid(labs %>% select(-type, -gam), distinct(res['type']))
 
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
         filter(type == "amplification", chr %in% chrs) %>%
@@ -67,6 +69,7 @@ along_genome = function(dset, gistic, chrs=1:22) {
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
         geom_area(color="black", alpha=0.7) +
+#        geom_vline(data=labs2, aes(xintercept=tss), linetype="dotted", color="grey", linewidth=0.8) +
         facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
         theme(strip.background = element_blank(),
@@ -86,10 +89,9 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
-        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
-        ggrepel::geom_text_repel(data=labs, aes(x=tss, y=frac, label=gene_name), size=3,
-                                 point.size=5, max.iter=1e5, max.time=10,
-                                 box.padding=unit(0.1, "lines")) +
+#        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
+#        ggrepel::geom_text_repel(data=labs, aes(x=tss, y=frac, label=gene_name), size=3,
+#                                 point.size=5, max.iter=1e5, max.time=10) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +

@@ -20,6 +20,13 @@ along_genome = function(dset, gistic, chrs=1:22) {
     hyp = tibble(type="Hyperactivated", gene_name=dset$gene[dset$est_ccle > 0.3 & dset$est_tcga > 0.3])
     orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$is_orf_hit])
 
+    labs = gistic$genes %>%
+        filter(type == "amplification",
+               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
+        inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
+        rowwise() %>%
+        mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
+
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
         filter(type == "amplification", chr %in% chrs) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
@@ -79,6 +86,10 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
+        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
+        ggrepel::geom_text_repel(data=labs, aes(x=tss, y=frac, label=gene_name), size=3,
+                                 point.size=5, max.iter=1e5, max.time=10,
+                                 box.padding=unit(0.1, "lines")) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +

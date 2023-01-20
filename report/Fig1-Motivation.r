@@ -58,7 +58,8 @@ cna_length = function() {
     ggplot(res, aes(x=n_genes, y=frac)) +
         annotate("segment", x=c(0, f50$n_genes), xend=rep(f50$n_genes, 2), y=c(0.5, 0.5),
                  yend=c(0.5, -Inf), color="grey", linetype="dashed", linewidth=0.8) +
-        annotate("text", x=f50$n_genes, y=0.1, label=f50$n_genes, color="grey", hjust=2) +
+        annotate("label", x=f50$n_genes, y=0, label=sprintf("50%% ≥ %i", f50$n_genes),
+                 color="grey", hjust=0.65, vjust=0, fill="#ffffffa0", label.size=NA) +
         geom_step(linewidth=0.8) +
         scale_x_log10() +
         labs(x = "At least containing N genes",
@@ -105,16 +106,16 @@ sys$run({
 
     top = (cna_along_genome(gistic) | (cna_length() + plot_layout(tag_level="new"))) +
         plot_layout(widths=c(10,1), guides="collect")
-    left = (wrap_elements(cna_expr_scales() + theme(plot.margin=margin(0,0,0,-10,"mm"))) /
-            wrap_elements(overlap() + theme(plot.margin=margin(0,0,0,-15,"mm")))) +
-        plot_layout(heights=c(2.5,3))
-    right = schema()
+    dens = wrap_elements(cna_expr_scales())
+    venn = wrap_elements(overlap())
 
-    asm = (top / ((left | right) + plot_layout(widths=c(1,2)))) +
-        plot_layout(heights=c(1,3)) + plot_annotation(tag_levels='a') &
+    asm = wrap_elements(wrap_plots(top)) + dens + schema() + venn +
+        plot_layout(widths=c(1,2), heights=c(3,2.7,3.3), design="11\n23\n43") +
+        plot_annotation(tag_levels='a') +
+        theme(plot.margin = margin(0,0,0,0,"mm")) &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("Fig1-Motivation.pdf", 14, 10)
+    cairo_pdf("Fig1-Motivation.pdf", 14, 10)
     print(asm)
     dev.off()
 })

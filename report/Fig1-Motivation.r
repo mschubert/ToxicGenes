@@ -106,14 +106,14 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
 
     top = (cna_along_genome(gistic) | (cna_length() + plot_layout(tag_level="new"))) +
-        plot_layout(widths=c(10,1), guides="collect")
-    dens = wrap_elements(cna_expr_scales())
-    venn = wrap_elements(overlap())
+        plot_layout(widths=c(10,1), guides="collect") &
+        theme(plot.margin = margin(0,5,-5,0,"mm"))
+    dens = wrap_elements(cna_expr_scales() + theme(plot.margin = margin(-5,0,0,0,"mm")))
+    venn = wrap_elements(overlap() + theme(plot.margin = margin(-5,0,0,0,"mm")))
 
     asm = wrap_elements(wrap_plots(top)) + dens + schema() + venn +
-        plot_layout(widths=c(1,2), heights=c(3,2.7,3.3), design="11\n23\n43") +
-        plot_annotation(tag_levels='a') +
-        theme(plot.margin = margin(0,0,0,0,"mm")) &
+        plot_layout(widths=c(1,2), design="11\n23\n43") +
+        plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("Fig1-Motivation.pdf", 14, 10)

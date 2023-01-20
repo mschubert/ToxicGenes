@@ -17,7 +17,7 @@ overlap = function() {
 }
 
 cna_along_genome = function(gistic) {
-    labs = gistic$genes %>% filter(gene_name %in% cm$hlg) %>%
+    labs = gistic$genes %>% filter(gene_name %in% cm$hlg, chr != "X") %>%
         group_by(gene_name) %>%
             slice_max(abs(frac)) %>%
         ungroup() %>%
@@ -26,6 +26,7 @@ cna_along_genome = function(gistic) {
         mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
 
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
+        filter(chr != "X") %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
     ggplot(smooth, aes(x=tss)) +

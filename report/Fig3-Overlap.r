@@ -208,7 +208,34 @@ complex_plot = function(dset, hits) {
     res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~italic(P)<10^{-10}~`)`"
     fdr = mean(c(res2$p.value[res$adj.p>0.2][1], rev(res2$p.value[res$adj.p<0.2])[1]))
 
-    ggplot(res2, aes(x=avg_orf, y=p.value)) +
+    membs = corum[[grep("HEXIM1-DNA-PK", names(corum))]]
+    gobp = gset$get_human("GO_Biological_Process_2021") %>% gset$filter(valid=membs)
+    nhej = gobp[[grep("GO:0006303", names(gobp))]]
+    ds2 = dset %>% filter(gene %in% membs) %>%
+        select(gene, CCLE=est_ccle, TCGA=est_tcga, ORF=stat_orf) %>%
+        mutate(gene = forcats::fct_reorder(gene, TCGA)) %>%
+        tidyr::gather("type", "value", -gene) %>%
+        mutate(type = factor(type, levels=c("TCGA", "CCLE", "ORF")),
+               Function = case_when(
+                   gene %in% nhej ~ "NHEJ",
+                   gene %in% c("SFPQ", "NONO", "PSPC1", "RBM14", "MATR3") ~ "Para-\nspeckle",
+                   TRUE ~ "Other"))
+    detail = ggplot(ds2, aes(x=value, y=gene, fill=Function)) +
+        geom_col() +
+        geom_vline(xintercept=0) +
+        facet_wrap(~ type, scales="free_x") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank(),
+              axis.title.x = element_text(size=10),
+              legend.title = element_text(size=10),
+              legend.text = element_text(size=8),
+              plot.background = element_rect(color="#656565", fill="#fafafa")) +
+        scale_x_continuous(breaks=c(-0.5, -5)) +
+        xlab("Compensation (score) / ORF dropout (Wald)") +
+        scale_fill_brewer(palette="Dark2") +
+        plot_layout(tag_level="new")
+
+    assocs = ggplot(res2, aes(x=avg_orf, y=p.value)) +
         geom_rect(ymin=-Inf, ymax=1, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
         geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
@@ -229,6 +256,12 @@ complex_plot = function(dset, hits) {
              y = "Overlap compensated genes (p-value Fisher's Exact Test)",
              size = "Protein\ncomplex\nmembers",
              fill = "Contains\nARGOS\ngene")
+
+    assocs +
+        annotate("curve", x=-1.6, y=3e-6, xend=-1.8, yend=1.1e-6, color="black",
+                 curvature=-0.3, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        inset_element(detail, 0.5, 0.55, 1, 0.8)
 }
 
 sys$run({

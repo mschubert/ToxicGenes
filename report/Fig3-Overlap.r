@@ -22,12 +22,10 @@ along_genome = function(dset, gistic, chrs=1:22) {
 
     labs = gistic$genes %>%
         filter(type == "amplification",
-               gene_name %in% c("RBM14", "SNRPA", "CDKN1A", "POU2F1", "ZBTB14")) %>%
-#               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
+               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
         inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
         rowwise() %>%
         mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
-    labs2 = tidyr::expand_grid(labs %>% select(-type, -gam), distinct(res['type']))
 
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
         filter(type == "amplification", chr %in% chrs) %>%
@@ -64,24 +62,26 @@ along_genome = function(dset, gistic, chrs=1:22) {
             mutate(y = y/max(y)) %>%
         ungroup()
     saveRDS(res, file="Fig3-Overlap.rds")
+    labs2 = tidyr::expand_grid(labs %>% select(-type, -gam), distinct(res['type']))
 
     dens = ggplot(res, aes(x=x, y=y, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
         geom_area(color="black", alpha=0.7) +
-#        geom_vline(data=labs2, aes(xintercept=tss), linetype="dotted", color="grey", linewidth=0.8) +
+        geom_vline(data=labs2, aes(xintercept=tss), linetype="dashed", color="grey", linewidth=0.8) +
         facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
         theme(strip.background = element_blank(),
               strip.text.y = element_blank(),
               panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,5,0), "mm"),
+              plot.margin = unit(c(0,0,0,0), "mm"),
               panel.spacing.y = unit(0, "mm")) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
         plot_layout(tag_level="new") +
-        expand_limits(y=1.1)
+        expand_limits(y=1.1) +
+        coord_cartesian(clip="off", expand=FALSE)
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
@@ -89,9 +89,8 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
-#        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
-#        ggrepel::geom_text_repel(data=labs, aes(x=tss, y=frac, label=gene_name), size=3,
-#                                 point.size=5, max.iter=1e5, max.time=10) +
+        geom_vline(data=labs2, aes(xintercept=tss), linetype="dashed", color="grey", linewidth=0.8) +
+        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +
@@ -102,10 +101,26 @@ along_genome = function(dset, gistic, chrs=1:22) {
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
               panel.grid.minor = element_blank(),
-              panel.spacing.x = unit(1, "mm"))
-
-    (amp / dens) + plot_layout(heights=c(1,5)) &
+              panel.spacing.x = unit(1, "mm")) +
         coord_cartesian(clip="off", expand=FALSE)
+
+    glabs = ggplot(mutate(labs, gene_name = paste(gene_name, " ")), aes(x=tss, y=0)) +
+        geom_segment(data=lens, aes(x=x, xend=xend), y=0.2, yend=0.2, alpha=1) +
+        geom_segment(aes(xend=tss, yend=0.2)) +
+        geom_text(aes(label=gene_name), size=3, angle=45, hjust=1, vjust=1) +
+        facet_grid(. ~ chr, scales="free", space="free") +
+        coord_cartesian(clip="off", ylim=c(-2,0.2), expand=FALSE) +
+        theme_void() +
+        theme(strip.text.x = element_blank(),
+              strip.background = element_blank(),
+              strip.text.y = element_blank(),
+              panel.background = element_rect(color=NA, fill="#efefef80"),
+              panel.spacing.x = unit(1, "mm"),
+              plot.margin = unit(c(0,0,0,0), "mm"),
+              panel.spacing.y = unit(0, "mm")) +
+    plot_layout(tag_level="new")
+
+    (amp / dens / glabs) + plot_layout(heights=c(1,5,0.4))
 }
 
 comp_hyp_box = function(dset) {

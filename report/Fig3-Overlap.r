@@ -68,14 +68,10 @@ along_genome = function(dset, gistic, chrs=1:22) {
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
         geom_area(color="black", alpha=0.7) +
-        geom_vline(data=labs2, aes(xintercept=tss), linetype="dashed", color="grey", linewidth=0.8) +
+        geom_vline(data=labs2, aes(xintercept=tss), color="#656565", linetype="dashed", linewidth=0.5) +
         facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
-        theme(strip.background = element_blank(),
-              strip.text.y = element_blank(),
-              panel.background = element_rect(color=NA, fill="#efefef80"),
-              panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,0,0), "mm"),
+        theme(panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.y = unit(0, "mm")) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
@@ -89,7 +85,6 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
-        geom_vline(data=labs2, aes(xintercept=tss), linetype="dashed", color="grey", linewidth=0.8) +
         geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
@@ -100,27 +95,29 @@ along_genome = function(dset, gistic, chrs=1:22) {
               axis.text = element_blank(),
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.spacing.x = unit(1, "mm")) +
+              panel.grid.minor = element_blank()) +
         coord_cartesian(clip="off", expand=FALSE)
 
-    glabs = ggplot(mutate(labs, gene_name = paste(gene_name, " ")), aes(x=tss, y=0)) +
-        geom_segment(data=lens, aes(x=x, xend=xend), y=0.2, yend=0.2, alpha=1) +
-        geom_segment(aes(xend=tss, yend=0.2)) +
-        geom_text(aes(label=gene_name), size=3, angle=45, hjust=1, vjust=1) +
+    labs3 = labs %>%
+        mutate(tss2 = ifelse(gene_name == "SNRPA", tss+2e7, tss),
+               gene_name = paste(gene_name, " "))
+    glabs = ggplot(labs3, aes(x=tss, y=0)) +
+        geom_segment(data=lens, aes(x=x, xend=xend), y=0.1, yend=0.1, alpha=0) +
+        geom_segment(aes(xend=tss, yend=0.1)) +
+        geom_text(aes(x=tss2, label=gene_name), size=3, angle=40, hjust=1, vjust=1) +
         facet_grid(. ~ chr, scales="free", space="free") +
-        coord_cartesian(clip="off", ylim=c(-2,0.2), expand=FALSE) +
+        coord_cartesian(clip="off", ylim=c(-1,0.1), expand=FALSE) +
         theme_void() +
         theme(strip.text.x = element_blank(),
-              strip.background = element_blank(),
-              strip.text.y = element_blank(),
-              panel.background = element_rect(color=NA, fill="#efefef80"),
-              panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,0,0), "mm"),
+              panel.background = element_blank(),
               panel.spacing.y = unit(0, "mm")) +
     plot_layout(tag_level="new")
 
-    (amp / dens / glabs) + plot_layout(heights=c(1,5,0.4))
+    (amp / dens / glabs) + plot_layout(heights=c(1,5,1.2)) &
+        theme(plot.margin = unit(c(0,0,0,0), "mm"),
+              strip.background = element_blank(),
+              strip.text.y = element_blank(),
+              panel.spacing.x = unit(1, "mm"))
 }
 
 comp_hyp_box = function(dset) {
@@ -250,7 +247,7 @@ sys$run({
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
-        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.5))) +
+        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.3))) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 

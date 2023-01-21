@@ -6,7 +6,7 @@ plt = import('plot')
 cm = import('./common')
 
 schema_comp = function() {
-    img = grid::rasterGrob(magick::image_read("external/comp2.svg"))
+    img = grid::rasterGrob(magick::image_read("external/comp3.svg"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -101,7 +101,7 @@ sys$run({
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic)
-    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-10,-15,0,0,"mm"))) /
+    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
         orf_volc(orfdata)
 
     asm = ((left + plot_layout(heights=c(1.2,3))) |

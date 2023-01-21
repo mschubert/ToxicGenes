@@ -213,7 +213,7 @@ complex_plot = function(dset, hits) {
     nhej = gobp[[grep("GO:0006303", names(gobp))]]
     ds2 = dset %>% filter(gene %in% membs) %>%
         select(gene, CCLE=est_ccle, TCGA=est_tcga, ORF=stat_orf) %>%
-        mutate(gene = forcats::fct_reorder(gene, TCGA)) %>%
+        mutate(gene = forcats::fct_reorder(gene, TCGA, .desc=TRUE)) %>%
         tidyr::gather("type", "value", -gene) %>%
         mutate(type = factor(type, levels=c("TCGA", "CCLE", "ORF")),
                Function = case_when(
@@ -225,11 +225,12 @@ complex_plot = function(dset, hits) {
         geom_vline(xintercept=0) +
         facet_wrap(~ type, scales="free_x") +
         theme_minimal() +
-        theme(axis.title.y = element_blank(),
-              axis.title.x = element_text(size=10),
-              legend.title = element_text(size=10),
+        theme(legend.key.size = unit(3, "mm"),
+              axis.title.y = element_blank(),
+              axis.title.x = element_text(size=8),
+              legend.title = element_text(size=8),
               legend.text = element_text(size=8),
-              plot.background = element_rect(color="#656565", fill="#fafafa")) +
+              plot.background = element_rect(color="#c5c5c5", fill="#fdfdfd")) +
         scale_x_continuous(breaks=c(-0.5, -5)) +
         xlab("Compensation (score) / ORF dropout (Wald)") +
         scale_fill_brewer(palette="Dark2") +
@@ -245,8 +246,9 @@ complex_plot = function(dset, hits) {
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=12, segment.alpha=0.3,
             label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
-            max.iter=1e5, max.time=10) +
+            max.iter=1e5, max.time=10, seed=1) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
+        guides(fill = guide_legend(override.aes=list(size=3))) +
         scale_size_binned_area(max_size=10) +
         scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),
@@ -258,10 +260,10 @@ complex_plot = function(dset, hits) {
              fill = "Contains\nARGOS\ngene")
 
     assocs +
-        annotate("curve", x=-1.6, y=3e-6, xend=-1.8, yend=1.1e-6, color="black",
-                 curvature=-0.3, lineend="round", linejoin="round",
+        annotate("curve", x=-1.8, y=1.5e-5, xend=-2.2, yend=4e-6, color="black",
+                 curvature=-0.4, lineend="round", linejoin="round",
                  arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
-        inset_element(detail, 0.5, 0.55, 1, 0.8)
+        inset_element(detail, 0.55, 0.57, 1, 0.82)
 }
 
 sys$run({

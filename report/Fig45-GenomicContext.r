@@ -14,24 +14,24 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
                frac_end = rank(-end, ties.method="last")/nrow(.))
 
     labs = gistic$genes %>%
-        inner_join(cosmic) %>%
+        left_join(cosmic) %>%
         filter(chr == cur_ev$seqnames[1],
                (gtype == "Oncogene" & type == "amplification") |
                 (gtype == "TSG" & type == "deletion") |
-                gtype == "OG+TSG") %>%
+                gtype == "OG+TSG" | gene_name == .hl) %>%
         inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
         rowwise() %>%
             mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss))) %>%
         ungroup()
     labs2 = labs %>% filter(!duplicated(gene_name)) %>%
-        mutate(frac = ifelse(gtype == "OG+TSG", 0, frac),
+        mutate(frac = ifelse(gtype == "OG+TSG" | gene_name == .hl, 0, frac),
                gtype = ifelse(gene_name == .hl, "ARGOS", gtype))
     rng = labs %>% filter(gene_name == .hl) %>%
         select(gene_name, type, frac, tss) %>%
         tidyr::spread(type, frac)
 
     cnv = gistic$smooth %>%
-        filter(chr == "6") %>%
+        filter(chr == cur_ev$seqnames[1]) %>%
         select(-gam) %>% tidyr::unnest(steps) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
@@ -91,6 +91,8 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     gistic = readRDS("../data/gistic_smooth.rds")
 
-
+    pdf("Fig45-GenomicContext.pdf", 6, 5)
     plot_ctx(genes, ev, cosmic, gistic, "CDKN1A")
+    plot_ctx(genes, ev, cosmic, gistic, "RBM14")
+    dev.off()
 })

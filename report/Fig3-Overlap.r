@@ -220,11 +220,11 @@ complex_plot = function(dset, hits) {
                class = case_when(
                    gene %in% nhej ~ "NHEJ",
                    gene %in% c("SFPQ", "NONO", "PSPC1", "RBM14", "MATR3") ~ "Para-\nspeckle",
-                   TRUE ~ "Other"))
+                   TRUE ~ "Other"),
+               class = factor(class, levels=c("Para-\nspeckle", "Other", "NHEJ")))
     detail = ggplot(ds2, aes(x=value, y=gene, fill=class)) +
         geom_col() +
         geom_point(aes(shape=missing), x=0) +
-        scale_shape_manual(values=c("No data"=4), name="") +
         geom_vline(xintercept=0) +
         facet_wrap(~ type, scales="free_x") +
         theme_minimal() +
@@ -237,8 +237,9 @@ complex_plot = function(dset, hits) {
               plot.background = element_rect(color="#e5e5e5", fill="#fdfdfd")) +
         scale_x_continuous(breaks=c(-0.5, -5)) +
         xlab("Compensation (score) / ORF dropout (Wald)") +
-        scale_fill_brewer(palette="Dark2", name="",
+        scale_fill_brewer(palette="Dark2", name="", direction=-1,
             guide=guide_legend(override.aes=list(shape=NA))) +
+        scale_shape_manual(values=c("No data"=4), name="") +
         plot_layout(tag_level="new")
 
     assocs = ggplot(res2, aes(x=avg_orf, y=p.value)) +

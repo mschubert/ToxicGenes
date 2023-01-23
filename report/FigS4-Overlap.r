@@ -87,17 +87,17 @@ dens_ov = function() {
         theme(axis.title = element_blank()) +
         coord_fixed() +
         theme(axis.text.x = element_blank()) +
-        ggtitle("Naive")
+        ggtitle("Pairwise")
 
     p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile") +
         geom_text(aes(label=left)) +
-        scale_discrete_manual("label", guide=guide_legend(title="Variance\nexplained"),
+        scale_discrete_manual("label", guide=guide_legend(title="Correlation\nexplained"),
             values=c("≥ 75%"="×", "≥ 60%"="o")) +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
         plot_layout(tag_level="new") +
-        ggtitle("Conditioned on Genes")
+        ggtitle("Conditioned on genes")
 
     (p1 / p2) + plot_layout(guides="collect")
 }

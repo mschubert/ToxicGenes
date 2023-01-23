@@ -33,9 +33,12 @@ sys$run({
                 gtype == "OG+TSG") %>%
         inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
         rowwise() %>%
-        mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
-    labs2 = labs %>% filter(gene_name != "CDKN1A")
-    labs3 = labs %>% filter(gene_name == "CDKN1A") %>%
+            mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss))) %>%
+        ungroup()
+    labs2 = labs %>% filter(!duplicated(gene_name)) %>%
+        mutate(frac = ifelse(gtype == "OG+TSG", 0, frac),
+               gtype = ifelse(gene_name == "CDKN1A", "ARGOS", gtype))
+    rng = labs %>% filter(gene_name == "CDKN1A") %>%
         select(gene_name, type, frac, tss) %>%
         tidyr::spread(type, frac)
 
@@ -51,19 +54,19 @@ sys$run({
         mutate(frac_start = rank(start, ties.method="first")/nrow(.),
                frac_end = rank(-end, ties.method="last")/nrow(.))
     pev = ggplot(ev21) +
-        geom_vline(xintercept=labs3$tss, color=cm$cols["Compensated"], linewidth=2, alpha=0.5) +
+        geom_vline(xintercept=rng$tss, color=cm$cols["Compensated"], linewidth=2, alpha=0.5) +
         geom_step(aes(x=start, y=frac_start)) +
         geom_step(aes(x=end, y=frac_end)) +
-        annotate("point", x=labs3$tss, y=1, size=5, shape=21,
+        annotate("point", x=rng$tss, y=1, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         theme_minimal() +
         theme(axis.title.x = element_blank(),
               axis.text.x = element_blank()) +
-        ylab("Event length") +
+        ylab("Event fraction") +
         coord_cartesian(clip="off")
 
     pcn = ggplot(p21, aes(x=tss)) +
-        geom_segment(data=labs3, aes(y=amplification, yend=deletion, x=tss, xend=tss),
+        geom_segment(data=rng, aes(y=amplification, yend=deletion, x=tss, xend=tss),
                      color=cm$cols["Compensated"], linewidth=2) +
         geom_hline(yintercept=0, color="black") +
         geom_area(aes(y=frac, group=type, fill=type), alpha=0.5) +
@@ -74,10 +77,10 @@ sys$run({
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         ggnewscale::new_scale("fill") +
         geom_point(data=labs2, aes(y=frac, fill=gtype), alpha=0.8, color="black", shape=21, size=5) +
-        scale_fill_manual(values=cm$cols, name="Driver") +
+        scale_fill_manual(values=c(cm$cols, ARGOS=cm$cols[["Compensated"]]), name="Driver") +
         ggrepel::geom_text_repel(data=labs2, aes(y=frac, label=gene_name), size=3,
             point.size=5, max.iter=1e5, max.time=10, segment.alpha=0.3) +
-        annotate("point", x=labs3$tss, y=0, size=5, shape=21,
+        annotate("point", x=rng$tss, y=0, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         facet_grid(. ~ chr, scales="free", space="free") +
         labs(y = "Alteration frequency TCGA") +

@@ -48,9 +48,9 @@ td = util$load_tcga("BRCA", top="CDKN1A") %>%
     left_join(mut %>% dplyr::rename(sample=Sample, p53_var=Variant)) %>%
     left_join(p53_activity) %>%
     left_join(prog_score) %>%
-    mutate(p53_mut = ifelse(is.na(p53_mut), "p53_wt", "p53_mut"),
-           p53_var = ifelse(! p53_mut %in% c("p53_snp", "p53_del"), "other/none", p53_var),
-           p53_var = relevel(factor(p53_var), "other/none"))
+    mutate(p53_var = ifelse(p53_mut %in% c("p53_snp", "p53_del"), p53_var, "other/none"),
+           p53_var = relevel(factor(p53_var), "other/none"),
+           p53_mut = ifelse(is.na(p53_mut), "p53_wt", p53_mut))
 table(td$p53_mut)
 table(td$p53_var)
 

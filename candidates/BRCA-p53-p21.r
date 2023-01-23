@@ -23,7 +23,7 @@ prog_score = tibble(sample=rownames(prog_score), prog_p53=prog_score[,"p53"])
 
 #mut = tcga$mutations() %>%
 #    filter(Study == "BRCA", Hugo_Symbol == "TP53") %>%
-mut = io$load("~/data/tcga/TCGAbiolinks-downloader/snv_mutect2/TCGA-BRCA.RData") %>%
+mut = readRDS("~/data/tcga/TCGAbiolinks-downloader/snv_mutect2/TCGA-BRCA.rds") %>%
     filter(Hugo_Symbol == "TP53") %>%
     transmute(Sample = substr(Tumor_Sample_Barcode, 1, 16),
               Variant = Variant_Classification,
@@ -43,7 +43,7 @@ td = util$load_tcga("BRCA", top="CDKN1A") %>%
     select(-p53_mut) %>% # what was that again?
     filter(cancer_copies >= 2-0.15) %>% # only euploid or amp
     as_tibble() %>%
-    inner_join(brca_subtypes) %>%
+    left_join(brca_subtypes) %>%
     left_join(cpg) %>%
     left_join(mut %>% dplyr::rename(sample=Sample, p53_var=Variant)) %>%
     left_join(p53_activity) %>%

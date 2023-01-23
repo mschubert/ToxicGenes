@@ -140,7 +140,7 @@ load_tcga = function(cohort, top, et=0.15) {
     if (cohort == "pan") cohort2 = tcga$cohorts() else cohort2 = cohort
     load_expr = function(cohort, genes) {
         mat = lapply(cohort2, tcga$rna_seq) %>%
-            narray::stack(along=2) %>%
+            narray::stack(along=2, allow_overwrite=TRUE) %>%
             DESeq2::DESeqDataSetFromMatrix(data.frame(id=colnames(.)), ~1) %>%
                 DESeq2::estimateSizeFactors() %>%
                 DESeq2::counts(normalized=TRUE)

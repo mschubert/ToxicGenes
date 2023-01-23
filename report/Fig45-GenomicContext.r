@@ -6,28 +6,16 @@ sys = import('sys')
 seq = import('seq')
 cm = import('./common')
 
-sys$run({
-    #todo: save genes, ev in ../data/df_tcga_copysegments.r
-    genes = seq$gene_table() %>%
-        filter(gene_biotype == "protein_coding") %>%
-        group_by(ensembl_gene_id) %>%
-        summarize(seqnames=unique(chromosome_name), start=min(start_position),
-                  stop=max(end_position), strand=c("-","+")[unique(strand/2+1.5)],
-                  gene_name=unique(external_gene_name)) %>%
-        makeGRangesFromDataFrame(keep.extra.columns=TRUE)
-    cosmic = cm$get_cosmic_annot() %>% dplyr::rename(gtype=type)
-    ev = readr::read_tsv("../data/gistic/TCGA.all_cancers.150601.zigg_events.160923.txt") %>%
-        filter(abs(cn_end - cn_start) > 0.5) %>%
-        transmute(Sample=sample, seqnames=chr, start=base_start, end=base_end,
-                  seg_id = seq_len(nrow(.)), event_type=event_type) %>%
-        makeGRangesFromDataFrame(keep.extra.columns=TRUE)
-    gistic = readRDS("../data/gistic_smooth.rds")
+plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
+    cur_ev = join_overlap_inner(ev, genes %>% filter(gene_name == .hl)) %>%
+        as.data.frame() %>% as_tibble() %>%
+        filter(event_type == "amp") %>%
+        mutate(frac_start = rank(start, ties.method="first")/nrow(.),
+               frac_end = rank(-end, ties.method="last")/nrow(.))
 
-    # -> add ARGOS to type (+incl in label repel)
-    # -> add events spanning CDKN1A
     labs = gistic$genes %>%
         inner_join(cosmic) %>%
-        filter(chr == "6",
+        filter(chr == cur_ev$seqnames[1],
                (gtype == "Oncogene" & type == "amplification") |
                 (gtype == "TSG" & type == "deletion") |
                 gtype == "OG+TSG") %>%
@@ -37,23 +25,18 @@ sys$run({
         ungroup()
     labs2 = labs %>% filter(!duplicated(gene_name)) %>%
         mutate(frac = ifelse(gtype == "OG+TSG", 0, frac),
-               gtype = ifelse(gene_name == "CDKN1A", "ARGOS", gtype))
-    rng = labs %>% filter(gene_name == "CDKN1A") %>%
+               gtype = ifelse(gene_name == .hl, "ARGOS", gtype))
+    rng = labs %>% filter(gene_name == .hl) %>%
         select(gene_name, type, frac, tss) %>%
         tidyr::spread(type, frac)
 
-    p21 = gistic$smooth %>%
+    cnv = gistic$smooth %>%
         filter(chr == "6") %>%
         select(-gam) %>% tidyr::unnest(steps) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
 
-    ev21 = join_overlap_inner(ev, genes %>% filter(gene_name == "CDKN1A")) %>%
-        as.data.frame() %>% as_tibble() %>%
-        filter(event_type == "amp") %>%
-        mutate(frac_start = rank(start, ties.method="first")/nrow(.),
-               frac_end = rank(-end, ties.method="last")/nrow(.))
-    pev = ggplot(ev21) +
+    pev = ggplot(cur_ev) +
         geom_vline(xintercept=rng$tss, color=cm$cols["Compensated"], linewidth=2, alpha=0.5) +
         geom_step(aes(x=start, y=frac_start)) +
         geom_step(aes(x=end, y=frac_end)) +
@@ -65,7 +48,7 @@ sys$run({
         ylab("Event fraction") +
         coord_cartesian(clip="off")
 
-    pcn = ggplot(p21, aes(x=tss)) +
+    pcn = ggplot(cnv, aes(x=tss)) +
         geom_segment(data=rng, aes(y=amplification, yend=deletion, x=tss, xend=tss),
                      color=cm$cols["Compensated"], linewidth=2) +
         geom_hline(yintercept=0, color="black") +
@@ -88,4 +71,26 @@ sys$run({
         theme(axis.title.x = element_blank())
 
     (pcn/pev) + plot_layout(heights=c(3,1), guides="collect")
+
+}
+
+sys$run({
+    #todo: save genes, ev in ../data/df_tcga_copysegments.r
+    genes = seq$gene_table() %>%
+        filter(gene_biotype == "protein_coding") %>%
+        group_by(ensembl_gene_id) %>%
+        summarize(seqnames=unique(chromosome_name), start=min(start_position),
+                  stop=max(end_position), strand=c("-","+")[unique(strand/2+1.5)],
+                  gene_name=unique(external_gene_name)) %>%
+        makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+    cosmic = cm$get_cosmic_annot() %>% dplyr::rename(gtype=type)
+    ev = readr::read_tsv("../data/gistic/TCGA.all_cancers.150601.zigg_events.160923.txt") %>%
+        filter(abs(cn_end - cn_start) > 0.5) %>%
+        transmute(Sample=sample, seqnames=chr, start=base_start, end=base_end,
+                  seg_id = seq_len(nrow(.)), event_type=event_type) %>%
+        makeGRangesFromDataFrame(keep.extra.columns=TRUE)
+    gistic = readRDS("../data/gistic_smooth.rds")
+
+
+    plot_ctx(genes, ev, cosmic, gistic, "CDKN1A")
 })

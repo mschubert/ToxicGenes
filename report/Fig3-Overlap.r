@@ -215,25 +215,30 @@ complex_plot = function(dset, hits) {
         select(gene, CCLE=est_ccle, TCGA=est_tcga, ORF=stat_orf) %>%
         mutate(gene = forcats::fct_reorder(gene, TCGA, .desc=TRUE)) %>%
         tidyr::gather("type", "value", -gene) %>%
-        mutate(type = factor(type, levels=c("TCGA", "CCLE", "ORF")),
-               Function = case_when(
+        mutate(missing = ifelse(is.na(value), "No data", NA),
+               type = factor(type, levels=c("TCGA", "CCLE", "ORF")),
+               class = case_when(
                    gene %in% nhej ~ "NHEJ",
                    gene %in% c("SFPQ", "NONO", "PSPC1", "RBM14", "MATR3") ~ "Para-\nspeckle",
                    TRUE ~ "Other"))
-    detail = ggplot(ds2, aes(x=value, y=gene, fill=Function)) +
+    detail = ggplot(ds2, aes(x=value, y=gene, fill=class)) +
         geom_col() +
+        geom_point(aes(shape=missing), x=0) +
+        scale_shape_manual(values=c("No data"=4), name="") +
         geom_vline(xintercept=0) +
         facet_wrap(~ type, scales="free_x") +
         theme_minimal() +
         theme(legend.key.size = unit(3, "mm"),
+              legend.spacing.y = unit(-3, "mm"),
               axis.title.y = element_blank(),
               axis.title.x = element_text(size=8),
               legend.title = element_text(size=8),
               legend.text = element_text(size=8),
-              plot.background = element_rect(color="#c5c5c5", fill="#fdfdfd")) +
+              plot.background = element_rect(color="#e5e5e5", fill="#fdfdfd")) +
         scale_x_continuous(breaks=c(-0.5, -5)) +
         xlab("Compensation (score) / ORF dropout (Wald)") +
-        scale_fill_brewer(palette="Dark2") +
+        scale_fill_brewer(palette="Dark2", name="",
+            guide=guide_legend(override.aes=list(shape=NA))) +
         plot_layout(tag_level="new")
 
     assocs = ggplot(res2, aes(x=avg_orf, y=p.value)) +

@@ -20,6 +20,13 @@ along_genome = function(dset, gistic, chrs=1:22) {
     hyp = tibble(type="Hyperactivated", gene_name=dset$gene[dset$est_ccle > 0.3 & dset$est_tcga > 0.3])
     orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$is_orf_hit])
 
+    labs = gistic$genes %>%
+        filter(type == "amplification",
+               gene_name %in% intersect(comp$gene_name, orf$gene_name)) %>%
+        inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
+        rowwise() %>%
+        mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss)))
+
     smooth = gistic$smooth %>% select(-gam) %>% tidyr::unnest(steps) %>%
         filter(type == "amplification", chr %in% chrs) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
@@ -55,23 +62,22 @@ along_genome = function(dset, gistic, chrs=1:22) {
             mutate(y = y/max(y)) %>%
         ungroup()
     saveRDS(res, file="Fig3-Overlap.rds")
+    labs2 = tidyr::expand_grid(labs %>% select(-type, -gam), distinct(res['type']))
 
     dens = ggplot(res, aes(x=x, y=y, fill=type)) +
         geom_rect(data=sm_bg, aes(xmin=xmin, xmax=xmax), ymin=-Inf, ymax=Inf, color=NA,
                   fill="firebrick", alpha=0.08, inherit.aes=FALSE) +
         geom_area(color="black", alpha=0.7) +
+        geom_vline(data=labs2, aes(xintercept=tss), color="#656565", linetype="dashed", linewidth=0.5) +
         facet_grid(type ~ chr, scales="free", space="free") +
         theme_void() +
-        theme(strip.background = element_blank(),
-              strip.text.y = element_blank(),
-              panel.background = element_rect(color=NA, fill="#efefef80"),
-              panel.spacing.x = unit(1, "mm"),
-              plot.margin = unit(c(0,0,5,0), "mm"),
+        theme(panel.background = element_rect(color=NA, fill="#efefef80"),
               panel.spacing.y = unit(0, "mm")) +
         scale_fill_manual(values=cm$cols[c("Genes", "Oncogene", "TSG",
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
         plot_layout(tag_level="new") +
-        expand_limits(y=1.1)
+        expand_limits(y=1.1) +
+        coord_cartesian(clip="off", expand=FALSE)
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
@@ -79,6 +85,7 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
+        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +
@@ -88,11 +95,29 @@ along_genome = function(dset, gistic, chrs=1:22) {
               axis.text = element_blank(),
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank(),
-              panel.spacing.x = unit(1, "mm"))
-
-    (amp / dens) + plot_layout(heights=c(1,5)) &
+              panel.grid.minor = element_blank()) +
         coord_cartesian(clip="off", expand=FALSE)
+
+    labs3 = labs %>%
+        mutate(tss2 = ifelse(gene_name == "SNRPA", tss+2e7, tss),
+               gene_name = paste(gene_name, " "))
+    glabs = ggplot(labs3, aes(x=tss, y=0)) +
+        geom_segment(data=lens, aes(x=x, xend=xend), y=0.1, yend=0.1, alpha=0) +
+        geom_segment(aes(xend=tss, yend=0.1)) +
+        geom_text(aes(x=tss2, label=gene_name), size=3, angle=40, hjust=1, vjust=1) +
+        facet_grid(. ~ chr, scales="free", space="free") +
+        coord_cartesian(clip="off", ylim=c(-1,0.1), expand=FALSE) +
+        theme_void() +
+        theme(strip.text.x = element_blank(),
+              panel.background = element_blank(),
+              panel.spacing.y = unit(0, "mm")) +
+    plot_layout(tag_level="new")
+
+    (amp / dens / glabs) + plot_layout(heights=c(1,5,1.2)) &
+        theme(plot.margin = unit(c(0,0,0,0), "mm"),
+              strip.background = element_blank(),
+              strip.text.y = element_blank(),
+              panel.spacing.x = unit(1, "mm"))
 }
 
 comp_hyp_box = function(dset) {
@@ -183,7 +208,41 @@ complex_plot = function(dset, hits) {
     res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~italic(P)<10^{-10}~`)`"
     fdr = mean(c(res2$p.value[res$adj.p>0.2][1], rev(res2$p.value[res$adj.p<0.2])[1]))
 
-    ggplot(res2, aes(x=avg_orf, y=p.value)) +
+    membs = corum[[grep("HEXIM1-DNA-PK", names(corum))]]
+    gobp = gset$get_human("GO_Biological_Process_2021") %>% gset$filter(valid=membs)
+    nhej = gobp[[grep("GO:0006303", names(gobp))]]
+    ds2 = dset %>% filter(gene %in% membs) %>%
+        select(gene, CCLE=est_ccle, TCGA=est_tcga, ORF=stat_orf) %>%
+        mutate(gene = forcats::fct_reorder(gene, TCGA, .desc=TRUE)) %>%
+        tidyr::gather("type", "value", -gene) %>%
+        mutate(missing = ifelse(is.na(value), "No data", NA),
+               type = factor(type, levels=c("TCGA", "CCLE", "ORF")),
+               class = case_when(
+                   gene %in% nhej ~ "NHEJ",
+                   gene %in% c("SFPQ", "NONO", "PSPC1", "RBM14", "MATR3") ~ "Para-\nspeckle",
+                   TRUE ~ "Other"),
+               class = factor(class, levels=c("Para-\nspeckle", "Other", "NHEJ")))
+    detail = ggplot(ds2, aes(x=value, y=gene, fill=class)) +
+        geom_col() +
+        geom_point(aes(shape=missing), x=0) +
+        geom_vline(xintercept=0) +
+        facet_wrap(~ type, scales="free_x") +
+        theme_minimal() +
+        theme(legend.key.size = unit(3, "mm"),
+              legend.spacing.y = unit(-3, "mm"),
+              axis.title.y = element_blank(),
+              axis.title.x = element_text(size=8),
+              legend.title = element_text(size=8),
+              legend.text = element_text(size=8),
+              plot.background = element_rect(color="#e5e5e5", fill="#fdfdfd")) +
+        scale_x_continuous(breaks=c(-0.5, -5)) +
+        xlab("Compensation (score) / ORF dropout (Wald)") +
+        scale_fill_brewer(palette="Dark2", name="", direction=-1,
+            guide=guide_legend(override.aes=list(shape=NA))) +
+        scale_shape_manual(values=c("No data"=4), name="") +
+        plot_layout(tag_level="new")
+
+    assocs = ggplot(res2, aes(x=avg_orf, y=p.value)) +
         geom_rect(ymin=-Inf, ymax=1, xmin=-Inf, xmax=Inf, fill="#f3f3f3") +
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
         geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
@@ -193,8 +252,9 @@ complex_plot = function(dset, hits) {
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=12, segment.alpha=0.3,
             label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
-            max.iter=1e5, max.time=10) +
+            max.iter=1e5, max.time=10, seed=1) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
+        guides(fill = guide_legend(override.aes=list(size=3))) +
         scale_size_binned_area(max_size=10) +
         scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),
@@ -204,6 +264,12 @@ complex_plot = function(dset, hits) {
              y = "Overlap compensated genes (p-value Fisher's Exact Test)",
              size = "Protein\ncomplex\nmembers",
              fill = "Contains\nARGOS\ngene")
+
+    assocs +
+        annotate("curve", x=-1.8, y=1.5e-5, xend=-2.2, yend=4e-6, color="black",
+                 curvature=-0.4, lineend="round", linejoin="round",
+                 arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
+        inset_element(detail, 0.55, 0.57, 1, 0.82)
 }
 
 sys$run({
@@ -222,7 +288,7 @@ sys$run({
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
-        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.5))) +
+        plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.3))) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 

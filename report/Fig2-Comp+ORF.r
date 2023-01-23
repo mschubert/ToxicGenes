@@ -6,7 +6,7 @@ plt = import('plot')
 cm = import('./common')
 
 schema_comp = function() {
-    img = grid::rasterGrob(magick::image_read("external/comp.svg"))
+    img = grid::rasterGrob(magick::image_read("external/comp3.svg"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -99,13 +99,13 @@ sys$run({
         dplyr::rename(gene_name = `GENE SYMBOL`) %>%
         filter(gene_name != "LOC254896") # not in tcga/ccle data
 
-    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,15,0,-5,"mm")))) /
+    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic)
-    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(0,-15,0,0,"mm"))) /
+    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
         orf_volc(orfdata)
 
-    asm = ((left + plot_layout(heights=c(1,3))) |
-        (right + plot_layout(heights=c(2,3)))) + plot_layout(widths=c(3,2)) +
+    asm = ((left + plot_layout(heights=c(1.2,3))) |
+        (right + plot_layout(heights=c(1.8,3)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("Fig2-Comp+ORF.pdf", 14, 10)

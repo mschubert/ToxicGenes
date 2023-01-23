@@ -68,27 +68,36 @@ dens_ov = function() {
         select(-chr) %>%
         tidyr::spread(x, y)
     mat = na.omit(t(data.matrix(res[-1])))
+    colnames(mat) = res$type
     ltit = "Pearson\ncorrelation\nof density"
 
-    cors = cor(mat)
-    colnames(cors) = rownames(cors) = res$type
-    df = reshape2::melt(cors)
-    p1 = plt$matrix(df, value ~ Var1 + Var2, geom="tile") +
+    df = expand.grid(colnames(mat), colnames(mat)) %>%
+        rowwise() %>%
+        mutate(cor = cor(mat[,Var1], mat[,Var2]),
+               cond = ppcor::pcor.test(mat[,Var1], mat[,Var2], mat[,"Genes"])$estimate,
+               left = case_when(
+                   abs(cond/cor) < 0.25 ~ "≥ 75%",
+                   abs(cond/cor) < 0.6 ~ "≥ 60%"
+               )
+        )
+    df$cond[df$Var1 == df$Var2 | df$Var1 == "Genes" | df$Var2 == "Genes"] = NA
+
+    p1 = plt$matrix(df, cor ~ Var1 + Var2, geom="tile") +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
         theme(axis.text.x = element_blank()) +
-        ggtitle("Naive")
+        ggtitle("Pairwise")
 
-    pcors = corpcor::cor2pcor(cors)
-    colnames(pcors) = rownames(pcors) = res$type
-    df2 = reshape2::melt(pcors)
-    p2 = plt$matrix(df2, value ~ Var1 + Var2, geom="tile") +
+    p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile") +
+        geom_text(aes(label=left)) +
+        scale_discrete_manual("label", guide=guide_legend(title="Correlation\nexplained"),
+            values=c("≥ 75%"="×", "≥ 60%"="o")) +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
         plot_layout(tag_level="new") +
-        ggtitle("Full-rank partial")
+        ggtitle("Conditioned on genes")
 
     (p1 / p2) + plot_layout(guides="collect")
 }
@@ -107,7 +116,7 @@ sys$run({
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=18, face="bold"))
 
-    pdf("FigS4-Overlap.pdf", 11, 14)
+    cairo_pdf("FigS4-Overlap.pdf", 11, 14)
     print(asm)
     dev.off()
 })

@@ -18,13 +18,13 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         filter(chr == cur_ev$seqnames[1],
                (gtype == "Oncogene" & type == "amplification") |
                 (gtype == "TSG" & type == "deletion") |
-                gtype == "OG+TSG" | gene_name == .hl) %>%
+                gene_name == .hl) %>%
         inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
         rowwise() %>%
             mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss))) %>%
         ungroup()
     labs2 = labs %>% filter(!duplicated(gene_name)) %>%
-        mutate(frac = ifelse(gtype == "OG+TSG" | gene_name == .hl, 0, frac),
+        mutate(frac = ifelse(gene_name == .hl, 0, frac),
                gtype = ifelse(gene_name == .hl, "ARGOS", gtype))
     rng = labs %>% filter(gene_name == .hl) %>%
         select(gene_name, type, frac, tss) %>%

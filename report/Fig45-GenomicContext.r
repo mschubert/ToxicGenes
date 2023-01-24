@@ -43,9 +43,9 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         annotate("point", x=rng$tss, y=1, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         theme_minimal() +
-        theme(axis.title.x = element_blank(),
-              axis.text.x = element_blank()) +
-        ylab("Event fraction") +
+        theme(axis.text.x = element_blank()) +
+        labs(x = "Genomic location (bp)",
+             y = "Event fraction") +
         coord_cartesian(clip="off")
 
     pcn = ggplot(cnv, aes(x=tss)) +

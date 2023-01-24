@@ -91,8 +91,8 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     gistic = readRDS("../data/gistic_smooth.rds")
 
-    pdf("Fig45-GenomicContext.pdf", 6, 5)
-    plot_ctx(genes, ev, cosmic, gistic, "CDKN1A")
-    plot_ctx(genes, ev, cosmic, gistic, "RBM14")
+    pdf("Fig45-GenomicContext.pdf", 6, 4)
+    print(plot_ctx(genes, ev, cosmic, gistic, "CDKN1A"))
+    print(plot_ctx(genes, ev, cosmic, gistic, "RBM14"))
     dev.off()
 })

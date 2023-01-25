@@ -10,8 +10,8 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
     cur_ev = join_overlap_inner(ev, genes %>% filter(gene_name == .hl)) %>%
         as.data.frame() %>% as_tibble() %>%
         filter(event_type == "amp") %>%
-        mutate(frac_start = rank(start, ties.method="first")/nrow(.),
-               frac_end = rank(-end, ties.method="last")/nrow(.))
+        mutate(frac_start = rank(start, ties.method="first"),
+               frac_end = rank(-end, ties.method="last"))
 
     labs = gistic$genes %>%
         left_join(cosmic) %>%
@@ -40,12 +40,10 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         geom_vline(xintercept=rng$tss, color=cm$cols["Compensated"], linewidth=2, alpha=0.5) +
         geom_step(aes(x=start, y=frac_start)) +
         geom_step(aes(x=end, y=frac_end)) +
-        annotate("point", x=rng$tss, y=1, size=5, shape=21,
-                 fill=cm$cols["Compensated"], alpha=0.9) +
         theme_minimal() +
         theme(axis.text.x = element_blank()) +
         labs(x = "Genomic location (bp)",
-             y = "Event fraction") +
+             y = "Amplification\nevents") +
         coord_cartesian(clip="off")
 
     pcn = ggplot(cnv, aes(x=tss)) +
@@ -71,7 +69,6 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         theme(axis.title.x = element_blank())
 
     (pcn/pev) + plot_layout(heights=c(3,1), guides="collect")
-
 }
 
 sys$run({

@@ -28,7 +28,7 @@ tissue_compare = function(.hl) {
     ggplot(dset, aes(x=estimate, y=Tissue, fill=Tissue)) +
         geom_col() +
         geom_errorbarh(aes(xmin=estimate-std.error, xmax=estimate+std.error),
-                       height=0, linewidth=1) +
+                       height=0.2, alpha=0.3) +
         geom_vline(xintercept=0) +
         scale_y_discrete(limits=rev) +
         scale_x_continuous(breaks=c(-0.5, -2)) +
@@ -115,7 +115,7 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     cosmic = cm$get_cosmic_annot() %>% dplyr::rename(gtype=type)
     ev = readr::read_tsv("../data/gistic/TCGA.all_cancers.150601.zigg_events.160923.txt") %>%
-        filter(abs(cn_end - cn_start) > 0.5) %>%
+        filter(abs(cn_end - cn_start) > 0.2) %>%
         transmute(Sample=sample, seqnames=chr, start=base_start, end=base_end,
                   seg_id = seq_len(nrow(.)), event_type=event_type) %>%
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)

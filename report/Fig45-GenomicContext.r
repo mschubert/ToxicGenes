@@ -5,6 +5,7 @@ library(patchwork)
 sys = import('sys')
 seq = import('seq')
 cm = import('./common')
+tcga = import('data/tcga')
 
 tissue_compare = function(.hl) {
     # todo: fix column names in result files, save rds as well
@@ -44,8 +45,14 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
     cur_ev = join_overlap_inner(ev, genes %>% filter(gene_name == .hl)) %>%
         as.data.frame() %>% as_tibble() %>%
         filter(event_type == "amp") %>%
-        mutate(frac_start = rank(start, ties.method="first"),
-               frac_end = rank(-end, ties.method="last"))
+        mutate(cohort = tcga$barcode2study(Sample))
+    fracs = . %>% mutate(frac_start = rank(start, ties.method="first"),
+                         frac_end = rank(-end, ties.method="last"))
+    cur_ev = list(`Pan-cancer` = fracs(cur_ev),
+                  Breast = fracs(cur_ev %>% filter(cohort == "BRCA")),
+                  Lung = fracs(cur_ev %>% filter(cohort %in% c("BRCA", "LUAD", "LUSC")))) %>%
+        bind_rows(.id="Tissue") %>%
+        mutate(Tissue = factor(Tissue, levels=c("Pan-cancer", "Breast", "Lung")))
 
     labs = gistic$genes %>%
         left_join(cosmic) %>%
@@ -70,14 +77,15 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
 
-    pev = ggplot(cur_ev) +
-        geom_vline(xintercept=rng$tss, color=cm$cols["Compensated"], linewidth=2, alpha=0.5) +
+    pev = ggplot(cur_ev, aes(color=Tissue)) +
+        geom_vline(xintercept=rng$tss, color="black", alpha=0.5) +
         geom_step(aes(x=start, y=frac_start)) +
         geom_step(aes(x=end, y=frac_end)) +
         theme_minimal() +
         theme(axis.text.x = element_blank()) +
         labs(x = "Genomic location (bp)",
-             y = "Amplification\nevents") +
+             y = "Amplification\nevents (cum.)") +
+        scale_color_brewer(palette="Accent", guide="none") +
         coord_cartesian(clip="off")
 
     pcn = ggplot(cnv, aes(x=tss)) +
@@ -91,10 +99,10 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         ggnewscale::new_scale("fill") +
-        geom_point(data=labs2, aes(y=frac, fill=gtype), alpha=0.8, color="black", shape=21, size=5) +
+        geom_point(data=labs2, aes(y=frac, fill=gtype), alpha=0.8, color="black", shape=21, size=3) +
         scale_fill_manual(values=c(cm$cols, ARGOS=cm$cols[["Compensated"]]), name="Driver") +
         ggrepel::geom_text_repel(data=labs2, aes(y=frac, label=gene_name), size=3,
-            point.size=5, max.iter=1e5, max.time=10, segment.alpha=0.3) +
+            point.size=3, max.iter=1e5, max.time=10, segment.alpha=0.3, force_pull=0.2) +
         annotate("point", x=rng$tss, y=0, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         facet_grid(. ~ chr, scales="free", space="free") +

@@ -6,6 +6,37 @@ sys = import('sys')
 seq = import('seq')
 cm = import('./common')
 
+tissue_compare = function(.hl) {
+    # todo: fix column names in result files, save rds as well
+    load_orf = . %>% readxl::read_xlsx() %>% dplyr::rename(gene=name)
+    dset = list(
+        CCLE = list(`Pan-can` = readRDS("../ccle/pan/stan-nb.rds")$amp,
+                    Lung = readRDS("../ccle/NSCLC/stan-nb.rds"),
+                    Breast = readRDS("../ccle/BRCA/stan-nb.rds")),
+        TCGA = list(`Pan-can` = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
+                    Lung = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
+                    Breast = readRDS("../tcga/BRCA/stan-nb_puradj.rds")),
+        ORF = list(`Pan-can` = readxl::read_xlsx("../orf/fits_naive.xlsx") %>%
+                        dplyr::rename(gene=`GENE SYMBOL`),
+                   Lung = load_orf("../orf/BRCA/genes.xlsx"),
+                   Breast = load_orf("../orf/LUAD/genes.xlsx"))
+    ) %>% lapply(bind_rows, .id="tissue") %>% bind_rows(.id="dset") %>%
+        filter(gene == .hl) %>% select(tissue, dset, gene, estimate) %>%
+        mutate(Tissue = factor(tissue, levels=c("Pan-can", "Breast", "Lung")),
+               dset = factor(dset, levels=c("TCGA", "CCLE", "ORF")))
+
+    ggplot(dset, aes(x=estimate, y=Tissue, fill=Tissue)) +
+        geom_col() +
+        geom_vline(xintercept=0) +
+        scale_y_discrete(limits=rev) +
+        scale_x_continuous(breaks=c(-0.5, -2)) +
+        facet_wrap(~ dset, scales="free_x") +
+        scale_fill_brewer(palette="Accent", guide="none") +
+        xlab("Compensation (score) / ORF dropout (log2 FC)") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank())
+}
+
 plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
     cur_ev = join_overlap_inner(ev, genes %>% filter(gene_name == .hl)) %>%
         as.data.frame() %>% as_tibble() %>%
@@ -68,7 +99,7 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         theme_minimal() +
         theme(axis.title.x = element_blank())
 
-    (pcn/pev) + plot_layout(heights=c(3,1), guides="collect")
+    (pcn/pev/tissue_compare(.hl)) + plot_layout(heights=c(3,1.2,0.8), guides="collect")
 }
 
 sys$run({
@@ -88,7 +119,7 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     gistic = readRDS("../data/gistic_smooth.rds")
 
-    pdf("Fig45-GenomicContext.pdf", 6, 4)
+    pdf("Fig45-GenomicContext.pdf", 6.5, 5.2)
     print(plot_ctx(genes, ev, cosmic, gistic, "CDKN1A"))
     print(plot_ctx(genes, ev, cosmic, gistic, "RBM14"))
     dev.off()

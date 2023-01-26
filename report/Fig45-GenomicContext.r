@@ -21,12 +21,14 @@ tissue_compare = function(.hl) {
                    Lung = load_orf("../orf/BRCA/genes.xlsx"),
                    Breast = load_orf("../orf/LUAD/genes.xlsx"))
     ) %>% lapply(bind_rows, .id="tissue") %>% bind_rows(.id="dset") %>%
-        filter(gene == .hl) %>% select(tissue, dset, gene, estimate) %>%
+        filter(gene == .hl) %>% select(tissue, dset, gene, estimate, std.error) %>%
         mutate(Tissue = factor(tissue, levels=c("Pan-can", "Breast", "Lung")),
                dset = factor(dset, levels=c("TCGA", "CCLE", "ORF")))
 
     ggplot(dset, aes(x=estimate, y=Tissue, fill=Tissue)) +
         geom_col() +
+        geom_errorbarh(aes(xmin=estimate-std.error, xmax=estimate+std.error),
+                       height=0, linewidth=1) +
         geom_vline(xintercept=0) +
         scale_y_discrete(limits=rev) +
         scale_x_continuous(breaks=c(-0.5, -2)) +

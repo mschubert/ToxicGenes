@@ -10,19 +10,19 @@ tissue_compare = function(.hl) {
     # todo: fix column names in result files, save rds as well
     load_orf = . %>% readxl::read_xlsx() %>% dplyr::rename(gene=name)
     dset = list(
-        CCLE = list(`Pan-can` = readRDS("../ccle/pan/stan-nb.rds")$amp,
+        CCLE = list(`Pan-cancer` = readRDS("../ccle/pan/stan-nb.rds")$amp,
                     Lung = readRDS("../ccle/NSCLC/stan-nb.rds"),
                     Breast = readRDS("../ccle/BRCA/stan-nb.rds")),
-        TCGA = list(`Pan-can` = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
+        TCGA = list(`Pan-cancer` = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
                     Lung = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
                     Breast = readRDS("../tcga/BRCA/stan-nb_puradj.rds")),
-        ORF = list(`Pan-can` = readxl::read_xlsx("../orf/fits_naive.xlsx") %>%
+        ORF = list(`Pan-cancer` = readxl::read_xlsx("../orf/fits_naive.xlsx") %>%
                         dplyr::rename(gene=`GENE SYMBOL`),
                    Lung = load_orf("../orf/BRCA/genes.xlsx"),
                    Breast = load_orf("../orf/LUAD/genes.xlsx"))
     ) %>% lapply(bind_rows, .id="tissue") %>% bind_rows(.id="dset") %>%
         mutate(std.error = ifelse(is.na(std.error), estimate/z_comp, std.error),
-               Tissue = factor(tissue, levels=c("Pan-can", "Breast", "Lung")),
+               Tissue = factor(tissue, levels=c("Pan-cancer", "Breast", "Lung")),
                dset = factor(dset, levels=c("TCGA", "CCLE", "ORF"))) %>%
         filter(gene == .hl) %>% select(Tissue, dset, gene, estimate, std.error)
 

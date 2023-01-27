@@ -43,9 +43,9 @@ tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
         scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
-        geom_smooth(method="lm", color="red", se=FALSE, size=0.7) +
-        geom_text(data=mods, aes(x=0, y=intcp, label=label, angle=angle), parse=TRUE,
-                  color="red", hjust=0.4, vjust=-0.5, size=3) +
+        geom_smooth(method="lm", color="blue", se=FALSE, size=0.7) +
+        geom_label(data=mods, aes(x=0.5, y=-1, label=label), parse=TRUE, color="blue",
+                   fill="#ffffffa0", label.size=NA, hjust=0.5, vjust=0.5, size=3) +
         ggnewscale::new_scale(c("color")) +
         geom_point(data=hl, aes(color=Gene)) +
         labs(y = "Expression over expected TCGA",

@@ -4,7 +4,7 @@ candidates/*/*.yaml
 ### seq
 *.bam
 *.bai
-**/seqdata
+**/seqdata/*
 data/genome/*
 *.gtf
 *.fa

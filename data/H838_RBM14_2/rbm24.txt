@@ -1,1 +1,0 @@
-bam/H838_RBM14_24h_1.sorted.bam,bam/H838_RBM14_24h_2.sorted.bam

@@ -66,14 +66,16 @@ plot_rbm14 = function(eset) {
 sys$run({
     args = sys$cmd$parse(
         opt('o', 'outfile', 'rds', 'eset.rds'),
-        opt('p', 'plotfile', 'rds', 'eset.pdf')
+        opt('p', 'plotfile', 'rds', 'eset.pdf'),
+        arg('bams', 'bam', arity='*',
+            list.files("seqdata", "(H838|H1650|HCC70|ZR751).*\\.bam$",
+                       recursive=TRUE, full.names=TRUE))
     )
 
-    bams = list.files("seqdata", "\\.bam$", recursive=TRUE, full.names=TRUE)
-    reads = Rsubread::featureCounts(bams, annot.ext="seqdata/hg38.refseq.gtf",
+    reads = Rsubread::featureCounts(args$bams, annot.ext="seqdata/hg38.refseq.gtf",
                     isGTFAnnotationFile=TRUE, isPairedEnd=TRUE, nthreads=10)
 
-    meta = sub(".sorted.bam", "", basename(bams), fixed=TRUE) %>%
+    meta = sub(".sorted.bam", "", basename(args$bams), fixed=TRUE) %>%
         strsplit("_") %>%
         do.call(rbind, .) %>%
         as.data.frame() %>%
@@ -96,6 +98,7 @@ sys$run({
     print(plot_pca(vst[,vst$cline == "H838"]))
     print(plot_pca(vst[,vst$cline == "H1650"]))
     print(plot_pca(vst[,vst$cline == "HCC70"]))
+    print(plot_pca(vst[,vst$cline == "ZR751"]))
     print(plot_rbm14(eset))
     dev.off()
 

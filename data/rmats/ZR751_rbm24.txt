@@ -1,0 +1,1 @@
+seqdata/ZR751_RBM14_24h_1/ZR751_RBM14_24h_1.sorted.bam,seqdata/ZR751_RBM14_24h_2/ZR751_RBM14_24h_2.sorted.bam

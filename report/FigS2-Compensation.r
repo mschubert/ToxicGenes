@@ -6,7 +6,7 @@ seq = import('seq')
 plt = import('plot')
 cm = import('./common')
 
-tcga_vs_ccle = function() {
+tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
     ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
     tcga1 = readxl::read_xlsx("../tcga/pan/stan-nb_naive.xlsx") %>%
@@ -22,6 +22,7 @@ tcga_vs_ccle = function() {
         left_join(tcga3 %>% select(gene, `Purity per tissue`=estimate)) %>%
         tidyr::gather("type", "value", -gene, -CCLE) %>%
         mutate(type = factor(type) %>% relevel("No purity correction"))
+    hl = dset %>% dplyr::rename(Gene=gene) %>% filter(Gene %in% hl)
 
     mods = dset %>% group_by(type) %>%
         summarize(mod = list(lm(value ~ CCLE))) %>%
@@ -42,9 +43,11 @@ tcga_vs_ccle = function() {
         scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
-        geom_smooth(method="lm", color="red", se=FALSE, size=0.7) +
-        geom_text(data=mods, aes(x=0, y=intcp, label=label, angle=angle), parse=TRUE,
-                  color="red", hjust=0.4, vjust=-0.5, size=3) +
+        geom_smooth(method="lm", color="blue", se=FALSE, size=0.7) +
+        geom_label(data=mods, aes(x=0.5, y=-1, label=label), parse=TRUE, color="blue",
+                   fill="#ffffffa0", label.size=NA, hjust=0.5, vjust=0.5, size=3) +
+        ggnewscale::new_scale(c("color")) +
+        geom_point(data=hl, aes(color=Gene)) +
         labs(y = "Expression over expected TCGA",
              x = "Expression over expected CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +

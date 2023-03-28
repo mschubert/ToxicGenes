@@ -114,11 +114,13 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         annotate("point", x=rng$tss, y=0, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         facet_grid(. ~ chr, scales="free", space="free") +
-        labs(y = "Alteration frequency TCGA") +
-        theme_minimal() +
-        theme(axis.title.x = element_blank())
+        labs(x = "Genomic location (bp)",
+             y = "Alteration frequency TCGA") +
+        theme_minimal() #+
+#        theme(axis.title.x = element_blank())
 
-    (pcn/pev/tissue_compare(.hl)) + plot_layout(heights=c(3,1.2,0.8), guides="collect")
+#    (pcn/pev/tissue_compare(.hl)) + plot_layout(heights=c(3,1.2,0.8), guides="collect")
+    (pcn/tissue_compare(.hl)) + plot_layout(heights=c(3,0.8), guides="collect")
 }
 
 sys$run({
@@ -138,7 +140,7 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     gistic = readRDS("../data/gistic_smooth.rds")
 
-    pdf("Fig45-GenomicContext.pdf", 6.5, 5.2)
+    pdf("Fig45-GenomicContext.pdf", 6.5, 4.5)
     print(plot_ctx(genes, ev, cosmic, gistic, "CDKN1A"))
     print(plot_ctx(genes, ev, cosmic, gistic, "RBM14"))
     dev.off()

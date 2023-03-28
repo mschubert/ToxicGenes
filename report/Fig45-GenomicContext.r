@@ -68,6 +68,9 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         mutate(frac = ifelse(gene_name == .hl, 0, frac),
                gtype = ifelse(gene_name == .hl, "ARGOS", gtype)) %>%
         filter(! (gtype == "ARGOS" & type == "deletion"))
+    labs3 = labs2 %>%
+        mutate(gene_name = ifelse(hallmark == "Yes" | gene_name %in% c(.hl, "CCND3"),
+                                  gene_name, ""))
     rng = labs %>% filter(gene_name == .hl) %>%
         select(gene_name, type, frac, tss) %>%
         tidyr::spread(type, frac)
@@ -104,9 +107,10 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
                    alpha=0.8, color="black", shape=21) +
         scale_size_manual(values=c(Yes=3, No=2), name="COSMIC\nHallmark") +
         scale_fill_manual(values=c(cm$cols, ARGOS=cm$cols[["Compensated"]]), name="Driver") +
-        ggrepel::geom_text_repel(data=labs2 %>% filter(hallmark == "Yes" | gtype == "ARGOS"),
-            aes(y=frac, label=gene_name), size=3, point.size=3, min.segment.length=0,
-            max.iter=1e5, max.time=10, segment.alpha=0.3, force_pull=0.2) +
+        guides(fill = guide_legend(override.aes=list(size=2.5))) +
+        ggrepel::geom_text_repel(data=labs3, aes(y=frac, label=gene_name),
+            size=3, point.size=3, min.segment.length=0, max.iter=1e5,
+            max.time=10, segment.alpha=0.3, force_pull=0.01) +
         annotate("point", x=rng$tss, y=0, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         facet_grid(. ~ chr, scales="free", space="free") +

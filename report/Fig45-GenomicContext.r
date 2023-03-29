@@ -91,6 +91,7 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         labs(x = "Genomic location (bp)",
              y = "Amplification\nevents (cum.)") +
         scale_color_brewer(palette="Accent", guide="none") +
+        scale_x_continuous(expand=c(0.03,0)) +
         coord_cartesian(clip="off")
 
     pcn = ggplot(cnv, aes(x=tss)) +
@@ -103,6 +104,7 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
+        scale_x_continuous(expand=c(0.03,0)) +
         ggnewscale::new_scale("fill") +
         geom_point(data=labs2, aes(y=frac, fill=gtype, size=hallmark),
                    alpha=0.8, color="black", shape=21) +
@@ -141,7 +143,7 @@ sys$run({
         makeGRangesFromDataFrame(keep.extra.columns=TRUE)
     gistic = readRDS("../data/gistic_smooth.rds")
 
-    pdf("Fig45-GenomicContext.pdf", 6.5, 4.5)
+    pdf("Fig45-GenomicContext.pdf", 6.2, 4.5)
     print(plot_ctx(genes, ev, cosmic, gistic, "CDKN1A"))
     print(plot_ctx(genes, ev, cosmic, gistic, "RBM14"))
     dev.off()

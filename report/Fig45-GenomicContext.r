@@ -16,15 +16,16 @@ tissue_compare = function(.hl) {
                     Breast = readRDS("../ccle/BRCA/stan-nb.rds")),
         TCGA = list(`Pan-cancer` = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
                     Lung = readRDS("../tcga/NSCLC/stan-nb_puradj.rds"),
-                    Breast = readRDS("../tcga/BRCA/stan-nb_puradj.rds")),
-        ORF = list(`Pan-cancer` = readxl::read_xlsx("../orf/fits_naive.xlsx") %>%
-                        dplyr::rename(gene=`GENE SYMBOL`),
-                   Lung = load_orf("../orf/BRCA/genes.xlsx"),
-                   Breast = load_orf("../orf/LUAD/genes.xlsx"))
+                    Breast = readRDS("../tcga/BRCA/stan-nb_puradj.rds"))#,
+#        ORF = list(`Pan-cancer` = readxl::read_xlsx("../orf/fits_naive.xlsx") %>%
+#                        dplyr::rename(gene=`GENE SYMBOL`),
+#                   Lung = load_orf("../orf/BRCA/genes.xlsx"),
+#                   Breast = load_orf("../orf/LUAD/genes.xlsx"))
     ) %>% lapply(bind_rows, .id="tissue") %>% bind_rows(.id="dset") %>%
-        mutate(std.error = ifelse(is.na(std.error), estimate/z_comp, std.error),
+        mutate(#std.error = ifelse(is.na(std.error), estimate/z_comp, std.error),
+               std.error = estimate/z_comp,
                Tissue = factor(tissue, levels=c("Pan-cancer", "Breast", "Lung")),
-               dset = factor(dset, levels=c("TCGA", "CCLE", "ORF"))) %>%
+               dset = factor(dset, levels=c("TCGA", "CCLE"))) %>% #, "ORF"))) %>%
         filter(gene == .hl) %>% select(Tissue, dset, gene, estimate, std.error)
 
     ggplot(dset, aes(x=estimate, y=Tissue, fill=Tissue)) +
@@ -33,10 +34,10 @@ tissue_compare = function(.hl) {
                        height=0.2, alpha=0.3) +
         geom_vline(xintercept=0) +
         scale_y_discrete(limits=rev) +
-        scale_x_continuous(breaks=c(-0.5, -2)) +
+        scale_x_continuous(limits=c(-1.1,0.1), breaks=c(0, -0.5, -1), expand=c(0,0)) +
         facet_wrap(~ dset, scales="free_x") +
         scale_fill_brewer(palette="Accent", guide="none") +
-        xlab("Compensation (score) / ORF dropout (log2 FC)") +
+        xlab("Compensation score") +
         theme_minimal() +
         theme(axis.title.y = element_blank())
 }

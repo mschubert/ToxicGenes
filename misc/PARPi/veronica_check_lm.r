@@ -10,9 +10,12 @@ PRISM <- read.csv(file = 'PRISMsecondary.csv') %>%
     select(depmap_id, broad_id, screen_id, auc, name, moa, target)
 
 result = inner_join(PRISM, RBM14) %>%
-    group_by(screen_id, name, moa) %>%
-    summarize(by_expr = list(broom::tidy(lm(auc ~ lineage_1 + expression))),
-              by_cn = list(broom::tidy(lm(auc ~ lineage_1 + copy_number)))) %>%
+    group_by(broad_id, name, moa, lineage_1, expression, copy_number, cell_line_display_name) %>%
+        summarize(auc = mean(auc, na.rm=TRUE)) %>%
+    group_by(broad_id, name, moa) %>%
+        summarize(by_expr = list(broom::tidy(lm(auc ~ lineage_1 + expression))),
+                  by_cn = list(broom::tidy(lm(auc ~ lineage_1 + copy_number)))) %>%
+    ungroup() %>%
     tidyr::pivot_longer(c(by_expr, by_cn), names_to="comparison") %>%
     tidyr::unnest(value) %>%
     filter(term %in% c("expression", "copy_number")) %>%

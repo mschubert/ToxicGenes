@@ -10,9 +10,9 @@ PRISM <- read.csv(file = 'PRISMsecondary.csv') %>%
     select(depmap_id, broad_id, screen_id, auc, name, moa, target)
 
 result = inner_join(PRISM, RBM14) %>%
-    group_by(broad_id, name, moa, lineage_1, expression, copy_number, cell_line_display_name) %>%
-        summarize(auc = mean(auc, na.rm=TRUE)) %>%
-    group_by(broad_id, name, moa) %>%
+#    group_by(broad_id, name, moa, lineage_1, expression, copy_number, cell_line_display_name) %>%
+#        summarize(auc = mean(auc, na.rm=TRUE)) %>%
+    group_by(broad_id, name, moa, screen_id) %>%
         summarize(by_expr = list(broom::tidy(lm(auc ~ lineage_1 + expression))),
                   by_cn = list(broom::tidy(lm(auc ~ lineage_1 + copy_number)))) %>%
     ungroup() %>%
@@ -28,7 +28,9 @@ result = inner_join(PRISM, RBM14) %>%
            )) %>%
     arrange(adj.p, p.value)
 
+pdf("PRISM.pdf")
 ggplot(result, aes(x=estimate, y=-log10(p.value), color=type)) +
     geom_point() +
     ggrepel::geom_text_repel(aes(label=name), max.overlaps=5) +
     facet_wrap(~ term)
+dev.off()

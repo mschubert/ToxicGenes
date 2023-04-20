@@ -1,0 +1,31 @@
+rule all:
+    input:
+        "PRISM.pdf", "PRISM_veronica.pdf",
+        "depmap.pdf"
+
+rule prism:
+    input:
+        rscript = "PRISM.r"
+    output:
+        plotfile = "PRISM.pdf"
+    shell:
+        "Rscript {input.rscript} --plotfile {output.plotfile}"
+
+rule prism_veronica:
+    input:
+        rscript = "PRISM_veronica.r",
+        meta = "CCLE_RBM14expCN.csv",
+        resp = "PRISMsecondary.csv"
+    output:
+        plotfile = "PRISM_veronica.pdf"
+    shell:
+        "Rscript {input.rscript} --plotfile {output.plotfile}"
+
+#todo: get different deps, ie. rnai/crispr/drug
+rule depmap:
+    input:
+        rscript = "depmap.r"
+    output:
+        plotfile = "depmap.pdf"
+    shell:
+        "Rscript {input.rscript} --plotfile {output.plotfile}"

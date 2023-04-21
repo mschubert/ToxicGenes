@@ -7,11 +7,11 @@ plt = import('plot')
 calc_assocs = function(dset, field) {
     message(as.character(dset), " @ ", field)
     res = get(dset) %>%
-        select(depmap_id, gene_name, dependency) %>%
+        select(depmap_id, group, label, dependency) %>%
         filter(!is.na(dependency)) %>%
         inner_join(meta) %>%
         mutate(field := !! rlang::sym(field)) %>%
-        group_by(gene_name) %>%
+        group_by(group) %>%
             filter(!is.na(dependency), !is.na(field)) %>%
             filter(n_distinct(lineage) > 1) %>%
             summarize(mod = list(broom::tidy(lm(dependency ~ lineage + field)))) %>%
@@ -38,10 +38,16 @@ meta = depmap::depmap_metadata() %>%
     inner_join(tpm) %>%
     inner_join(copy)
 
-rnai = depmap::depmap_rnai()
-crispr_ko = depmap::depmap_crispr()
+rnai = depmap::depmap_rnai() %>%
+    mutate(group=gene, label=gene_name)
+crispr_ko = depmap::depmap_crispr() %>%
+    mutate(group=gene, label=gene_name)
+drug = depmap::drug_sensitivity_21Q2() %>%
+    mutate(group=compound, label=name)
+drug_hts = drug %>% filter(screen_id == "HTS")
+drug_mts004 = drug %>% filter(screen_id == "MTS004")
 
-idx = tidyr::crossing(tibble(dset = c("rnai", "crispr_ko")),
+idx = tidyr::crossing(tibble(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004")),
                       tibble(field = c("rna_expression", "log_copy_number"))) %>%
     rowwise() %>%
     mutate(res = list(calc_assocs(dset, field)),

@@ -22,15 +22,16 @@ calc_assocs = function(dset, field) {
 }
 
 args = sys$cmd$parse(
+    opt('g', 'gene', 'gene_name', 'RBM14'),
     opt('o', 'outfile', 'rds', 'depmap.rds'),
     opt('p', 'plotfile', 'pdf', 'depmap.pdf')
 )
 
 tpm = depmap::depmap_TPM() %>%
-    filter(gene_name == "RBM14") %>%
+    filter(gene_name == args$gene) %>%
     select(depmap_id, rna_expression)
 copy = depmap::depmap_copyNumber() %>%
-    filter(gene_name == "RBM14") %>%
+    filter(gene_name == args$gene) %>%
     select(depmap_id, log_copy_number)
 meta = depmap::depmap_metadata() %>%
     select(depmap_id, cell_line, lineage, sample_collection_site, primary_or_metastasis, sex) %>%

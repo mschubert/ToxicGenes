@@ -26,7 +26,7 @@ rule depmap:
     input:
         rscript = "depmap.r"
     output:
-        outfile = "depmap.rds"
+        outfile = "depmap.rds",
         plotfile = "depmap.pdf"
     shell:
         "Rscript {input.rscript} --outfile {output.outfile} --plotfile {output.plotfile}"

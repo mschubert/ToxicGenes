@@ -47,7 +47,7 @@ meta = depmap::depmap_metadata() %>%
     inner_join(tpm) %>%
     inner_join(copy)
 
-drug = depmap::drug_sensitivity_21Q2() %>% mutate(group=compound, label=name)
+drug = depmap::depmap_drug_sensitivity() %>% mutate(group=compound, label=name)
 dsets = list(
     rnai = depmap::depmap_rnai() %>% mutate(group=gene, label=gene_name),
     crispr_ko = depmap::depmap_crispr() %>% mutate(group=gene, label=gene_name),

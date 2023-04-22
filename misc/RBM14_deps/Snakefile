@@ -1,7 +1,7 @@
 rule all:
     input:
         "PRISM.pdf", "PRISM_veronica.pdf",
-        expand("depmap_{gene}.pdf", gene=["RBM14", "CCND1"])
+        "depmap.pdf"
 
 rule prism:
     input:
@@ -26,10 +26,7 @@ rule depmap:
     input:
         rscript = "depmap.r"
     output:
-        outfile = "depmap_{gene}.rds",
-        plotfile = "depmap_{gene}.pdf"
+        outfile = "depmap.rds"
+        plotfile = "depmap.pdf"
     shell:
-        "Rscript {input.rscript}"
-            " --gene {wildcards.gene}"
-            " --outfile {output.outfile}"
-            " --plotfile {output.plotfile}"
+        "Rscript {input.rscript} --outfile {output.outfile} --plotfile {output.plotfile}"

@@ -4,35 +4,43 @@ library(ExperimentHub)
 sys = import('sys')
 plt = import('plot')
 
-calc_assocs = function(dset, field) {
+calc_assocs = function(dset, field, cond) {
     message(dset, " @ ", field)
+
+    make_fml = function(y, ...) paste(y, "~", paste(list(...), collapse=" + "))
+    if (cond == "naive") {
+        fml = make_fml("dependency", "lineage", field)
+    } else {
+        fml = make_fml("dependency", "lineage", sub("RBM14", cond, field), field)
+    }
+
     dsets[[dset]] %>%
         select(depmap_id, group, label, dependency) %>%
-        filter(!is.na(dependency), !is.na(field)) %>%
+        filter(!is.na(dependency)) %>%
         inner_join(meta) %>%
-        mutate(field := !! rlang::sym(field)) %>%
         group_by(group, label) %>%
             filter(n_distinct(lineage) > 1) %>%
-            summarize(mod = list(broom::tidy(lm(dependency ~ lineage + field)))) %>%
+            summarize(mod = list(broom::tidy(lm(as.formula(fml))))) %>%
         ungroup() %>%
         tidyr::unnest(mod) %>%
-        filter(term == "field") %>%
+        filter(term == field) %>%
         mutate(p.adj = p.adjust(p.value, method="fdr")) %>%
         arrange(p.adj, p.value)
 }
 
 args = sys$cmd$parse(
-    opt('g', 'gene', 'gene_name', 'RBM14'),
     opt('o', 'outfile', 'rds', 'depmap.rds'),
     opt('p', 'plotfile', 'pdf', 'depmap.pdf')
 )
 
 tpm = depmap::depmap_TPM() %>%
-    filter(gene_name == args$gene) %>%
-    select(depmap_id, rna_expression)
+    filter(gene_name %in% c("RBM14", "CCND1")) %>%
+    select(depmap_id, gene_name, rna_expression) %>%
+    tidyr::pivot_wider(names_from=gene_name, names_prefix="expr_", values_from=rna_expression)
 copy = depmap::depmap_copyNumber() %>%
-    filter(gene_name == args$gene) %>%
-    select(depmap_id, log_copy_number)
+    filter(gene_name %in% c("RBM14", "CCND1")) %>%
+    select(depmap_id, gene_name, log_copy_number) %>%
+    tidyr::pivot_wider(names_from=gene_name, names_prefix="copy_", values_from=log_copy_number)
 meta = depmap::depmap_metadata() %>%
     select(depmap_id, cell_line, lineage, sample_collection_site, primary_or_metastasis, sex) %>%
     inner_join(tpm) %>%
@@ -47,10 +55,11 @@ dsets = list(
 )
 
 idx = tidyr::crossing(tibble(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004")),
-                      tibble(field = c("rna_expression", "log_copy_number"))) %>%
+                      tibble(field = c("expr_RBM14", "copy_RBM14")),
+                      tibble(cond = c("naive", "CCND1"))) %>%
     rowwise() %>%
-    mutate(res = list(calc_assocs(dset, field)),
-           plot = list(plt$volcano(res) + ggtitle(paste(dset, field))))
+    mutate(res = list(calc_assocs(dset, field, cond)),
+           plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond))))
 
 pdf(args$plotfile)
 for (p in idx$plot)

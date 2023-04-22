@@ -54,9 +54,9 @@ dsets = list(
     drug_mts004 = drug %>% filter(screen_id == "MTS004")
 )
 
-idx = tidyr::crossing(tibble(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004")),
-                      tibble(field = c("expr_RBM14", "copy_RBM14")),
-                      tibble(cond = c("naive", "CCND1"))) %>%
+idx = tidyr::expand_grid(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004"),
+                         field = c("expr_RBM14", "copy_RBM14"),
+                         cond = c("naive", "CCND1")) %>%
     rowwise() %>%
     mutate(res = list(calc_assocs(dset, field, cond)),
            plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond))))

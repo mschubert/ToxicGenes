@@ -18,25 +18,20 @@ calc_segs = function(chr) {
 
 plot_cnv = function(cnv) {
     pt = unique(cnv$PtID)
-    dset = inner_join(cnv, meta)
-    segs = segs %>% filter(PtID == pt)
-    ggplot(dset, aes(x=CHR_POSITION, y=RATIO_CORRECTED)) +
+    ggplot(cnv, aes(x=CHR_POSITION, y=RATIO_CORRECTED)) +
         geom_point(size=0.2, alpha=0.4) +
-        geom_segment(data=segs, aes(x=start, xend=end, y=mean, yend=mean), color="firebrick") +
+        geom_segment(data=segs %>% filter(PtID == pt),
+            aes(x=start, xend=end, y=mean, yend=mean), color="firebrick") +
         facet_grid(. ~ chr, scales="free_x", space="free_x") +
         ggtitle(pt)
 }
 
 args = sys$cmd$parse(
     opt('i', 'indir', 'txt dir', 'N4plus_CNVseq_Michael_20230414'),
-    opt('m', 'meta', 'xlsx', 'N4plus_data_Michael_20230414.xlsx'),
     opt('o', 'outfile', 'rds', 'plot_cnvs.rds'),
     opt('p', 'plotfile', 'pdf', 'plot_cnvs.pdf')
 )
 
-meta = readxl::read_xlsx(args$meta) %>%
-    mutate_all(function(x) ifelse(x == 9999, NA, x)) %>%
-    mutate(PtID = sprintf("%03i", PtID))
 fnames = gtools::mixedsort(list.files(args$indir, full.names=TRUE))
 cnvs = setNames(fnames, sub("^([0-9]+)-.*", "\\1", basename(fnames))) %>%
     lapply(readr::read_tsv) %>%

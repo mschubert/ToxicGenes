@@ -1,6 +1,7 @@
 library(dplyr)
 library(depmap)
 library(ExperimentHub)
+library(patchwork)
 sys = import('sys')
 plt = import('plot')
 
@@ -58,11 +59,17 @@ idx = tidyr::expand_grid(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004"
                          field = c("expr_RBM14", "copy_RBM14"),
                          cond = c("naive", "CCND1")) %>%
     rowwise() %>%
-    mutate(res = list(calc_assocs(dset, field, cond)),
-           plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond))))
+    mutate(res = list(calc_assocs(dset, field, cond)))
 
-pdf(args$plotfile)
-for (p in idx$plot)
+plots = idx %>%
+    mutate(plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond)))) %>%
+    select(-res) %>%
+    tidyr::pivot_wider(names_from="cond", values_from="plot") %>%
+    rowwise() %>%
+    mutate(plot = list(wrap_plots(naive, CCND1)))
+
+pdf(args$plotfile, 12, 6)
+for (p in plots$plot)
     print(p)
 dev.off()
 

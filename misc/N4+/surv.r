@@ -15,7 +15,8 @@ meta = readxl::read_xlsx(args$meta) %>%
 
 dset = readRDS(args$infile)
 segs = dset$segs %>%
-    filter(chr == "chr11")
+    filter(chr == "chr11") %>%
+    inner_join(meta %>% select(PtID, TCP))
 
 genes = tibble(genes = c("CCND1", "RBM14"), pos=c(69647000, 66622000))
 
@@ -40,11 +41,10 @@ p2 = ggplot(segs2) +
                               color="red", alpha=0.5) +
     coord_cartesian(expand=FALSE, xlim=c(5e7,9e7))
 
-rbm_amp = segs3 %>% filter(mean > 0.3) %>% pull(PtID) %>% unique()
-rbm_eu = segs3 %>% filter(abs(mean) < 0.2) %>% pull(PtID) %>% unique()
-
-s = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ Treatment,
-    data = meta %>% filter(PtID %in% rbm_eu))
+meta2 = meta %>%
+    mutate(RBM14 = case_when(PtID %in% segs3$PtID[segs3$mean>0.4] ~ "amp",
+                             PtID %in% segs3$PtID[abs(segs3$mean)<0.1] ~ "eu"))
+s = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ RBM14 + Treatment, data=meta2)
 
 pdf(args$plotfile)
 print(p1)

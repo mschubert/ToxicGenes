@@ -42,7 +42,7 @@ cnvs = setNames(fnames, sub("^([0-9]+)-.*", "\\1", basename(fnames))) %>%
 segs = cnvs %>% group_by(PtID, chr) %>%
     tidyr::nest() %>%
     ungroup() %>%
-    mutate(segs = clustermq::Q(calc_segs, chr=data, n_jobs=50, pkgs="dplyr")) %>%
+    mutate(segs = clustermq::Q(calc_segs, chr=data, n_jobs=20, pkgs="dplyr")) %>%
     select(-data) %>%
     tidyr::unnest(cols=segs)
 

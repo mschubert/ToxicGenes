@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 sys = import('sys')
 
 args = sys$cmd$parse(
@@ -26,16 +27,18 @@ p1 = ggplot(segs) +
                               color="red", alpha=0.5) +
     coord_cartesian(expand=FALSE)
 
-segs2 = segs %>%
-    filter(start < 69647000, end > 66622000)
+segs2 = segs %>% filter(start < 69647000, end > 66622000)
+segs3 = segs2 %>% filter(start < 66622000, end > 66622000)
+segs4 = segs2 %>% filter(start < 69647000, end > 69647000)
 p2 = ggplot(segs2) +
+    geom_boxplot(data=segs3, aes(y=mean), x=66622000, fill="white", alpha=0.5) +
+    geom_boxplot(data=segs4, aes(y=mean), x=69647000, fill="white", alpha=0.5) +
     geom_hline(yintercept=0, size=1, color="red") +
-    geom_vline(data=genes, aes(xintercept=pos), linetype="dashed", color="red", alpha=0.2) +
     geom_segment(aes(x=start, xend=end, y=mean, yend=mean), alpha=0.1) +
     geom_point(data=genes, aes(x=pos), y=0, color="red", size=3, alpha=0.5) +
     ggrepel::geom_label_repel(data=genes, aes(x=pos, label=genes), y=0,
                               color="red", alpha=0.5) +
-    coord_cartesian(expand=FALSE)
+    coord_cartesian(expand=FALSE, xlim=c(5e7,9e7))
 
 pdf(args$plotfile)
 print(p1)

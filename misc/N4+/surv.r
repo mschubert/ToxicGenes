@@ -28,8 +28,8 @@ p1 = ggplot(segs) +
     coord_cartesian(expand=FALSE)
 
 segs2 = segs %>% filter(start < 69647000, end > 66622000)
-segs3 = segs2 %>% filter(start < 66622000, end > 66622000)
-segs4 = segs2 %>% filter(start < 69647000, end > 69647000)
+segs3 = segs2 %>% filter(start < 66622000, end > 66622000) # RBM14
+segs4 = segs2 %>% filter(start < 69647000, end > 69647000) # CCND1
 p2 = ggplot(segs2) +
     geom_boxplot(data=segs3, aes(y=mean), x=66622000, fill="white", alpha=0.5) +
     geom_boxplot(data=segs4, aes(y=mean), x=69647000, fill="white", alpha=0.5) +
@@ -40,7 +40,14 @@ p2 = ggplot(segs2) +
                               color="red", alpha=0.5) +
     coord_cartesian(expand=FALSE, xlim=c(5e7,9e7))
 
+rbm_amp = segs3 %>% filter(mean > 0.3) %>% pull(PtID) %>% unique()
+rbm_eu = segs3 %>% filter(abs(mean) < 0.2) %>% pull(PtID) %>% unique()
+
+s = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ Treatment,
+    data = meta %>% filter(PtID %in% rbm_eu))
+
 pdf(args$plotfile)
 print(p1)
 print(p2)
+ggsurvplot(s)
 dev.off()

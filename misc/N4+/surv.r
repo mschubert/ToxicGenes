@@ -16,7 +16,8 @@ meta = readxl::read_xlsx(args$meta) %>%
 dset = readRDS(args$infile)
 segs = dset$segs %>%
     filter(chr == "chr11") %>%
-    inner_join(meta %>% select(PtID, TCP))
+    inner_join(meta %>% select(PtID, TCP)) %>%
+    mutate(mean = log2(1+(2^mean-1)/(TCP/100)))
 
 genes = tibble(genes = c("CCND1", "RBM14"), pos=c(69647000, 66622000))
 
@@ -42,11 +43,15 @@ p2 = ggplot(segs2) +
     coord_cartesian(expand=FALSE, xlim=c(5e7,9e7))
 
 meta2 = meta %>%
-    mutate(RBM14 = case_when(PtID %in% segs3$PtID[segs3$mean>0.4] ~ "amp",
+    mutate(RBM14 = case_when(PtID %in% segs3$PtID[segs3$mean>0.5] ~ "amp",
                              PtID %in% segs3$PtID[abs(segs3$mean)<0.1] ~ "eu"))
 s = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ RBM14 + Treatment, data=meta2)
+broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+                  data=meta2 %>% filter(RBM14 == "amp")))
+broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+                  data=meta2 %>% filter(RBM14 == "eu")))
 
-pdf(args$plotfile)
+pdf(args$plotfile, 9, 6)
 print(p1)
 print(p2)
 ggsurvplot(s)

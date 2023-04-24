@@ -25,8 +25,8 @@ calc_assocs = function(dset, field, cond) {
         ungroup() %>%
         tidyr::unnest(mod) %>%
         filter(term == field) %>%
-        mutate(p.adj = p.adjust(p.value, method="fdr")) %>%
-        arrange(p.adj, p.value)
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
 }
 
 args = sys$cmd$parse(

@@ -1,7 +1,7 @@
 rule all:
     input:
         "PRISM.pdf", "PRISM_veronica.pdf",
-        "depmap.pdf"
+        "depmap.pdf", "depmap_sets.pdf"
 
 rule prism:
     input:
@@ -21,7 +21,6 @@ rule prism_veronica:
     shell:
         "Rscript {input.rscript} --plotfile {output.plotfile}"
 
-#todo: get different deps, ie. rnai/crispr/drug
 rule depmap:
     input:
         rscript = "depmap.r"
@@ -30,3 +29,12 @@ rule depmap:
         plotfile = "depmap.pdf"
     shell:
         "Rscript {input.rscript} --outfile {output.outfile} --plotfile {output.plotfile}"
+
+rule depmap_sets:
+    input:
+        rscript = "depmap_sets.r",
+        infile = "depmap.rds"
+    output:
+        plotfile = "depmap_sets.pdf"
+    shell:
+        "Rscript {input.rscript} --infile {input.infile} --plotfile {output.plotfile}"

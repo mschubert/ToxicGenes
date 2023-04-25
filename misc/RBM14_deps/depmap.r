@@ -66,13 +66,11 @@ idx = tidyr::expand_grid(dset = names(dsets),
 
 plots = idx %>%
     mutate(plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond)))) %>%
-    select(-res) %>%
-    tidyr::pivot_wider(names_from="cond", values_from="plot") %>%
-    rowwise() %>%
-    mutate(plot = list(wrap_plots(naive, CCND1)))
+    group_by(dset) %>%
+    summarize(asm = list(wrap_plots(plot)))
 
-pdf(args$plotfile, 12, 6)
-for (p in plots$plot)
+pdf(args$plotfile, 12, 12)
+for (p in plots$asm)
     print(p)
 dev.off()
 

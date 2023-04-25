@@ -47,15 +47,18 @@ meta = depmap::depmap_metadata() %>%
     inner_join(tpm) %>%
     inner_join(copy)
 
-drug = depmap::depmap_drug_sensitivity() %>% mutate(group=compound, label=name)
-dsets = list(
+prism1 = depmap::depmap_drug_sensitivity() %>%
+    mutate(group=compound, label=name) %>%
+    split(.$screen_id) %>% setNames(paste0("prism1_", names(.)))
+prism2 = readr::read_csv("PRISMsecondary.csv") %>%
+    mutate(group=broad_id, label=name, dependency=auc) %>%
+    split(.$screen_id) %>% setNames(paste0("prism2_", names(.)))
+dsets = c(list(
     rnai = depmap::depmap_rnai() %>% mutate(group=gene, label=gene_name),
-    crispr_ko = depmap::depmap_crispr() %>% mutate(group=gene, label=gene_name),
-    drug_hts = drug %>% filter(screen_id == "HTS"),
-    drug_mts004 = drug %>% filter(screen_id == "MTS004")
-)
+    crispr_ko = depmap::depmap_crispr() %>% mutate(group=gene, label=gene_name)
+), prism1, prism2)
 
-idx = tidyr::expand_grid(dset = c("rnai", "crispr_ko", "drug_hts", "drug_mts004"),
+idx = tidyr::expand_grid(dset = names(dsets),
                          field = c("expr_RBM14", "copy_RBM14"),
                          cond = c("naive", "CCND1")) %>%
     rowwise() %>%

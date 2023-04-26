@@ -23,6 +23,15 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
     re[sapply(re$genes, function(x) class(x)[1]) != "try-error",]
 }
 
+do_test = function(genes) {
+    tryCatch({
+        g = genes %>% group_by(label) %>%
+            summarize(shrunkAbsIncDiff = max(abs(shrunkIncDiff)))
+        gset$test_lm(g, sets[[sname]], stat="shrunkAbsIncDiff") %>%
+            dplyr::rename(mean_shrunkAbsIncDiff=estimate)
+    }, error = function(e) tibble())
+}
+
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'comp', 'comparison', 'splice-HCC70_rbm8_vs_luc8'),
@@ -40,11 +49,7 @@ sys$run({
     ) %>% bind_rows(.id="junction")
 
     for (sname in names(sets))
-        res = rowwise(res) %>%
-            mutate({{ sname }} := tryCatch({
-                list(gset$test_lm(genes %>% group_by(label) %>% summarize(shrunkAbsIncDiff=max(abs(shrunkIncDiff))),
-                                  sets[[sname]], stat="shrunkAbsIncDiff", cl=10) %>% dplyr::rename(`mean shrunkAbsIncDiff`=estimate))
-            }, error = function(e) list(tibble())))
+        res = rowwise(res) %>% mutate({{ sname }} := list(do_test(genes)))
 
     saveRDS(ungroup(res), file=args$outfile)
 })

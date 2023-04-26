@@ -15,7 +15,7 @@ plot_one = function(junction, stype, df, hl=c()) {
     if (nrow(df) == 0)
         return(plt$text("No observations"))
     plt$volcano(df %>% mutate(circle = label %in% hl), size = c("size_used", "size"),
-                x=c("IncLevelDifference", "mean shrunkAbsIncDiff"), y=c("FDR", "adj.p")) +
+                x=c("IncLevelDifference", "mean_shrunkAbsIncDiff"), y=c("FDR", "adj.p")) +
         ggtitle(sprintf("%s (%s)", stype, junction))
 }
 

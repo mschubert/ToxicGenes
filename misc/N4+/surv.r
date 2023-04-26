@@ -43,16 +43,30 @@ p2 = ggplot(segs2) +
     coord_cartesian(expand=FALSE, xlim=c(5e7,9e7))
 
 meta2 = meta %>%
-    mutate(RBM14 = case_when(PtID %in% segs3$PtID[segs3$mean>0.5] ~ "amp",
+    mutate(CCND1 = case_when(PtID %in% segs4$PtID[segs4$mean>0.5] ~ "amp",
+                             PtID %in% segs4$PtID[abs(segs4$mean)<0.1] ~ "eu"),
+           RBM14 = case_when(PtID %in% segs3$PtID[segs3$mean>0.5] ~ "amp",
                              PtID %in% segs3$PtID[abs(segs3$mean)<0.1] ~ "eu"))
-s = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ RBM14 + Treatment, data=meta2)
-broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+s1 = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ RBM14 + Treatment, data=meta2)
+s2 = survfit(Surv(osDays_FINAL, OS_event_FINAL) ~ CCND1 + Treatment, data=meta2)
+m11 = broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
                   data=meta2 %>% filter(RBM14 == "amp")))
-broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+m12 = broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
                   data=meta2 %>% filter(RBM14 == "eu")))
+m21 = broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+                  data=meta2 %>% filter(CCND1 == "amp")))
+m22 = broom::tidy(coxph(Surv(osDays_FINAL, OS_event_FINAL) ~ T_ER + T_LN10 + Treatment,
+                  data=meta2 %>% filter(CCND1 == "eu")))
+
+make_title = function(main, m1, m2) {
+    m1 = m1 %>% filter(term == "Treatment")
+    m2 = m2 %>% filter(term == "Treatment")
+    sprintf("%s p=%2.g (amp), p=%.2g (eu)", main, m1$p.value, m2$p.value)
+}
 
 pdf(args$plotfile, 9, 6)
 print(p1)
 print(p2)
-ggsurvplot(s)
+ggsurvplot(s1, title=make_title("RBM14", m11, m12))
+ggsurvplot(s2, title=make_title("CCND1", m21, m22))
 dev.off()

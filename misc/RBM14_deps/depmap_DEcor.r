@@ -11,14 +11,14 @@ plot_one = function(field, cond, res, genes) {
     m = broom::tidy(lm(dependency ~ diff_expr, data=cur)) %>% filter(term == "diff_expr")
     plt$denspt(cur, aes(x=diff_expr, y=dependency, label=gene, color=group, alpha=0.8),
                draw_pt=1000, draw_label=100) +
-        labs(title = sprintf("%s :: %s (%s)", dset, field, cond),
+        labs(title = sprintf("%s (%s)", field, cond),
              subtitle = sprintf("p=%.2g", m$p.value)) +
         scale_color_manual(values=c("de+dep"="firebrick", other="black"))
 }
 
 args = sys$cmd$parse(
     opt('i', 'infile', 'rds', 'depmap.rds'),
-    opt('p', 'plotfile', 'pdf', 'depmap_DEgenes.pdf')
+    opt('p', 'plotfile', 'pdf', 'depmap_DEcor.pdf')
 )
 
 de_genes = tibble(time = c("8h", "24h", "all")) %>% rowwise() %>%
@@ -34,9 +34,10 @@ dset = tidyr::crossing(deps, de_genes) %>%
     rowwise() %>%
     mutate(plot = list(plot_one(field, cond, res, genes))) %>%
     group_by(time, dset) %>%
-    summarize(asm = list((plt$text(paste(dset, time)) / wrap_plots(plot)) + plot_layout(heights=c(1,20))))
+    summarize(asm = list((plt$text(paste(dset[1], time[1]), size=8) / wrap_plots(plot)) +
+                         plot_layout(heights=c(1,20), guides="collect")))
 
-pdf(args$plotfile, 20, 18)
+pdf(args$plotfile, 18, 16)
 for (p in dset$asm)
     print(p)
 dev.off()

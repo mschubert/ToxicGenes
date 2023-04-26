@@ -43,7 +43,7 @@ sys$run({
         res = rowwise(res) %>%
             mutate({{ sname }} := tryCatch({
                 list(gset$test_lm(genes %>% group_by(label) %>% summarize(shrunkAbsIncDiff=max(abs(shrunkIncDiff))),
-                                  sets[[sname]], stat="shrunkAbsIncDiff", cl=10))
+                                  sets[[sname]], stat="shrunkAbsIncDiff", cl=10) %>% dplyr::rename(`mean shrunkAbsIncDiff`=estimate))
             }, error = function(e) list(tibble())))
 
     saveRDS(ungroup(res), file=args$outfile)

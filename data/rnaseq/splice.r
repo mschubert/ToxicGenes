@@ -14,7 +14,7 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
         try({
             readr::read_tsv(fname) %>%
                 select(label=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
-                mutate(stat = -log10(pmax(PValue, 1e-20)) * sign(IncLevelDifference)) %>%
+                mutate(shrunkIncDiff = (1-(pmin(1,PValue*10))) * IncLevelDifference) %>%
                 arrange(FDR, PValue)
         })
     }
@@ -42,8 +42,8 @@ sys$run({
     for (sname in names(sets))
         res = rowwise(res) %>%
             mutate({{ sname }} := tryCatch({
-                list(gset$test_lm(genes %>% group_by(label) %>% summarize(stat=sign(stat)*max(abs(stat))),
-                                  sets[[sname]]))
+                list(gset$test_lm(genes %>% group_by(label) %>% summarize(shrunkAbsIncDiff=max(abs(shrunkIncDiff))),
+                                  sets[[sname]], stat="shrunkAbsIncDiff", cl=10))
             }, error = function(e) list(tibble())))
 
     saveRDS(ungroup(res), file=args$outfile)

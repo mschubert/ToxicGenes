@@ -36,13 +36,14 @@ sys$run({
 
     plots = res %>%
         tidyr::pivot_longer(-c(junction, stype)) %>%
+        mutate(name = factor(name, levels=unique(name))) %>%
         rowwise() %>%
             mutate(plot = list(plot_one(junction, stype, value, U12))) %>%
         group_by(name) %>%
-            summarize(asm = list((plt$text(name[1]) / wrap_plots(plot, nrow=2)) +
+            summarize(asm = list((plt$text(name[1], size=8) / wrap_plots(plot, nrow=2)) +
                                  plot_layout(heights=c(1,20))))
 
-    pdf(args$plotfile, 20, 12)
+    pdf(args$plotfile, 22, 10)
     for (p in plots$asm)
         print(p)
     dev.off()

@@ -1,29 +1,22 @@
 library(dplyr)
-library(patchwork)
 library(ggplot2)
+library(patchwork)
 plt = import('plot')
 idmap = import('process/idmap')
 sys = import('sys')
 
 #' Assemble panels for different splice events
 #'
-#' @param comp  Name of comparison (common label for all plots)
-#' @param coll  Name of collection (genes, MSigDB_Hallmark, etc.)
-#' @param junc  Splice quantification type (JC, JCEC)
-#' @param df    A data.frame with fields: stype [A3SS, MXE, etc.], diff_splice [df]
-#' @param hl    Character vector of genes to highlight with circles
-#' @return      A patchwork object of volcano plots
-plot_asm = function(comp, coll, junc, df, hl=c()) {
-    plot_one = function(df, title) {
-        if (nrow(df) == 0)
-            return(plt$text("No observations"))
-        plt$volcano(df %>% mutate(circle = label %in% hl, size=3),
-                    size = c("size_used", "size"),
-                    x=c("IncLevelDifference", "estimate"), y=c("FDR", "adj.p")) +
-            ggtitle(title)
-    }
-    plots = mapply(plot_one, df$diff_splice, df$stype, SIMPLIFY=FALSE)
-    plt$text(sprintf("%s :: %s (%s)", comp, coll, junc)) / wrap_plots(plots) + plot_layout(heights=c(1,15))
+#' @param junction  Splice quantification type (JC, JCEC)
+#' @param stype     Splice ftype (A3SS, A5SS, SE, RI, MXE)
+#' @param df        A data.frame of gene set gene set differences
+#' @return          A volcano plot with title
+plot_one = function(junction, stype, df, hl=c()) {
+    if (nrow(df) == 0)
+        return(plt$text("No observations"))
+    plt$volcano(df %>% mutate(circle = label %in% hl), size = c("size_used", "size"),
+                x=c("IncLevelDifference", "estimate"), y=c("FDR", "adj.p")) +
+        ggtitle(sprintf("%s (%s)", stype, junction))
 }
 
 sys$run({
@@ -42,15 +35,15 @@ sys$run({
     #U2 = read.table("GRCh38_U2.bed")
 
     plots = res %>%
-        tidyr::gather("collection", "diff_splice", -junction, -stype) %>%
-        group_by(junction, collection) %>%
-            tidyr::nest() %>%
+        tidyr::pivot_longer(-c(junction, stype)) %>%
         rowwise() %>%
-            mutate(plot = list(plot_asm(comp, collection, junction, data, U12))) %>%
-        ungroup()
+            mutate(plot = list(plot_one(junction, stype, value, U12))) %>%
+        group_by(name) %>%
+            summarize(asm = list((plt$text(name[1]) / wrap_plots(plot, nrow=2)) +
+                                 plot_layout(heights=c(1,20))))
 
-    pdf(args$plotfile, 16, 10)
-    for (p in plots$plot)
+    pdf(args$plotfile, 20, 12)
+    for (p in plots$asm)
         print(p)
     dev.off()
 })

@@ -1,7 +1,7 @@
 rule all:
     input:
         "PRISM.pdf", "PRISM_veronica.pdf",
-        "depmap.pdf", "depmap_sets.pdf"
+        "depmap.pdf", "depmap_sets.pdf", "depmap_DEcor.pdf", "depmap_DEsig.pdf"
 
 rule prism:
     input:
@@ -30,11 +30,11 @@ rule depmap:
     shell:
         "Rscript {input.rscript} --outfile {output.outfile} --plotfile {output.plotfile}"
 
-rule depmap_sets:
+rule depmap_derived:
     input:
-        rscript = "depmap_sets.r",
+        rscript = "depmap_{type}.r",
         infile = "depmap.rds"
     output:
-        plotfile = "depmap_sets.pdf"
+        plotfile = "depmap_{type}.pdf"
     shell:
         "Rscript {input.rscript} --infile {input.infile} --plotfile {output.plotfile}"

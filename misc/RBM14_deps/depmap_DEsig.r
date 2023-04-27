@@ -49,7 +49,7 @@ calc_assocs = function(dset, field) {
 }
 
 args = sys$cmd$parse(
-    opt('o', 'outfile', 'rds', 'depmap_DEsig.rds'),
+    opt('i', 'infile', 'rds', 'depmap.rds'), # ignored, easier snakemake
     opt('p', 'plotfile', 'pdf', 'depmap_DEsig.pdf')
 )
 
@@ -70,5 +70,3 @@ pdf(args$plotfile, 16, 6)
 for (p in plots$asm)
     print(p)
 dev.off()
-
-saveRDS(idx, args$outfile)

@@ -28,7 +28,7 @@ de_genes = tibble(time = c("8h", "24h", "all")) %>% rowwise() %>%
     select(time, genes)
 
 deps = readRDS(args$infile) %>%
-    filter(dset %in% c("rnai", "crispr_ko"))
+    filter(dset %in% c("rnai", "crispr_ko"), field != "expr_TMEM59L")
 
 dset = tidyr::crossing(deps, de_genes) %>%
     rowwise() %>%

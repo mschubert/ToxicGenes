@@ -1,7 +1,8 @@
 rule all:
     input:
         "PRISM.pdf", "PRISM_veronica.pdf",
-        "depmap.pdf", "depmap_sets.pdf", "depmap_DEcor.pdf", "depmap_DEsig.pdf"
+        "depmap.pdf", "depmap_sets.pdf", "depmap_DEcor.pdf",
+        "depmap_DEsig.pdf", "depmap_DEsig2.pdf"
 
 rule prism:
     input:

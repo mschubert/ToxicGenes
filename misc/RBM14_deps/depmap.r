@@ -12,7 +12,7 @@ calc_assocs = function(dset, field, cond) {
     if (cond == "naive") {
         fml = make_fml("dependency", "lineage", field)
     } else {
-        fml = make_fml("dependency", "lineage", sub("RBM14", cond, field), field)
+        fml = make_fml("dependency", "lineage", sub("[^_]+$", cond, field), field)
     }
 
     dsets[[dset]] %>%
@@ -31,7 +31,7 @@ calc_assocs = function(dset, field, cond) {
 
 get_meta = function() {
     tpm = depmap::depmap_TPM() %>%
-        filter(gene_name %in% c("RBM14", "CCND1")) %>%
+        filter(gene_name %in% c("RBM14", "CCND1", "TMEM59L")) %>%
         select(depmap_id, gene_name, rna_expression) %>%
         tidyr::pivot_wider(names_from=gene_name, names_prefix="expr_", values_from=rna_expression)
     copy = depmap::depmap_copyNumber() %>%
@@ -68,17 +68,19 @@ sys$run({
     dsets = get_dsets()
 
     idx = tidyr::expand_grid(dset = names(dsets),
-                             field = c("expr_RBM14", "copy_RBM14"),
+                             field = c("expr_RBM14", "copy_RBM14", "expr_TMEM59L"),
                              cond = c("naive", "CCND1")) %>%
         rowwise() %>%
         mutate(res = list(calc_assocs(dset, field, cond)))
 
     plots = idx %>%
-        mutate(plot = list(plt$volcano(res) + ggtitle(sprintf("%s %s (%s)", dset, field, cond)))) %>%
+        mutate(plot = list(plt$volcano(res, pos_label_bias=0.7, label_top=50) +
+                           guides(size = "none") +
+                           ggtitle(sprintf("%s %s (%s)", dset, field, cond)))) %>%
         group_by(dset) %>%
-        summarize(asm = list(wrap_plots(plot)))
+        summarize(asm = list(wrap_plots(plot, nrow=2, byrow=FALSE)))
 
-    pdf(args$plotfile, 12, 12)
+    pdf(args$plotfile, 16, 12)
     for (p in plots$asm)
         print(p)
     dev.off()

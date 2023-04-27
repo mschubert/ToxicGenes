@@ -77,6 +77,7 @@ sys$run({
         mutate(plot = list(plt$volcano(res, pos_label_bias=0.7, label_top=50) +
                            guides(size = "none") +
                            ggtitle(sprintf("%s %s (%s)", dset, field, cond)))) %>%
+        mutate(dset = factor(dset, levels=unique(dset))) %>%
         group_by(dset) %>%
         summarize(asm = list(wrap_plots(plot, nrow=2, byrow=FALSE)))
 

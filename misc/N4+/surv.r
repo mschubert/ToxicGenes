@@ -1,6 +1,7 @@
 library(dplyr)
 library(ggplot2)
 library(patchwork)
+library(survival)
 sys = import('sys')
 
 args = sys$cmd$parse(

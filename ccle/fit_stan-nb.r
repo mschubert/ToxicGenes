@@ -52,7 +52,7 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
 #' @param data  A data.frame with the model data
 #' @return      A brms model object
 make_mod = function(data) {
-    if (length(unique(df$data[[1]]$covar)) == 1) {
+    if (length(unique(data$covar)) == 1) {
         fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
     } else {
         fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
@@ -71,7 +71,7 @@ make_mod = function(data) {
 prep_data = function(ccle_df, tissue) {
     if (tissue == "NSCLC")
         tissue = c("LUAD", "LUSC")
-    if (!identical(args$tissue, "pan"))
+    if (!identical(tissue, "pan"))
         df = df %>% filter(covar %in% tissue)
 
     ccle_df %>%

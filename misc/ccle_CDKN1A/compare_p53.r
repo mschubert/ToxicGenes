@@ -3,6 +3,39 @@ library(dplyr)
 library(cmdstanr)
 snb = import('../../ccle/fit_stan-nb')
 
+do_fit = function(dset, et=0.15) {
+    dset = dset %>% dplyr::filter(copies > 2-et)
+    dset$sf = dset$sf * mean(dset$expr)
+    n_aneup = sum(abs(dset$copies-2) > 1-et)
+
+    if (length(unique(dset$covar)) == 1) {
+        fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+    } else {
+        fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+    }
+    if2 = function() list(b=c(0, runif(length(unique(df$covar)), 0.5, 1.5)))
+    res = brm(fml, family=negbinomial(link="identity"),
+              data = df, chains=4, cores = 1, init = if2,
+              prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                      prior(lognormal(0,1), class="b"),
+              backend = "cmdstanr")
+
+    rmat = as.matrix(res)
+    is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
+    intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
+    eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
+    z_comp = mean(eup_dev) / sd(eup_dev)
+
+    tibble(estimate = mean(eup_dev) / mean(intcp),
+           z_comp = z_comp,
+           n_aneup = n_aneup,
+           n_genes = 1,
+           eup_reads = mean(intcp) * mean(dset$expr),
+           n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
+           Rhat = rhat(res, pars="b_sf:eup_dev"),
+           p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
+}
+
 ccledata = readRDS("../../data/ccle/dset.rds")
 meta = ccledata$clines %>%
     select(cell_line=CCLE_ID, cline=Name) %>%
@@ -19,14 +52,4 @@ df = snb$prep_data(ccle_df, "pan") %>% tidyr::unnest(data)
 df2 = snb$prep_data(ccle_df, "BRCA") %>% tidyr::unnest(data)
 df3 = snb$prep_data(ccle_df, c("LUAD", "LUSC", "SCLC")) %>% tidyr::unnest(data)
 
-fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
-
-if2 = function() {
-    list(b=c(runif(1, -0.1, 0.1), runif(length(unique(df$covar)), 0.5, 1.5)))
-}
-
-mod = brm(fml, family=negbinomial(link="identity"),
-          data = df, chains=0, cores = 1, init = if2,
-          prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                  prior(lognormal(0,1), class="b"),
-          backend = "cmdstanr")
+do_fit(df)

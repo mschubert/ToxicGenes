@@ -69,10 +69,10 @@ make_mod = function(data) {
 #' @param ccle_df  data.frame from ccle
 #' @param tissue   character vector of tissue types, or 'pan'
 prep_data = function(ccle_df, tissue) {
-    if (tissue == "NSCLC")
+    if (length(tissue) == 1 && tissue == "NSCLC")
         tissue = c("LUAD", "LUSC")
     if (!identical(tissue, "pan"))
-        df = df %>% filter(covar %in% tissue)
+        ccle_df = ccle_df %>% filter(covar %in% tissue)
 
     ccle_df %>%
         mutate(eup_dev = ((copies - 2) / 2),

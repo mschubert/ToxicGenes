@@ -32,11 +32,13 @@ dset = inner_join(reshape2::melt(eset, value.name="reads"),
         filter(sum(copies %in% c(1,3)) > 0) %>%
     ungroup()
 
-diffs = dset %>% group_by(gene) %>%
-
-ggplot(dset, aes(x=gene, y=reads, color=factor(copies))) +
+p = ggplot(dset, aes(x=gene, y=reads, color=factor(copies))) +
     ggbeeswarm::geom_quasirandom(data=dset%>% filter(copies==2), alpha=0.7) +
     ggbeeswarm::geom_quasirandom(data=dset%>% filter(copies!=2), alpha=0.7) +
     theme(axis.text.x = element_text(angle=60, hjust=1)) +
     scale_y_continuous(trans="log1p", breaks=c(0,1,2,5,10,50,200,1000,5000,20000)) +
     scale_color_manual(values=c("1"="navy", "2"="grey", "3"="firebrick"))
+
+pdf("genes.pdf", 10, 5)
+print(p)
+dev.off()

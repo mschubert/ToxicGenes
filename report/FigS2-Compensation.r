@@ -39,15 +39,14 @@ tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
     ggplot(dset, aes(x=CCLE, y=value)) +
         geom_vline(xintercept=0, color="grey", linetype="dashed", size=1) +
         geom_hline(yintercept=0, color="grey", linetype="dashed", size=1) +
-        geom_hex(aes(color=..count..), bins=50) +
-        scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
+        geom_hex(bins=50) +
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
         geom_smooth(method="lm", color="blue", se=FALSE, size=0.7) +
-        geom_label(data=mods, aes(x=0.5, y=-1, label=label), parse=TRUE, color="blue",
-                   fill="#ffffffa0", label.size=NA, hjust=0.5, vjust=0.5, size=3) +
-        ggnewscale::new_scale(c("color")) +
-        geom_point(data=hl, aes(color=Gene)) +
+        geom_label(data=mods, aes(x=0.6, y=-1.05, label=label), parse=TRUE, color="blue",
+                   fill="#ffffffc0", label.size=NA, hjust=0.5, vjust=0.5, size=4) +
+        ggnewscale::new_scale(c("fill")) +
+        geom_point(data=hl, aes(fill=Gene), color="black", shape=21, size=2.5) +
         labs(y = "Expression over expected TCGA",
              x = "Expression over expected CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +
@@ -68,13 +67,13 @@ go_cors = function() {
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used,
-               palette="Greys", pal_alpha=0.5) +
+               palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5, max_ov=3) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         labs(title = "Gene Ontology: Biological Process",
              x = "Δ Expression over expected TCGA (Wald stat.)",
              y = "Δ Expression over expected CCLE (Wald stat.)") +
-        annotate("text", x=11, y=-6.5, color="blue", label=lab, parse=TRUE)
+        annotate("text", x=11, y=-6.5, color="blue", label=lab, size=4, parse=TRUE)
 }
 
 cna_comp = function(gistic, comp_all) {
@@ -110,7 +109,7 @@ cna_comp = function(gistic, comp_all) {
         common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
         labs(title = "CCLE", y="Δ Expression / expected")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
-        common(both$estimate.y, c(-0.5, 1.4), c(0.95, 1.2)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.9, 1.2)) +
         labs(title = "TCGA", y="")
 
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
@@ -137,10 +136,10 @@ og_comp = function(comp) {
     )
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
-        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
+        common(both$estimate.x, c(-0.3, 0.7), c(0.38, 0.55)) +
         labs(title = "CCLE", y="Δ Expression / expected")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
-        common(both$estimate.y, c(-0.5, 1.4), c(1.0, 1.2)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.9, 1.2)) +
         labs(title = "TCGA", y="")
 
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
@@ -193,7 +192,7 @@ rpe_comp = function(rpe, all) {
 }
 
 rpe1_comp = function(rpe, all) {
-    lookup = c("14.10"="14.10 (+7 +16 +X)", "14.16"="14.16 (+20)", "14.21"="14.21 (+8)")
+    lookup = c("14.10"="chr +7 +16 +X", "14.16"="chr +20", "14.21"="chr +8")
     comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>%
         filter(!is.na(label)) %>% distinct()
@@ -213,20 +212,21 @@ rpe1_comp = function(rpe, all) {
         coord_cartesian(ylim=c(-1.5, 2.5)) +
         labs(title = "Isogenic RPE-1 lines",
              x = "Clone with chromosome amplification",
-             y = "Fold-change amplified chr vs. parental") +
+             y = "Log2 fold-change amplified chr vs. parental") +
         scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
         theme_minimal() +
-        theme(axis.text.x = element_blank()) +
-        ggsignif::geom_signif(color="black", y_position=1.5,
+        theme(axis.text.x = element_blank(),
+              strip.text = element_text(size=12)) +
+        ggsignif::geom_signif(color="black", y_position=1.4,
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Compensated")))
 }
 
 rpe2_comp = function(rpe2, all) {
-    lookup = c(SS6="SS6 (+7)", SS51="SS51 (+7 +22)", SS111="SS111 (+8 +9 +18)")
+    lookup = c(SS6="chr +7", SS51="chr +7 +22", SS111="chr +8 +9 +18")
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
     comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
     dset = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
@@ -248,7 +248,7 @@ rpe2_comp = function(rpe2, all) {
         ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
-        coord_cartesian(ylim=c(0.2, 30)) +
+        coord_cartesian(ylim=c(0.2, 5)) +
         labs(title = "Isogenic RPE-1 lines",
              x = "Clone with chromosome amplification",
              y = "Fold-change amplified chr vs. whole chromosomes") +
@@ -256,8 +256,9 @@ rpe2_comp = function(rpe2, all) {
         scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
         theme_minimal() +
-        theme(axis.text.x = element_blank()) +
-        ggsignif::geom_signif(color="black", y_position=1,
+        theme(axis.text.x = element_blank(),
+              strip.text = element_text(size=12)) +
+        ggsignif::geom_signif(color="black", y_position=0.25,
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Compensated")))
@@ -289,7 +290,8 @@ sys$run({
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +
         plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(axis.text = element_text(size=10),
+              plot.tag = element_text(size=18, face="bold"))
 
     cairo_pdf("FigS2-Compensation.pdf", 15, 12)
     print(asm)

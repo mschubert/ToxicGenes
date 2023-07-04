@@ -40,6 +40,7 @@ og_tsg_cna = function(gistic, cosmic) {
 og_vs_tsg = function(gistic, cosmic) {
     gwide = tidyr::pivot_wider(gistic, names_from="type", values_from="frac") %>%
         left_join(cosmic) %>%
+        filter(!is.na(type)) %>%
         mutate(label = ifelse(!is.na(type) & gene_name %in% cm$hlg, gene_name, NA))
 
     areas = data.frame(xmin=c(0.15,-Inf), xmax=c(Inf,Inf), ymin=c(-Inf,0.15), ymax=c(Inf,Inf),
@@ -211,14 +212,17 @@ sys$run({
     left = (og_vs_tsg(gistic, cosmic) / og_tsg_cna(gistic, cosmic)) +
         plot_layout(heights=c(2,1))
 
-    right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic) / rs$quant) +
-        plot_layout(heights=c(3,4,4))
+#    right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic) / rs$quant) +
+    right = (venn_amp_del(gistic, cosmic) / venn_og_tsg(gistic, cosmic)) +
+        plot_layout(heights=c(3,4))
 
-    asm = ((((left | right) + plot_layout(widths=c(3,2))) / rs$genome) + plot_layout(heights=c(3,2))) +
+#    asm = ((((left | right) + plot_layout(widths=c(3,2))) / rs$genome) + plot_layout(heights=c(3,2))) +
+    asm = ((left | right) + plot_layout(widths=c(3,2))) +
         plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(legend.text = element_text(size=10),
+              plot.tag = element_text(size=24, face="bold"))
 
-    pdf("FigS1-OG_TSG.pdf", 11, 12)
+    pdf("FigS1-OG_TSG.pdf", 11, 8)
     print(asm)
     dev.off()
 })

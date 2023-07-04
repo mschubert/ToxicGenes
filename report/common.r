@@ -1,7 +1,8 @@
 import_package("dplyr", attach=TRUE)
 
 hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
-        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "CCNE1", "PIK3CA", "AURKA")
+        "APC", "CDKN2A", "KRAS", "NRAS", "RB1", "CCNE1", "PIK3CA", "AURKA",
+        "FGFR1", "NOTCH2")
 
 get_cosmic_annot = function() {
     manual = readRDS("../data/genesets/manual.rds")

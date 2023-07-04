@@ -17,12 +17,11 @@ facet_plot = function(ov, mapping, hl=c("RBM14", "CDKN1A")) {
     hl = ov %>% dplyr::rename(Gene=`GENE SYMBOL`) %>% filter(Gene %in% hl)
 
     ggplot(ov, mapping) +
-        geom_hex(aes(color=..count.., fill=..count..), bins=50) +
+        geom_hex(aes(fill=..count..), bins=30) +
         geom_hline(yintercept=0, color="grey", linetype="dashed") +
-        scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
-        scale_color_continuous(type = "viridis", trans="log1p", guide="none") +
-        ggnewscale::new_scale(c("color", "fill")) +
-        geom_point(data=hl, aes(color=Gene)) +
+        scale_fill_continuous(type="viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
+        ggnewscale::new_scale(c("fill")) +
+        geom_point(data=hl, aes(fill=Gene), color="black", shape=21, size=2) +
 #        geom_line(data=loess_sd, aes(x=x, y=y), color="red") +
 #        geom_line(data=loess_sd, aes(x=x, y=y+sd), color="red", linetype="dashed") +
 #        geom_line(data=loess_sd, aes(x=x, y=y-sd), color="red", linetype="dashed") +
@@ -41,17 +40,21 @@ screen_cor = function(ov) {
     cmat = cor(mat) %>%
         reshape2::melt() %>%
         plt$cluster(value ~ Var1 + Var2)
+    levels(cmat$Var1) = levels(cmat$Var2)
     plt$matrix(cmat, value ~ Var1 + Var2, geom="tile") +
         scale_fill_distiller(palette="RdBu", name="Pearson\ncorrelation") +
         theme(axis.title = element_blank()) +
         coord_fixed() +
-        theme(axis.text.x = element_text(angle=90, hjust=1))
+        theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
 }
 
 go_volc = function() {
     res = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx")
-    plt$volcano(res, label_top=35) + guides(size="none") +
-        xlab("Mean z-score LFC")
+    res$name[abs(res$estimate) < 0.5 | res$adj.p > 1e-30] = NA
+    res$name[grepl("GO:00(42100|35025|30098|30857)", res$name)] = NA # labels overlap otherwise
+    plt$volcano(res, label_top=35, max.overlaps=10, text.size=3.2) + guides(size="none") +
+        xlab("Mean z-score LFC") +
+        coord_cartesian(ylim=c(1,1e-95))
 }
 
 og_tsg_orf = function(gistic, orfdata) {
@@ -117,15 +120,18 @@ sys$run({
 
     naive = facet_plot(ov, aes(x=DMSO, y=`LFC DMSO/ETP`)) +
         ylim(c(-4,4)) +
+        xlab("Log10 read count DMSO condition") +
         coord_cartesian(ylim=c(-2.6,2.6), clip="off")
 
     left = (naive / (og_tsg_orf(gistic, orfdata) | amp_del_orf(gistic, orfdata))) +
         plot_layout(heights=c(2,1))
     right = (wrap_elements(screen_cor(ov)) / go_volc()) +
-        plot_layout(heights=c(1,2))
+        plot_layout(heights=c(1.2,2))
 
     asm = (left | right) + plot_layout(widths=c(3,2)) + plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(axis.text = element_text(size=10),
+              legend.text = element_text(size=10),
+              plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("FigS3-ORFscreen.pdf", 14, 10)
     print(asm)

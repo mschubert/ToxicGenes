@@ -15,7 +15,7 @@ comp_orf = function(all, gistic_amp) {
                est_ccle_tcga = (est_ccle + est_tcga)/2,
                dropout = stat_orf < -5,
                label = ifelse((type != "Background" & abs(stat_orf) > 4) | stat_orf > 6 |
-                              stat_orf < -12 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
+                              stat_orf < -15 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
 
     m = lm(stat_orf ~ est_ccle_tcga, data=dset) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
@@ -25,13 +25,13 @@ comp_orf = function(all, gistic_amp) {
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_point(aes(color=type, alpha=dropout)) +
+        geom_smooth(method="lm", se=FALSE) +
         ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
             box.padding=unit(0.1, "lines"), min.segment.length=0,
             segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.4), name="Dropout") +
         annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
-        geom_smooth(method="lm", se=FALSE) +
         theme_classic() +
         coord_cartesian(clip="off") +
         labs(x = "Mean expression over expected CCLE/TCGA",
@@ -53,11 +53,12 @@ go_cors = function() {
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=tcga_ccle, y=stat_orf, label=label), size=size_used,
-               max_ov=10, draw_label=80, palette="Greys", pal_alpha=0.5) +
+               max_ov=10, draw_label=45, palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5) +
+        guides(alpha=FALSE) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         ylim(c(-24,NA)) +
-        annotate("text", x=6, y=-11, color="blue", label=lab, parse=TRUE) +
+        annotate("text", x=6, y=-8, color="blue", label=lab, parse=TRUE) +
         labs(x = "Mean expression over expected CCLE/TCGA (Wald statistic)",
              y = "Mean dropout ORF screen (Wald statistic)")
 }
@@ -114,7 +115,9 @@ sys$run({
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +
         plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(axis.text = element_text(size=10),
+              legend.text = element_text(size=10),
+              plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("FigS4-Overlap.pdf", 11, 14)
     print(asm)

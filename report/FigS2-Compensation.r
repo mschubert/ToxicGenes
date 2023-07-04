@@ -43,7 +43,7 @@ tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
         scale_fill_continuous(type = "viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_wrap(~ type) +
         geom_smooth(method="lm", color="blue", se=FALSE, size=0.7) +
-        geom_label(data=mods, aes(x=0.6, y=-1.05, label=label), parse=TRUE, color="blue",
+        geom_label(data=mods, aes(x=0.55, y=-1.05, label=label), parse=TRUE, color="blue",
                    fill="#ffffffc0", label.size=NA, hjust=0.5, vjust=0.5, size=4) +
         ggnewscale::new_scale(c("fill")) +
         geom_point(data=hl, aes(fill=Gene), color="black", shape=21, size=2.5) +
@@ -285,13 +285,14 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe1_comp(rpe, all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe, all)) +
         plot_layout(heights=c(1,1,2))
 
     asm = (left | right) + plot_layout(widths=c(2,1)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
-              plot.tag = element_text(size=18, face="bold"))
+              legend.text = element_text(size=10),
+              plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("FigS2-Compensation.pdf", 15, 12)
     print(asm)

@@ -40,6 +40,7 @@ og_tsg_cna = function(gistic, cosmic) {
 og_vs_tsg = function(gistic, cosmic) {
     gwide = tidyr::pivot_wider(gistic, names_from="type", values_from="frac") %>%
         left_join(cosmic) %>%
+        filter(!is.na(type)) %>%
         mutate(label = ifelse(!is.na(type) & gene_name %in% cm$hlg, gene_name, NA))
 
     areas = data.frame(xmin=c(0.15,-Inf), xmax=c(Inf,Inf), ymin=c(-Inf,0.15), ymax=c(Inf,Inf),

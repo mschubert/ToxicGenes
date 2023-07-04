@@ -14,7 +14,7 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
         try({
             readr::read_tsv(fname) %>%
                 select(label=GeneID, chr, strand, PValue, FDR, IncLevel1, IncLevel2, IncLevelDifference) %>%
-                mutate(stat = -log10(pmax(PValue, 1e-20)) * sign(IncLevelDifference)) %>%
+                mutate(shrunkIncDiff = (1-(pmin(1,PValue*10))) * IncLevelDifference) %>%
                 arrange(FDR, PValue)
         })
     }
@@ -23,10 +23,19 @@ read_all = function(comp, stypes=c("A3SS", "A5SS", "MXE", "RI", "SE"), junction=
     re[sapply(re$genes, function(x) class(x)[1]) != "try-error",]
 }
 
+do_test = function(genes) {
+    tryCatch({
+        g = genes %>% group_by(label) %>%
+            summarize(shrunkAbsIncDiff = max(abs(shrunkIncDiff)))
+        gset$test_lm(g, sets[[sname]], stat="shrunkAbsIncDiff") %>%
+            dplyr::rename(mean_shrunkAbsIncDiff=estimate)
+    }, error = function(e) tibble())
+}
+
 sys$run({
     args = sys$cmd$parse(
         opt('c', 'comp', 'comparison', 'splice-HCC70_rbm8_vs_luc8'),
-        opt('o', 'outfile', 'rds', 'splice-rbm8_vs_luc8-JC.rds')
+        opt('o', 'outfile', 'rds', 'splice/splice-HCC70_rbm8_vs_luc8.rds')
     )
 
     sets = gset$get_human(c("MSigDB_Hallmark_2020", "CORUM_all", "CORUM_core", "CORUM_splice",
@@ -37,13 +46,10 @@ sys$run({
     res = list(
         jc = read_all(args$comp, junction="JC"),
         jcec = read_all(args$comp, junction="JCEC")
-    ) %>% bind_rows(.id="junction") %>% rowwise()
+    ) %>% bind_rows(.id="junction")
 
     for (sname in names(sets))
-        res = res %>%
-            mutate({{ sname }} := tryCatch({
-                list(gset$test_lm(genes, sets[[sname]]))
-            }, error = function(e) list(tibble())))
+        res = rowwise(res) %>% mutate({{ sname }} := list(do_test(genes)))
 
     saveRDS(ungroup(res), file=args$outfile)
 })

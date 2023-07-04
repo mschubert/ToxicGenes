@@ -1,0 +1,41 @@
+rule all:
+    input:
+        "PRISM.pdf", "PRISM_veronica.pdf",
+        "depmap.pdf", "depmap_sets.pdf", "depmap_DEcor.pdf",
+        "depmap_DEsig.pdf", "depmap_DEsig2.pdf"
+
+rule prism:
+    input:
+        rscript = "PRISM.r"
+    output:
+        plotfile = "PRISM.pdf"
+    shell:
+        "Rscript {input.rscript} --plotfile {output.plotfile}"
+
+rule prism_veronica:
+    input:
+        rscript = "PRISM_veronica.r",
+        meta = "CCLE_RBM14expCN.csv",
+        resp = "PRISMsecondary.csv"
+    output:
+        plotfile = "PRISM_veronica.pdf"
+    shell:
+        "Rscript {input.rscript} --plotfile {output.plotfile}"
+
+rule depmap:
+    input:
+        rscript = "depmap.r"
+    output:
+        outfile = "depmap.rds",
+        plotfile = "depmap.pdf"
+    shell:
+        "Rscript {input.rscript} --outfile {output.outfile} --plotfile {output.plotfile}"
+
+rule depmap_derived:
+    input:
+        rscript = "depmap_{type}.r",
+        infile = "depmap.rds"
+    output:
+        plotfile = "depmap_{type}.pdf"
+    shell:
+        "Rscript {input.rscript} --infile {input.infile} --plotfile {output.plotfile}"

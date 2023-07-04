@@ -99,6 +99,8 @@ PARP_volcano$PARP <- "PARP inhibitor"
 lm.moa$Significant <- ifelse(lm.moa$p.value <= 0.05, "p.val < 0.05", "Not Sig")
 lm.cn.moa$Significant <- ifelse(lm.cn.moa$p.value <= 0.05, "p.val < 0.05", "Not Sig")
 
+pdf("PRISM_veronica.pdf")
 ggplot(lm.moa, aes(x=estimate, y=-log(p.value))) + xlab("Estimate") + ylab("Significance (-log10 pvalue)") + ggtitle("Correlation between RBM14 expression and drug sensitivity (corrected by lineage)") + geom_point(aes(color = Significant)) + scale_color_manual(values = c("grey", "red","blue")) + theme_classic() + geom_point(data= PARP_volcano, aes(x=estimate,y=-log(p.value), color= PARP,show.legend=FALSE)) +  geom_text_repel(size= 3, color="#2b35e2", data=PARP_volcano, aes(estimate,-log(p.value),label=name))
 
 ggplot(lm.cn.moa, aes(x=estimate, y=-log(p.value))) + xlab("Estimate") + ylab("Significance (-log10 pvalue)") + ggtitle("Correlation between RBM14 CN and drug sensitivity (corrected by lineage)") + geom_point(aes(color = Significant)) + scale_color_manual(values = c("grey", "red","blue")) + theme_classic() + geom_point(data= PARP_volcano, aes(x=estimate,y=-log(p.value), color= PARP,show.legend=FALSE)) +  geom_text_repel(size= 3, color="#2b35e2", data=PARP_volcano, aes(estimate,-log(p.value),label=name))
+dev.off()

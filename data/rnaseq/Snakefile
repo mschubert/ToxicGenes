@@ -70,7 +70,7 @@ rule de_plot:
 rule splice:
     input:
         rscript = "splice.r",
-        rmats = directory("rmats_out/{paired}-{comp}"),
+        rmats = "rmats_out/{paired}-{comp}",
         u12 = "GRCh38_U12.bed"
     output:
         outfile = "splice/{paired}-{comp}.rds",

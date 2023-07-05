@@ -1,6 +1,6 @@
 library(brms)
 library(dplyr)
-library(cmdstanr)
+#library(cmdstanr)
 snb = import('../../ccle/fit_stan-nb')
 
 do_fit = function(dset, et=0.15) {
@@ -13,12 +13,18 @@ do_fit = function(dset, et=0.15) {
     } else {
         fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
     }
-    if2 = function() list(b=c(0, runif(length(unique(df$covar)), 0.5, 1.5)))
+    sc = make_stancode(fml, family=negbinomial(link="identity"), data=dset,
+                       prior = prior(normal(0,0.5), coef="sf:eup_dev") +
+                               prior(lognormal(0,1), class="b"))
+    init_fun = function() {
+        lp = grep("lprior \\+= .*b\\[[0-9]+\\]", strsplit(sc, "\\n")[[1]], value=TRUE)
+        list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
+    }
     res = brm(fml, family=negbinomial(link="identity"),
-              data = df, chains=4, cores = 1, init = if2,
+              data = dset, chains=4, cores = 1, init = init_fun,
               prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                      prior(lognormal(0,1), class="b"),
-              backend = "cmdstanr")
+                      prior(lognormal(0,1), class="b"))#,
+#              backend = "cmdstanr")
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
@@ -52,4 +58,6 @@ df = snb$prep_data(ccle_df, "pan") %>% tidyr::unnest(data)
 df2 = snb$prep_data(ccle_df, "BRCA") %>% tidyr::unnest(data)
 df3 = snb$prep_data(ccle_df, c("LUAD", "LUSC", "SCLC")) %>% tidyr::unnest(data)
 
-do_fit(df)
+r1 = do_fit(df)
+r2 = do_fit(df2)
+r3 = do_fit(df3)

@@ -106,7 +106,7 @@ sys$run({
 
     asm = ((left + plot_layout(heights=c(1.2,3))) |
         (right + plot_layout(heights=c(1.8,3)))) + plot_layout(widths=c(3,2)) +
-        plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=18, face="bold"))
+        plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("Fig2-Comp+ORF.pdf", 14, 10)
     print(asm)

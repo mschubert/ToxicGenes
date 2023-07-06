@@ -15,7 +15,14 @@ pmat = prot[,c("Gene_Symbol", grep("_TenPx[0-9]+$", colnames(prot), value=TRUE))
 
 saveRDS(pmat, file="protein_quant.rds")
 
-sel = pmat %>% filter(Gene_Symbol %in% c("CDKN1A", "RBM14"))
+lookup = c(
+    NCIH838_LUNG = "NCI-H838",
+    NCIH1650_LUNG = "NCI-H1650",
+    ZR751_BREAST = "ZR-75-1",
+    HCC70_BREAST = "HCC70"
+)
+sel = pmat %>% filter(Gene_Symbol %in% c("CDKN1A", "RBM14")) %>%
+    mutate(label = lookup[cline], has_label = !is.na(label))
 cur = list(`Pan-can` = sel,
            Breast = sel %>% filter(grepl("BREAST", cline)),
            Lung = sel %>% filter(grepl("LUNG", cline))) %>%
@@ -23,12 +30,15 @@ cur = list(`Pan-can` = sel,
     mutate(Tissue = factor(Tissue, levels=c("Pan-can", "Breast", "Lung")))
 
 pdf("protein_quant.pdf", 7, 5)
-ggplot(cur, aes(x=copies, y=pmin(2^protein, 5))) +
+ggplot(cur, aes(x=pmin(copies, 5), y=pmin(2^protein, 5))) +
     geom_hline(yintercept=1, color="grey", size=1, linetype="dashed") +
-    geom_point(alpha=0.6) +
+    geom_point(color="grey", alpha=0.6) +
+    geom_point(data=cur %>% filter(has_label), color="black", alpha=0.6) +
     geom_abline(slope=0.5, intercept=0, color="red", linetype="dashed", size=1) +
     geom_smooth(method="lm", se=FALSE, size=1) +
+    ggrepel::geom_text_repel(aes(label=label)) +
     theme_minimal() +
     facet_grid(Gene_Symbol ~ Tissue) +
-    ylab("Normalized protein expression")
+    labs(x = "copies",
+         y = "Normalized protein expression")
 dev.off()

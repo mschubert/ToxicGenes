@@ -1,5 +1,6 @@
 library(brms)
 library(dplyr)
+library(ggplot2)
 #library(cmdstanr)
 snb = import('../../ccle/fit_stan-nb')
 
@@ -42,6 +43,24 @@ do_fit = function(dset, et=0.15) {
            p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 }
 
+run_all_models = function(ccle_df) {
+    run_one_model = function(.tissue, .p53_mut) {
+        dset = switch(.tissue, pan=pan, breast=breast, lung=lung)
+        if (!is.na(.p53_mut))
+            dset = filter(dset, .p53_mut == p53_mut)
+        do_fit(dset)
+    }
+    pan = snb$prep_data(ccle_df, "pan") %>% tidyr::unnest(data)
+    breast = snb$prep_data(ccle_df, "BRCA") %>% tidyr::unnest(data)
+    lung = snb$prep_data(ccle_df, c("LUAD", "LUSC", "SCLC")) %>% tidyr::unnest(data)
+
+    expand.grid(tissue = c("pan", "breast", "lung"),
+                p53_mut = c(0, 1, NA), stringsAsFactors=FALSE) %>%
+        rowwise() %>%
+        mutate(res = list(run_one_model(tissue, p53_mut))) %>%
+        tidyr::unnest(res)
+}
+
 ccledata = readRDS("../../data/ccle/dset.rds")
 meta = ccledata$clines %>%
     select(cell_line=CCLE_ID, cline=Name) %>%
@@ -54,10 +73,9 @@ ccle_df = readRDS("../../data/df_ccle.rds") %>%
     mutate(p53_mut = ifelse(cell_line %in% ccle_mut$cell_line, 1, 0)) %>%
     filter(gene == "CDKN1A")
 
-df = snb$prep_data(ccle_df, "pan") %>% tidyr::unnest(data)
-df2 = snb$prep_data(ccle_df, "BRCA") %>% tidyr::unnest(data)
-df3 = snb$prep_data(ccle_df, c("LUAD", "LUSC", "SCLC")) %>% tidyr::unnest(data)
-
-r1 = do_fit(df)
-r2 = do_fit(df2)
-r3 = do_fit(df3)
+res = run_all_models(ccle_df)
+pdf("compare_p53.pdf")
+ggplot(res, aes(x=estimate, y=z_comp, size=n_aneup)) +
+    geom_point(aes(shape=factor(p53_mut), color=tissue)) +
+    scale_shape_discrete(na.value=15)
+dev.off()

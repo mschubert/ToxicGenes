@@ -22,12 +22,13 @@ cur = list(`Pan-can` = sel,
     bind_rows(.id="Tissue") %>%
     mutate(Tissue = factor(Tissue, levels=c("Pan-can", "Breast", "Lung")))
 
-pdf("protein_quant.pdf", 8, 5)
-ggplot(cur, aes(x=copies, y=protein)) +
-    geom_hline(yintercept=0, color="grey", size=1, linetype="dashed") +
+pdf("protein_quant.pdf", 7, 5)
+ggplot(cur, aes(x=copies, y=pmin(2^protein, 5))) +
+    geom_hline(yintercept=1, color="grey", size=1, linetype="dashed") +
     geom_point(alpha=0.6) +
-    geom_smooth(method="lm", se=FALSE) +
+    geom_abline(slope=0.5, intercept=0, color="red", linetype="dashed", size=1) +
+    geom_smooth(method="lm", se=FALSE, size=1) +
     theme_minimal() +
     facet_grid(Gene_Symbol ~ Tissue) +
-    ylab("normalized protein expression")
+    ylab("Normalized protein expression")
 dev.off()

@@ -29,16 +29,20 @@ cur = list(`Pan-can` = sel,
     bind_rows(.id="Tissue") %>%
     mutate(Tissue = factor(Tissue, levels=c("Pan-can", "Breast", "Lung")))
 
-pdf("protein_quant.pdf", 7, 5)
-ggplot(cur, aes(x=pmin(copies, 5), y=pmin(2^protein, 5))) +
-    geom_hline(yintercept=1, color="grey", size=1, linetype="dashed") +
-    geom_point(color="grey", alpha=0.6) +
-    geom_point(data=cur %>% filter(has_label), color="black", alpha=0.6) +
-    geom_abline(slope=0.5, intercept=0, color="red", linetype="dashed", size=1) +
-    geom_smooth(method="lm", se=FALSE, size=1) +
-    ggrepel::geom_text_repel(aes(label=label)) +
-    theme_minimal() +
-    facet_grid(Gene_Symbol ~ Tissue) +
-    labs(x = "copies",
-         y = "Normalized protein expression")
+plt = function(cur) {
+    ggplot(cur, aes(x=pmin(copies, 5), y=pmin(2^protein, 5))) +
+        geom_hline(yintercept=1, color="grey", size=1, linetype="dashed") +
+        geom_point(color="grey", alpha=0.6) +
+        geom_point(data=cur %>% filter(has_label), color="black", alpha=0.6) +
+        geom_abline(slope=0.5, intercept=0, color="red", linetype="dashed", size=1) +
+        geom_smooth(method="lm", se=FALSE, size=1) +
+        ggrepel::geom_text_repel(aes(label=label)) +
+        theme_minimal() +
+        facet_grid(Gene_Symbol ~ Tissue) +
+        labs(x = "copies",
+             y = "Normalized protein expression")
+}
+pdf("protein_quant.pdf", 7.5, 3.5)
+plt(cur %>% filter(Gene_Symbol == "CDKN1A"))
+plt(cur %>% filter(Gene_Symbol == "RBM14"))
 dev.off()

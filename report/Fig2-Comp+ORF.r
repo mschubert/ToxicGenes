@@ -42,10 +42,15 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
+    bord = tibble(x=c(-.3,-.3), y=c(-.3,-.3), yend=c(-Inf,-.3), xend=c(-.3,-Inf))
 
     p = ggplot(both, aes(x=estimate.x, y=estimate.y)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
+        geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
+                     linetype="dotted", size=0.3, color=cm$cols[["Compensated"]]) +
+        geom_segment(data=bord, aes(x=-x, y=-y, xend=-xend, yend=-yend),
+                     linetype="dotted", size=0.3, color=cm$cols[["Hyperactivated"]]) +
         geom_point(data=both %>% filter(group == "Background"),
                    aes(size=n_aneup.y, color=group), alpha=0.2) +
         geom_point(data=both %>% filter(group != "Background"),

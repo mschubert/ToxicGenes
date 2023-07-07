@@ -1,10 +1,12 @@
 library(dplyr)
 
-ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") #%>%
-#    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
+    mutate(compensation = (1 - p.value) * estimate) %>%
+    select(-n_genes)
 
-tcga = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") #%>%
-#    mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+tcga = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
+    mutate(compensation = (1 - p.value) * estimate) %>%
+    select(-n_genes)
 
 orf = readxl::read_xlsx("../orf/fits_naive.xlsx")
 

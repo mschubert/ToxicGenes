@@ -47,17 +47,19 @@ go_cors = function() {
     both = inner_join(ccle_go, tcga_go) %>% filter(size_used < 1000) %>%
         inner_join(orf %>% select(label=name, stat_orf=statistic)) %>%
         mutate(tcga_ccle = (stat_ccle+stat_tcga)/2)
+    both$label[abs(both$tcga_ccle) < 1 & !grepl("33139", both$label)] = NA
+    al = grep("33139", both$label, value=TRUE)
 
     m = broom::glance(lm(tcga_ccle ~ stat_orf, data=both))
     lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
+    both$stat_orf = pmax(-25, both$stat_orf)
 
-    plt$denspt(both, aes(x=tcga_ccle, y=stat_orf, label=label), size=size_used,
-               max_ov=10, draw_label=45, palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5) +
+    plt$denspt(both, aes(x=tcga_ccle, y=stat_orf, label=label), size=size_used, always_label=al,
+               max_ov=10, draw_label=35, palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5) +
         guides(alpha=FALSE) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
-        ylim(c(-24,NA)) +
         annotate("text", x=6, y=-8, color="blue", label=lab, parse=TRUE) +
         labs(x = "Mean expression over expected CCLE/TCGA (Wald statistic)",
              y = "Mean dropout ORF screen (Wald statistic)")

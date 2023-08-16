@@ -18,10 +18,11 @@ broom::tidy(betareg(pTriplo ~ is_comp, data=dset))
 p1 = ggplot(dset, aes(x=is_comp, y=pTriplo)) +
     ggbeeswarm::geom_quasirandom(alpha=0.5) +
     ggpubr::stat_compare_means() +
-    stat_summary(fun=mean, geom="line", colour="red")
+    stat_summary(fun=mean, geom="crossbar", colour="red")
 
 p2 = ggplot(dset, aes(x=is_argos, y=pTriplo)) +
     ggbeeswarm::geom_quasirandom(alpha=0.5) +
-    ggpubr::stat_compare_means()
+    ggpubr::stat_compare_means() +
+    stat_summary(fun=mean, geom="crossbar", colour="red")
 
 (p1 | p2) & ylim(NA, 1.05)

@@ -87,6 +87,8 @@ if (is.null(module_name())) {
                condition = sub("LFC$", "LFC DMSO/ETP", condition),
                cells = sub(" .*$", "", condition),
                cells = sub("-ETP", "", cells, fixed=TRUE),
+               cells = sub("Kura", "Kuramochi", cells, fixed=TRUE),
+               cells = sub("SKBr3", "SK-BR-3", cells, fixed=TRUE),
                cells = sub("LnCAP", "LnCaP", cells, fixed=TRUE),
                cells = sub("SKNEP1", "SK-NEP-1", cells, fixed=TRUE),
                condition = sub("^[A-Za-z0-9-]+ ", "", condition)) %>%

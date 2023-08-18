@@ -4,7 +4,7 @@ BT474	BRCA	mut	invasive ductal carcinoma
 D283	MB	NA	
 D458	MB	NA	
 H2077	LUAD	NA	
-Kura	OV	NA	
+Kuramochi	OV	NA	
 LAN-1	NB	NA	metastatic site: bone marrow
 LnCaP	PRAD	wt	
 Meljuso	SKCM	NA	
@@ -12,7 +12,7 @@ NB69	NB	NA
 OVCAR4	OV	mut	
 OVSAHO	OV	mut	metastatic site: abdomen
 SK-NEP-1	EWS	mut	pleural effusion; often misidentified as Wilms tumor
-SKBr3	BRCA	mut	metastatic site: pleural effusion
+SK-BR-3	BRCA	mut	metastatic site: pleural effusion
 T47D	BRCA	mut	metastatic site: pleural effusion
 TC32	EWS	NA	
 WM266-4	SKCM	NA	metastatic site: thigh skin

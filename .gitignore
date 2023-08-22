@@ -1,5 +1,6 @@
 ### project-specific
 candidates/*/*.yaml
+*.backup
 
 ### seq
 *.bam

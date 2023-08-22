@@ -89,7 +89,7 @@ sys$run({
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('j', 'cores', 'integer', '70'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'xlsx', 'pan/stan-nb.xlsx')
+        opt('o', 'outfile', 'rds', 'pan/stan-nb.rds')
     )
 
     cna_cmq = function(.gene, .data, cna) {
@@ -116,5 +116,5 @@ sys$run({
         all = cna_cmq(gene, data, "all")
     ))
 
-    writexl::write_xlsx(res, args$outfile)
+    saveRDS(res, args$outfile)
 })

@@ -38,9 +38,9 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     z_comp = mean(eup_dev) / sd(eup_dev)
 
     tibble(estimate = mean(eup_dev) / mean(intcp),
+           std.error = sd(eup_dev) / mean(intcp),
            z_comp = z_comp,
            n_aneup = n_aneup,
-           n_genes = 1,
            eup_reads = mean(intcp) * mean(dset$expr),
            n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
            Rhat = rhat(res, pars="b_sf:eup_dev"),
@@ -59,7 +59,7 @@ make_mod = function(data) {
     }
 
     mod = brm(fml, family=negbinomial(link="identity"),
-              data = data, chains = 0, cores = 1,
+              data = data, chains = 0, cores = 1, drop_unused_levels = FALSE,
               prior = prior(normal(0,0.5), coef="sf:eup_dev") +
                       prior(lognormal(0,1), class="b"))
 }
@@ -76,7 +76,8 @@ prep_data = function(ccle_df, tissue) {
 
     ccle_df %>%
         mutate(eup_dev = ((copies - 2) / 2),
-               eup_equiv = eup_dev + 1) %>%
+               eup_equiv = eup_dev + 1,
+               covar = factor(covar)) %>%
         group_by(gene) %>%
             tidyr::nest() %>%
         ungroup()

@@ -20,20 +20,14 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     dset$sf = dset$sf * mean(dset$expr) # parameterize so fitted mean is constant
 
     n_aneup = sum(abs(dset$copies-2) > 1-et)
-    if (n_aneup < min_aneup)
+    if (n_aneup < min_aneup || all(dset$expr == 0))
         return(data.frame(n_aneup=n_aneup))
 
-    # stancode(mod) has eup_dev on different positions of b[i]
-    init_fun = function() {
-        lp = grep("lprior \\+= .*b\\[[0-9]+\\]",
-                  strsplit(stancode(mod), "\\n")[[1]], value=TRUE)
-        list(b = ifelse(grepl(" normal_lpdf", lp), 0, runif(length(lp), 0.5, 1.5)))
-    }
-    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
+    res = update(mod, newdata=dset, chains=4, iter=2000)
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
-    intcp = rmat[,colnames(rmat) == "b_sf:eup_equiv" | is_covar, drop=FALSE]
+    intcp = rmat[,colnames(rmat) == "b_scaling_sf:eup_equiv" | is_covar, drop=FALSE]
     eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
     z_comp = mean(eup_dev) / sd(eup_dev)
 
@@ -42,26 +36,35 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
            z_comp = z_comp,
            n_aneup = n_aneup,
            eup_reads = mean(intcp) * mean(dset$expr),
-           n_eff = neff_ratio(res, pars="b_sf:eup_dev"),
-           Rhat = rhat(res, pars="b_sf:eup_dev"),
+           n_eff = neff_ratio(res, pars="b_deviation_sf:eup_dev"),
+           Rhat = rhat(res, pars="b_deviation_sf:eup_dev"),
            p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))
 }
 
 #' Precompile BRMS model
 #'
+#' Using nonlinear syntax to specify coefficient bounds:
+#'   https://github.com/paul-buerkner/brms/issues/1422
+#'
 #' @param data  A data.frame with the model data
 #' @return      A brms model object
 make_mod = function(data) {
     if (length(unique(data$covar)) == 1) {
-        fml = expr ~ 0 + sf:eup_equiv + sf:eup_dev
+        fml = bf(expr ~ 0 + scaling + deviation,
+                 scaling ~ 0 + sf:eup_equiv,
+                 deviation ~ 0 + sf:eup_dev,
+                 nl = TRUE)
     } else {
-        fml = expr ~ 0 + sf:covar:eup_equiv + sf:eup_dev
+        fml = bf(expr ~ 0 + scaling + deviation,
+                 scaling ~ 0 + sf:covar:eup_equiv,
+                 deviation ~ 0 + sf:eup_dev,
+                 nl = TRUE)
     }
 
     mod = brm(fml, family=negbinomial(link="identity"),
               data = data, chains = 0, cores = 1, drop_unused_levels = FALSE,
-              prior = prior(normal(0,0.5), coef="sf:eup_dev") +
-                      prior(lognormal(0,1), class="b"))
+              prior = prior(normal(0,0.5), class="b", nlpar="deviation") +
+                      prior(lognormal(0,1), class="b", nlpar="scaling", lb=0))
 }
 
 #' Prepare common CCLE data.frame to serve as model input

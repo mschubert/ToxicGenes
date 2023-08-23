@@ -7,26 +7,24 @@ subworkflow genesets:
     workdir: "../data/genesets"
 
 mem = { 'pan' : 1024, '*' : 512 }
-cores = { 'pan' : 70, '*' : 0 }
+cores = { 'pan' : 70, '*' : 10 }
 time = { 'pan' : 72*60, '*' : 360 }
 
 rule fits:
     input:
-        expand("{tissue}/{fit}.pdf", tissue=config['ccle_tissues'], fit=config['fits']),
+        expand("fit_brms/{tissue}.pdf", tissue=config['ccle_tissues']),
         expand("bionet/{tissue}.pdf", tissue=config['ccle_tissues'])
 
 rule gsets:
     input:
-        expand("{tissue}/{fit}/{select}/{gset}.pdf",
-                tissue=config['cor_tissues'], gset=config['genesets'],
-                fit=config['fits'], select=['all', 'comp', 'comp+orf'])
+        expand("fit_brms/{tissue}/{gset}.pdf", tissue=config['cor_tissues'], gset=config['genesets'])
 
 rule fit:
     input:
         rscript = "fit_{fit}.r",
         infile = data("df_ccle.rds")
     output:
-        outfile = "{tissue}/{fit}.rds"
+        outfile = "fit_{fit}/{tissue}.rds"
     resources:
         mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
         cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
@@ -43,9 +41,9 @@ rule fit:
 rule plot:
     input:
         rscript = "plot.r",
-        infile = "{tissue}/{fit}.rds"
+        infile = "fit_{fit}/{tissue}.rds"
     output:
-        plotfile = "{tissue}/{fit}.pdf"
+        plotfile = "plot_{fit}/{tissue}.pdf"
     group: "fit_and_plot"
     shell:
         "Rscript {input.rscript}"
@@ -57,22 +55,20 @@ rule gset:
         rscript = "gset.r",
         infile = "{tissue}/{fit}.rds",
         setfile = genesets("{gset}.rds"),
-        selfile = "../cor_tcga_ccle/positive_comp_set.tsv"
     output:
-        outfile = "{tissue}/{fit}/{select}/{gset}.rds",
-        plotfile = "{tissue}/{fit}/{select}/{gset}.pdf"
+        outfile = "plot_{fit}/{tissue}/{gset}.rds",
+        plotfile = "plot_{fit}/{tissue}/{gset}.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
-            " --select {wildcards.select}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
 rule bionet:
     input:
         rscript = "bionet.r",
-        infile = "{tissue}/stan-nb.rds"
+        infile = "fit_brms/{tissue}.rds"
     output:
         plotfile = "bionet/{tissue}.pdf"
     shell:

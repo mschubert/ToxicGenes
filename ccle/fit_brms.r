@@ -35,7 +35,7 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
            std.error = sd(eup_dev) / mean(intcp),
            z_comp = z_comp,
            n_aneup = n_aneup,
-           eup_reads = mean(intcp) * mean(dset$expr),
+           eup_reads = round(mean(intcp) * mean(dset$expr)),
            n_eff = neff_ratio(res, pars="b_deviation_sf:eup_dev"),
            Rhat = rhat(res, pars="b_deviation_sf:eup_dev"),
            p.value = 2 * pnorm(abs(z_comp), lower.tail=FALSE))

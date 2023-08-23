@@ -14,8 +14,10 @@ genesets:
     - CORUM_all
     - CORUM_splice
     - HMDB_Metabolites
+    - InterPro_Domains_2019
     - manual
     - CIN
+    - DDR
 
 orf_tissues:
     - pan
@@ -54,31 +56,14 @@ tcga_tissues:
 
 cor_tissues:
     - pan
-    - BRCA
-    - OV
-    - SKCM
-    - LUAD
-    - LUSC
-    - NSCLC
-    - PRAD
-    - COADREAD
-
-# all the fits that should be calculated
-fits:
-#    - rlm
-#    - rlm2
-#    - rlm3
-    - stan-nb
-#    - lm3
-#    - lm3r
-
-# which fits are plotted in top hit comparisons
-fit_compare:
-#    - rlm2
-#    - rlm3
-    - stan-nb
-#    - lm3
-#    - lm3r
+#    - BRCA
+#    - OV
+#    - SKCM
+#    - LUAD
+#    - LUSC
+#    - NSCLC
+#    - PRAD
+#    - COADREAD
 
 cna:
     - amp

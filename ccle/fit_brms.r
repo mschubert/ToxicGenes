@@ -23,7 +23,11 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
     if (n_aneup < min_aneup || all(dset$expr == 0))
         return(data.frame(n_aneup=n_aneup))
 
-    res = update(mod, newdata=dset, chains=4, iter=2000)
+    init_fun = function() {
+        list(b_scaling = array(runif(length(levels(dset$covar)), 0.5, 1.5)),
+             b_deviation = array(0))
+    }
+    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
@@ -93,7 +97,7 @@ sys$run({
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
         opt('j', 'cores', 'integer', '70'),
         opt('m', 'memory', 'integer', '1024'),
-        opt('o', 'outfile', 'rds', 'pan/stan-nb.rds')
+        opt('o', 'outfile', 'rds', 'fit_brms/pan.rds')
     )
 
     cna_cmq = function(.gene, .data, cna) {

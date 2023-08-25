@@ -53,11 +53,10 @@ rsq_vs_comp = function(data, title) {
 
 sys$run({
     args = sys$cmd$parse(
-        opt('i', 'infile', 'xlsx', 'pan/rlm3.xlsx'),
-        opt('p', 'plotfile', 'pdf', 'pan.pdf'))
+        opt('i', 'infile', 'xlsx', 'fit_brms/pan.rds'),
+        opt('p', 'plotfile', 'pdf', 'plot_brms/pan.pdf'))
 
-    fits = readxl::excel_sheets(args$infile) %>%
-        sapply(function(s) readxl::read_xlsx(args$infile, sheet=s), simplify=FALSE)
+    fits = readRDS(args$infile)
     fits = lapply(fits, function(f) {
         if (! "name" %in% colnames(f)) # 2 lines: tcga meth 'gene' as colname
             f$name = f$gene

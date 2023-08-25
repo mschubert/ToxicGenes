@@ -6,32 +6,31 @@ subworkflow data:
 subworkflow genesets:
     workdir: "../data/genesets"
 
-mem = { "pan" : 1536, "*" : 1024 }
-cores = { "pan" : 500, "*" : 70 }
+from collections import defaultdict as dd
+mem = dd(lambda: 1536, { 'pan' : 2048 })
+cores = dd(lambda: 70, { 'pan' : 70 })
+time = dd(lambda: 6*60, { 'pan' : 12*24*60 })
+
+rule all:
+    input:
+        expand("fit_{tcga_adj}/{tcga_tissues}.pdf", **config),
+        expand("fit_{tcga_adj}/{tcga_tissues}/{genesets}.pdf", **config),
+        expand("bionet/{tcga_tissues}.pdf", **config)
 
 rule fits:
     input:
-        expand("{tissue}/{fit}_{type}.pdf", tissue=config['tcga_tissues'],
-                type=config['tcga_adj'], fit=config['fits']),
-        expand("bionet/{tissue}.pdf", tissue=config['tcga_tissues'])
-
-rule gsets:
-    input:
-        expand("{tissue}/{fit}_{type}/{select}/{gset}.pdf", tissue=config['cor_tissues'],
-                type=config['tcga_adj'], gset=config['genesets'],
-                fit=config['fits'], select=['all', 'comp', 'comp+orf'])
+        expand("fits_{tcga_adj}/{tcga_tissues}.rds", **config)
 
 rule fit:
     input:
-        rscript = "fit_{fit}.r",
+        rscript = "fit_brms.r",
         infile = data("df_tcga.rds")
     output:
-        outfile = "{tissue}/{fit}_{type}.xlsx",
-        outfile2 = "{tissue}/{fit}_{type}.rds"
+        outfile = "fit_{type}/{tissue}.rds"
     resources:
-        mem = lambda wc: mem[wc.tissue] if wc.tissue in mem.keys() else mem["*"],
-        cores = lambda wc: cores[wc.tissue] if wc.tissue in cores.keys() else cores["*"],
-        walltime = 480
+        mem = lambda wc: mem[wc.tissue],
+        cores = lambda wc: cores[wc.tissue],
+        walltime = lambda wc: time[wc.tissue]
     group: "fit_and_plot"
     wildcard_constraints:
         fit = "[a-z0-9-]+"
@@ -46,9 +45,9 @@ rule fit:
 rule plot:
     input:
         rscript = "../ccle/plot.r",
-        infile = "{tissue}/{fit}_{type}.xlsx"
+        infile = "{fit}_{type}/{tissue}.rds"
     output:
-        plotfile = "{tissue}/{fit}_{type}.pdf"
+        plotfile = "plot_{type}/{tissue}.pdf"
     group: "fit_and_plot"
     wildcard_constraints:
         type = "[a-z]+",
@@ -62,12 +61,11 @@ rule plot:
 rule gset:
     input:
         rscript = "../ccle/gset.r",
-        infile = "{tissue}/{fit}_{type}.xlsx",
+        infile = "fit_{type}/{tissue}.rds",
         setfile = genesets("{gset}.rds"),
-        selfile = "../cor_tcga_ccle/positive_comp_set.tsv"
     output:
-        outfile = "{tissue}/{fit}_{type}/{select}/{gset}.rds",
-        plotfile = "{tissue}/{fit}_{type}/{select}/{gset}.pdf"
+        outfile = "plot_{type}/{tissue}/{gset}.rds",
+        plotfile = "plot_{type}/{tissue}/{gset}.pdf"
     wildcard_constraints:
         fit = "[a-z0-9-]+",
         type = "[a-z0-9-]+"
@@ -75,14 +73,13 @@ rule gset:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
             " --setfile {input.setfile}"
-            " --select {wildcards.select}"
             " --outfile {output.outfile}"
             " --plotfile {output.plotfile}"
 
 rule bionet:
     input:
         rscript = "../ccle/bionet.r",
-        infile = "{tissue}/stan-nb_puradj.rds"
+        infile = "fit_puradj/{tissue}.rds"
     output:
         plotfile = "bionet/{tissue}.pdf"
     shell:

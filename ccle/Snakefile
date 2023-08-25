@@ -6,18 +6,20 @@ subworkflow data:
 subworkflow genesets:
     workdir: "../data/genesets"
 
-mem = { 'pan' : 1024, '*' : 512 }
-cores = { 'pan' : 70, '*' : 10 }
-time = { 'pan' : 72*60, '*' : 360 }
+from collections import defaultdict as dd
+mem = dd(lambda: 512, { 'pan' : 1024 })
+cores = dd(lambda: 10, { 'pan' : 70 })
+time = dd(lambda: 360, { 'pan' : 72*60 })
+
+rule all:
+    input:
+        expand("plot_brms/{ccle_tissues}.pdf", **config),
+        expand("plot_brms/{ccle_tissues}/{genesets}.pdf", **config),
+        expand("bionet/{ccle_tissues}.pdf", **config)
 
 rule fits:
     input:
-        expand("fit_brms/{tissue}.pdf", tissue=config['ccle_tissues']),
-        expand("bionet/{tissue}.pdf", tissue=config['ccle_tissues'])
-
-rule gsets:
-    input:
-        expand("fit_brms/{tissue}/{gset}.pdf", tissue=config['cor_tissues'], gset=config['genesets'])
+        expand("fit_brms/{ccle_tissues}.rds", **config)
 
 rule fit:
     input:
@@ -26,9 +28,9 @@ rule fit:
     output:
         outfile = "fit_{fit}/{tissue}.rds"
     resources:
-        mem = lambda wc: [ mem[wc.tissue] if wc.tissue in mem.keys() else mem['*'] ][0],
-        cores = lambda wc: [ cores[wc.tissue] if wc.tissue in cores.keys() else cores['*'] ][0],
-        walltime = lambda wc: [ time[wc.tissue] if wc.tissue in time.keys() else time['*'] ][0]
+        mem = lambda wc: mem[wc.tissue],
+        cores = lambda wc: cores[wc.tissue],
+        walltime = lambda wc: time[wc.tissue]
     group: "fit_and_plot"
     shell:
         "nice -n 10 Rscript {input.rscript}"
@@ -53,7 +55,7 @@ rule plot:
 rule gset:
     input:
         rscript = "gset.r",
-        infile = "{tissue}/{fit}.rds",
+        infile = "fit_{fit}/{tissue}.rds",
         setfile = genesets("{gset}.rds"),
     output:
         outfile = "plot_{fit}/{tissue}/{gset}.rds",

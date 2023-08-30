@@ -130,35 +130,26 @@ sys$run({
         opt('c', 'config', 'yaml', '../config.yaml'),
         opt('i', 'infile', 'rds', '../data/df_tcga.rds'),
         opt('t', 'tissue', 'TCGA identifier', 'pan'),
+        opt('p', 'cna', 'amp|del|all', 'amp'),
         opt('y', 'type', 'naive|pur|puradj', 'puradj'),
         opt('j', 'cores', 'integer', '70'),
         opt('m', 'memory', 'integer', '1536'),
-        opt('o', 'outfile', 'xlsx', 'fit_puradj/pan.rds')
+        opt('o', 'outfile', 'xlsx', 'fit_tcga_puradj-amp/pan.rds')
     )
-
-    cna_cmq = function(.gene, .data, cna) {
-        clustermq::Q(do_fit, dset=.data,
-                     const = list(cna=cna, mod=mod, type=args$type, et=cfg$euploid_tol),
-                     pkgs = c("dplyr", "brms"),
-                     n_jobs = as.integer(args$cores),
-                     memory = as.integer(args$memory),
-                     chunk_size = 1) %>%
-            bind_rows() %>%
-            mutate(gene = .gene,
-                   adj.p = p.adjust(p.value, method="fdr")) %>%
-            select(gene, everything()) %>%
-            arrange(adj.p, p.value)
-    }
 
     cfg = yaml::read_yaml(args$config)
     df = readRDS(args$infile) %>% prep_data(args$tissue)
     mod = make_mod(df$data[[1]], type=args$type)
+    const = c(list(mod=mod, et=cfg$euploid_tol), args[c("cna", "type")])
 
-    res = with(df, list(
-        amp = cna_cmq(gene, data, "amp"),
-        del = cna_cmq(gene, data, "del"),
-        all = cna_cmq(gene, data, "all")
-    ))
+    res = clustermq::Q(do_fit, dset=setNames(df$data, as.character(df$gene)),
+                       const = const, pkgs = c("dplyr", "brms"),
+                       n_jobs = as.integer(args$cores),
+                       memory = as.integer(args$memory),
+                       chunk_size = 1) %>%
+        bind_rows(.id="gene") %>%
+        mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
+        arrange(adj.p, p.value)
 
     saveRDS(res, args$outfile)
 })

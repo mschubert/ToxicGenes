@@ -42,7 +42,7 @@ ccle_tissues:
     - PRAD
 
 tcga_tissues:
-    - pan
+#    - pan
     - BRCA
     - LUAD
     - LUSC
@@ -67,7 +67,12 @@ cor_tissues:
 
 tcga_adj:
     - naive
-    - pur
+#    - pur
     - puradj
+
+cna:
+    - amp
+#    - del
+#    - all
 
 euploid_tol: 0.15

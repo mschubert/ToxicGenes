@@ -15,32 +15,32 @@ ccle = {
 tcga = {
     'mem': dd(lambda: 1536, { 'pan' : 2048 }),
     'cores': dd(lambda: 70, { 'pan' : 70 }),
-    'time': dd(lambda: 6*60, { 'pan' : 12*24*60 })
+    'time': dd(lambda: 8*60, { 'pan' : 3*24*60 })
 }
 
 rule all:
     input:
-        expand("plot_ccle/{ccle_tissues}.pdf", **config),
-        expand("plot_ccle/{ccle_tissues}/{genesets}.pdf", **config),
+        expand("plot_ccle-{cna}/{ccle_tissues}.pdf", **config),
+        expand("plot_ccle-{cna}/{ccle_tissues}/{genesets}.pdf", **config),
         expand("bionet/ccle_{ccle_tissues}.pdf", **config),
-        expand("plot_tcga_{tcga_adj}/{tcga_tissues}.pdf", **config),
-        expand("plot_tcga_{tcga_adj}/{tcga_tissues}/{genesets}.pdf", **config),
+        expand("plot_tcga_{tcga_adj}-{cna}/{tcga_tissues}.pdf", **config),
+        expand("plot_tcga_{tcga_adj}-{cna}/{tcga_tissues}/{genesets}.pdf", **config),
         expand("bionet/tcga_{tcga_adj}_{tcga_tissues}.pdf", **config)
 
+rule fits_ccle:
+    input:
+        expand("fit_ccle-{cna}/{ccle_tissues}.rds", **config)
+
+rule fits_tcga:
+    input:
+        expand("fit_tcga_{tcga_adj}-{cna}/{tcga_tissues}.rds", **config)
+
 rule fit_ccle:
-    input:
-        expand("fit_ccle/{ccle_tissues}.rds", **config)
-
-rule fit_tcga:
-    input:
-        expand("fit_tcga_{tcga_adj}/{tcga_tissues}.rds", **config)
-
-rule fit_ccle_impl:
     input:
         rscript = "fit_ccle.r",
         infile = data("df_ccle.rds")
     output:
-        outfile = "fit_ccle/{tissue}.rds"
+        outfile = "fit_ccle-{cna}/{tissue}.rds"
     resources:
         mem = lambda wc: ccle['mem'][wc.tissue],
         cores = lambda wc: ccle['cores'][wc.tissue],
@@ -50,16 +50,17 @@ rule fit_ccle_impl:
         "nice -n 10 Rscript {input.rscript}"
             " --infile {input.infile}"
             " --tissue {wildcards.tissue}"
+            " --cna {wildcards.cna}"
             " --cores {resources.cores}"
             " --memory {resources.mem}"
             " --outfile {output.outfile}"
 
-rule fit_tcga_impl:
+rule fit_tcga:
     input:
         rscript = "fit_tcga.r",
         infile = data("df_tcga.rds")
     output:
-        outfile = "fit_tcga_{type}/{tissue}.rds"
+        outfile = "fit_tcga_{type}-{cna}/{tissue}.rds"
     resources:
         mem = lambda wc: tcga['mem'][wc.tissue],
         cores = lambda wc: tcga['cores'][wc.tissue],
@@ -69,6 +70,7 @@ rule fit_tcga_impl:
         "nice -n 10 Rscript {input.rscript}"
             " --tissue {wildcards.tissue}"
             " --type {wildcards.type}"
+            " --cna {wildcards.cna}"
             " --cores {resources.cores}"
             " --memory {resources.mem}"
             " --outfile {output.outfile}"
@@ -76,13 +78,14 @@ rule fit_tcga_impl:
 rule plot:
     input:
         rscript = "plot.r",
-        infile = "fit_{fit}/{tissue}.rds"
+        infile = "fit_{fit}-{cna}/{tissue}.rds"
     output:
-        plotfile = "plot_{fit}/{tissue}.pdf"
+        plotfile = "plot_{fit}-{cna}/{tissue}.pdf"
     group: "fit_and_plot"
     wildcard_constraints:
         fit = "[^/]+",
-        tissue = "[^/]+"
+        tissue = "[^/]+",
+        cna = "[^/]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -91,14 +94,15 @@ rule plot:
 rule gset:
     input:
         rscript = "gset.r",
-        infile = "fit_{fit}/{tissue}.rds",
+        infile = "fit_{fit}-{cna}/{tissue}.rds",
         setfile = genesets("{gset}.rds"),
     output:
-        outfile = "plot_{fit}/{tissue}/{gset}.rds",
-        plotfile = "plot_{fit}/{tissue}/{gset}.pdf"
+        outfile = "plot_{fit}-{cna}/{tissue}/{gset}.rds",
+        plotfile = "plot_{fit}-{cna}/{tissue}/{gset}.pdf"
     wildcard_constraints:
         fit = "[^/]+",
-        tissue = "[^/]+"
+        tissue = "[^/]+",
+        cna = "[^/]+"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"
@@ -109,23 +113,23 @@ rule gset:
 rule bionet_ccle:
     input:
         rscript = "bionet.r",
-        infile = "fit_ccle/{tissue}.rds"
+        infiles = expand("fit_ccle-{cna}/{{tissue}}.rds", **config)
     output:
         plotfile = "bionet/ccle_{tissue}.pdf"
     shell:
         "Rscript {input.rscript}"
-            " --infile {input.infile}"
             " --n_genes 300"
             " --plotfile {output.plotfile}"
+            " {input.infiles}"
 
 rule bionet_tcga:
     input:
         rscript = "bionet.r",
-        infile = "fit_tcga_{fit}/{tissue}.rds"
+        infiles = expand("fit_tcga_{{fit}}-{cna}/{{tissue}}.rds", **config)
     output:
         plotfile = "bionet/tcga_{fit}_{tissue}.pdf"
     shell:
         "Rscript {input.rscript}"
-            " --infile {input.infile}"
             " --n_genes 500"
             " --plotfile {output.plotfile}"
+            " {input.infiles}"

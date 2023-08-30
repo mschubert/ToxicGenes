@@ -25,6 +25,8 @@ rule all:
         expand("bionet/ccle_{ccle_tissues}.pdf", **config),
         expand("plot_tcga_{tcga_adj}-{cna}/{tcga_tissues}.pdf", **config),
         expand("plot_tcga_{tcga_adj}-{cna}/{tcga_tissues}/{genesets}.pdf", **config),
+        expand("plot_tcga_pur-{cna}/pan.pdf", **config),
+        expand("plot_tcga_pur-{cna}/pan/{genesets}.pdf", **config),
         expand("bionet/tcga_{tcga_adj}_{tcga_tissues}.pdf", **config)
 
 rule fits_ccle:

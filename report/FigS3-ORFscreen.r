@@ -110,11 +110,31 @@ amp_del_orf = function(gistic, orfdata) {
                    linetype="dashed", color="black")
 }
 
+tissue_ov = function(orfdata) {
+    dset = bind_rows(orfdata, .id="tissue") %>%
+        filter(tissue != "pancov") %>%
+        mutate(tissue = ifelse(tissue == "pan", "Pan-Cancer", tissue),
+               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
+               is_tox = p.value < 1e-5 & estimate < log2(0.7)) %>%
+        group_by(gene_name) %>%
+            filter(sum(is_tox) >= 4) %>%
+        ungroup() %>%
+        mutate(s = ifelse(is_tox, 1, 0.7))
+
+    ggplot(dset, aes(x=gene_name, y=forcats::fct_rev(tissue), fill=estimate)) +
+        geom_tile(aes(width=s, height=s)) +
+        scale_fill_distiller(palette="PuOr", limits=max(abs(dset$estimate))*c(-1,1), name="log2 FC") +
+        theme_minimal() +
+        theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+        labs(x = "Gene",
+             y = "Tissue")
+}
+
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
-    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
-        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
-        filter(gene_name != "LOC254896") # not in tcga/ccle data
+    ofile = "../orf/fits_naive.xlsx"
+    orfdata = sapply(readxl::excel_sheets(ofile), readxl::read_xlsx, path=ofile, simplify=FALSE) %>%
+        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
     ov = readRDS("../orf/overview.rds") %>%
         mutate(cells = sprintf("%s (%s)", cells, tissue))
 
@@ -123,17 +143,20 @@ sys$run({
         xlab("Log10 read count DMSO condition") +
         coord_cartesian(ylim=c(-2.6,2.6), clip="off")
 
-    left = (naive / (og_tsg_orf(gistic, orfdata) | amp_del_orf(gistic, orfdata))) +
+    left = (naive / (og_tsg_orf(gistic, orfdata$pan) | amp_del_orf(gistic, orfdata$pan))) +
         plot_layout(heights=c(2,1))
     right = (wrap_elements(screen_cor(ov)) / go_volc()) +
         plot_layout(heights=c(1.2,2))
+    btm = tissue_ov(orfdata)
 
-    asm = (left | right) + plot_layout(widths=c(3,2)) + plot_annotation(tag_levels='a') &
+    asm = (((left | right) + plot_layout(widths=c(3,2))) / wrap_elements(btm)) +
+        plot_layout(heights=c(4,1)) +
+        plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS3-ORFscreen.pdf", 14, 10)
+    cairo_pdf("FigS3-ORFscreen.pdf", 14, 12)
     print(asm)
     dev.off()
 })

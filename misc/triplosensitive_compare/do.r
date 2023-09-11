@@ -13,7 +13,7 @@ dset = readxl::read_xlsx("1-s2.0-S0092867422007887-mmc7.xlsx") #%>%
 dset$is_comp = dset$Gene %in% compg
 dset$is_argos = dset$Gene %in% argos
 
-broom::tidy(betareg(pTriplo ~ is_comp, data=dset))
+#broom::tidy(betareg(pTriplo ~ is_comp, data=dset))
 
 p1 = ggplot(dset, aes(x=is_comp, y=pTriplo)) +
     ggbeeswarm::geom_quasirandom(alpha=0.5) +

@@ -142,11 +142,12 @@ sys$run({
     mod = make_mod(df$data[[1]], type=args$type)
     const = c(list(mod=mod, et=cfg$euploid_tol), args[c("cna", "type")])
 
-    res = clustermq::Q(do_fit, dset=setNames(df$data, as.character(df$gene)),
+    res = clustermq::Q(do_fit, dset = df$data,
                        const = const, pkgs = c("dplyr", "brms"),
                        n_jobs = as.integer(args$cores),
                        memory = as.integer(args$memory),
                        chunk_size = 1) %>%
+        setNames(as.character(df$gene)) %>%
         bind_rows(.id="gene") %>%
         mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
         arrange(adj.p, p.value)

@@ -42,7 +42,7 @@ ccle_tissues:
     - PRAD
 
 tcga_tissues:
-#    - pan
+    - pan
     - BRCA
     - LUAD
     - LUSC

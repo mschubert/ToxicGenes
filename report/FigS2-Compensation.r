@@ -70,6 +70,7 @@ go_cors = function() {
                palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5, max_ov=3) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
+        guides(alpha="none") +
         labs(title = "Gene Ontology: Biological Process",
              x = "Δ Expression over expected TCGA (Wald stat.)",
              y = "Δ Expression over expected CCLE (Wald stat.)") +

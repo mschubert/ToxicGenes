@@ -265,6 +265,47 @@ rpe2_comp = function(rpe2, all) {
             comparisons=list(c("Background", "Compensated")))
 }
 
+tcga_ccle_tissue = function() {
+    cfg = yaml::read_yaml("../config.yaml")
+    ccle = paste0(file.path("../model/fit_ccle-amp", cfg$ccle_tissues), ".rds") %>%
+        lapply(readRDS) %>%
+        setNames(cfg$ccle_tissues) %>% bind_rows(.id="tissue") %>%
+        mutate(src = "CCLE")
+    tcga = paste0(file.path("../model/fit_tcga_puradj-amp", cfg$tcga_tissues), ".rds") %>%
+        lapply(readRDS) %>%
+        setNames(cfg$tcga_tissues) %>% bind_rows(.id="tissue") %>%
+        mutate(src = "TCGA")
+
+    dset = bind_rows(ccle, tcga) %>%
+        group_by(gene) %>% filter(all(c("CCLE", "TCGA") %in% src)) %>% ungroup() %>%
+        mutate(tissue = ifelse(tissue == "pan", "Pan-Cancer", tissue),
+               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
+               shrunk = estimate * (1-p.value),
+               s = ifelse(shrunk < -0.3, 1, 0.7))
+
+    top_common = dset %>% group_by(gene) %>%
+        summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
+    top_ccle = dset %>% filter(src == "CCLE", ! gene %in% top_common$gene) %>%
+        group_by(gene) %>% summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
+    top_tcga = dset %>% filter(src == "TCGA", ! gene %in% top_common$gene) %>%
+        group_by(gene) %>% summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
+    sel = stack(list(Common=top_common$gene, CCLE=top_ccle$gene, TCGA=top_tcga$gene)) %>%
+        dplyr::rename(gene=values, sel=ind)
+
+    dset2 = inner_join(dset, sel, relationship="many-to-many")
+    ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
+        geom_tile(aes(width=s, height=s)) +
+        scale_fill_distiller(palette="PuOr", limits=max(abs(dset2$shrunk),na.rm=TRUE)*c(-1,1), name="log2 FC") +
+        facet_grid(src ~ sel, scales="free") +
+        theme_minimal() +
+        theme(strip.background = element_rect(color="black", linewidth=1),
+              axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+        labs(x = "Gene",
+             y = "Tissue")
+
+    #todo: gene sets
+}
+
 sys$run({
     rpe = readRDS("../data/dorine_compare.rds")
     rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)

@@ -35,7 +35,7 @@ do_fit = function(dset, cna, mod, type, et=0.15, min_aneup=5) {
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat))
-    intcp = rmat[,grepl("b_scaling_sf:eup_equiv", colnames(rmat)) | is_covar, drop=FALSE]
+    intcp = rmat[,grepl("eup_equiv", colnames(rmat)) | is_covar, drop=FALSE]
     eup_dev = rmat[,grepl("eup_dev", colnames(rmat), fixed=TRUE)]
     stroma = rmat[,grepl("stroma", colnames(rmat), fixed=TRUE)]
     z_comp = mean(eup_dev) / sd(eup_dev)

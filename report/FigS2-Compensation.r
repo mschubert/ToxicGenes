@@ -284,16 +284,18 @@ tcga_ccle_tissue = function() {
                s = ifelse(shrunk < -0.3, 1, 0.7))
 
     top_common = dset %>% group_by(gene) %>%
-        summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
-    top_ccle = dset %>% filter(src == "CCLE", ! gene %in% top_common$gene) %>%
-        group_by(gene) %>% summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
-    top_tcga = dset %>% filter(src == "TCGA", ! gene %in% top_common$gene) %>%
-        group_by(gene) %>% summarize(avg_comp = mean(shrunk)) %>% slice_min(avg_comp, n=20)
-    sel = stack(list(Common=top_common$gene, CCLE=top_ccle$gene, TCGA=top_tcga$gene)) %>%
+        summarize(avg_comp = mean(shrunk, na.rm=TRUE))
+    top_ccle = dset %>% filter(src == "CCLE", ! gene %in% head(top_common$gene, 20)) %>%
+        group_by(gene) %>% summarize(avg_comp = mean(shrunk, na.rm=TRUE))
+    top_tcga = dset %>% filter(src == "TCGA", ! gene %in% head(top_common$gene, 20)) %>%
+        group_by(gene) %>% summarize(avg_comp = mean(shrunk, na.rm=TRUE))
+
+    sel = list(Common=top_common, CCLE=top_ccle, TCGA=top_tcga) %>%
+        lapply(. %>% slice_min(avg_comp, n=20) %>% pull(gene)) %>% stack() %>%
         dplyr::rename(gene=values, sel=ind)
 
     dset2 = inner_join(dset, sel, relationship="many-to-many")
-    ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
+    p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", limits=max(abs(dset2$shrunk),na.rm=TRUE)*c(-1,1), name="log2 FC") +
         facet_grid(src ~ sel, scales="free") +
@@ -303,7 +305,26 @@ tcga_ccle_tissue = function() {
         labs(x = "Gene",
              y = "Tissue")
 
-    #todo: gene sets
+    gset = import('genesets')
+#    go = gset$get_human("GO_Biological_Process_Tree")
+    go = gset$get_human("MSigDB_Hallmark_2020")
+    sres = list(
+        Common = gset$test_lm(top_common, stat="avg_comp", sets=go),
+        CCLE = gset$test_lm(top_ccle, stat="avg_comp", sets=go),
+        TCGA = gset$test_lm(top_tcga, stat="avg_comp", sets=go)
+    ) %>% bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
+        arrange(adj.p) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
+        ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
+    p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
+        geom_col(fill="steelblue", alpha=0.2) +
+        geom_text(aes(label=paste0(" ", label)), x=0, hjust=0) +
+        facet_wrap(~ sel, scales="free") +
+        theme_minimal() +
+        theme(strip.background = element_rect(color="black", linewidth=1),
+              axis.text.y = element_blank()) +
+        labs(x = "-log(FDR) compensation", y = "Category")
+
+    (p1 / p2) + plot_layout(heights=c(4,3))
 }
 
 sys$run({
@@ -330,13 +351,14 @@ sys$run({
     right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe, all)) +
         plot_layout(heights=c(1,1,2))
 
-    asm = (left | right) + plot_layout(widths=c(2,1)) +
+    asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +
+        plot_layout(heights=c(6,5)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS2-Compensation.pdf", 15, 12)
+    cairo_pdf("FigS2-Compensation.pdf", 15, 20)
     print(asm)
     dev.off()
 })

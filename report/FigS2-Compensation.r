@@ -283,16 +283,14 @@ tcga_ccle_tissue = function() {
                shrunk = estimate * (1-p.value),
                s = ifelse(shrunk < -0.3, 1, 0.7))
 
-    top_common = dset %>% group_by(gene) %>%
-        summarize(avg_comp = mean(shrunk, na.rm=TRUE))
-    top_ccle = dset %>% filter(src == "CCLE", ! gene %in% head(top_common$gene, 20)) %>%
-        group_by(gene) %>% summarize(avg_comp = mean(shrunk, na.rm=TRUE))
-    top_tcga = dset %>% filter(src == "TCGA", ! gene %in% head(top_common$gene, 20)) %>%
-        group_by(gene) %>% summarize(avg_comp = mean(shrunk, na.rm=TRUE))
-
-    sel = list(Common=top_common, CCLE=top_ccle, TCGA=top_tcga) %>%
-        lapply(. %>% slice_min(avg_comp, n=20) %>% pull(gene)) %>% stack() %>%
-        dplyr::rename(gene=values, sel=ind)
+    res = bind_rows(dset, dset %>% mutate(src = "Common")) %>%
+        mutate(src = factor(src, levels=c("Common", "CCLE", "TCGA"))) %>%
+        group_by(src, gene) %>%
+            filter(sum(is.na(shrunk)) < 0.8*n()) %>% #FIXME: DNAJC8 on CCLE
+            summarize(n = sum(!is.na(shrunk)),
+                      broom::tidy(lm(shrunk ~ 1)))
+            filter(n > 8) # 80% data avail
+    sel = res %>% slice_min(statistic, n=20) %>% select(gene, sel=src)
 
     dset2 = inner_join(dset, sel, relationship="many-to-many")
     p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
@@ -306,13 +304,9 @@ tcga_ccle_tissue = function() {
              y = "Tissue")
 
     gset = import('genesets')
-#    go = gset$get_human("GO_Biological_Process_Tree")
-    go = gset$get_human("MSigDB_Hallmark_2020")
-    sres = list(
-        Common = gset$test_lm(top_common, stat="avg_comp", sets=go),
-        CCLE = gset$test_lm(top_ccle, stat="avg_comp", sets=go),
-        TCGA = gset$test_lm(top_tcga, stat="avg_comp", sets=go)
-    ) %>% bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
+    sres = split(res, res$src) %>%
+        lapply(gset$test_lm, sets=gset$get_human("MSigDB_Hallmark_2020")) %>%
+        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
         arrange(adj.p) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
         ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
     p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +

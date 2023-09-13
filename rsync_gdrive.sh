@@ -7,7 +7,10 @@ PROJNAME=ToxicGenes
 rsync -auvr $@ --prune-empty-dirs \
     --exclude "candidates_mech/" \
     --exclude "data/" \
-    --exclude "backup/" \
+    --exclude "**/backup/" \
+    --exclude "**/backup_tcga/" \
+    --exclude "**/backup_ccle/" \
+    --include "report/*.xlsx" \
     --exclude "**/*.xlsx" \
     --include "*/" \
     --include "*.pdf" \

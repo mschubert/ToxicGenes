@@ -7,6 +7,7 @@ rule all:
     input:
         expand("overview_{type}.pdf", type=['naive', 'corrected']),
         expand("fits_{type}.pdf", type=['naive', 'corrected']),
+        "fits_per_screen.pdf",
         expand("{tissue}/{gset}.pdf", tissue=config['orf_tissues'],
                 gset=['genes'])
 
@@ -54,6 +55,24 @@ rule fits:
     output:
         outfile = "fits_{type}.xlsx",
         plotfile = "fits_{type}.pdf"
+    wildcard_constraints:
+        type = "[^_]+"
+    shell:
+        "Rscript {input.rscript}"
+            " --infile {input.infile}"
+            " --field '{params.field}'"
+            " --outfile {output.outfile}"
+            " --plotfile {output.plotfile}"
+
+rule fits_per_screen:
+    input:
+        rscript = "fits_per_screen.r",
+        infile = "overview.rds"
+    params:
+        field = lambda wc : fields['naive']
+    output:
+        outfile = "fits_per_screen.xlsx",
+        plotfile = "fits_per_screen.pdf"
     shell:
         "Rscript {input.rscript}"
             " --infile {input.infile}"

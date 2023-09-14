@@ -76,9 +76,13 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
 }
 
 orf_volc = function(orfdata) {
-    orfdata$fill = orfdata$statistic < -5 & orfdata$estimate < log2(0.7)
-    orfdata$circle =  TRUE
+    orfdata$fill = orfdata$adj.p < 1e-5 & orfdata$estimate < log2(0.7)
+    orfdata$circle = TRUE
+    bord = tibble(x=c(-Inf,log2(0.7)), y=c(1e-5,1e-5), yend=c(1e-5,0), xend=c(log2(0.7),log2(0.7)))
+
     plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
+        geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
+                     linetype="dotted", size=0.3, color="grey") +
         labs(x = "log fold-change ORF screen",
              y = "Adjusted p-value (FDR)",
              size = "# ORFs")

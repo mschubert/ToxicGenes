@@ -1,9 +1,11 @@
 library(dplyr)
 library(ggplot2)
 library(patchwork)
+`%$%` = magrittr::`%$%`
 sys = import('sys')
 seq = import('seq')
 plt = import('plot')
+gset = import('genesets')
 cm = import('./common')
 
 tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
@@ -286,16 +288,16 @@ tcga_ccle_tissue = function() {
     res = bind_rows(dset, dset %>% mutate(src = "Common")) %>%
         mutate(src = factor(src, levels=c("Common", "CCLE", "TCGA"))) %>%
         group_by(src, gene) %>%
-            filter(sum(is.na(shrunk)) < 0.8*n()) %>% #FIXME: DNAJC8 on CCLE
-            summarize(n = sum(!is.na(shrunk)),
+            filter(sum(!is.na(shrunk)) > 2) %>%
+            summarize(n_comp = sum(shrunk < -0.3, na.rm=TRUE),
                       broom::tidy(lm(shrunk ~ 1)))
-            filter(n > 8) # 80% data avail
-    sel = res %>% slice_min(statistic, n=20) %>% select(gene, sel=src)
+    sel = res %>% slice_max(n_comp, n=20, with_ties=FALSE) %>% select(gene, sel=src)
 
-    dset2 = inner_join(dset, sel, relationship="many-to-many")
+    dset2 = inner_join(dset, sel, relationship="many-to-many") %>%
+        mutate(shrunk = pmax(-1, pmin(shrunk, 1)))
     p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
         geom_tile(aes(width=s, height=s)) +
-        scale_fill_distiller(palette="PuOr", limits=max(abs(dset2$shrunk),na.rm=TRUE)*c(-1,1), name="log2 FC") +
+        scale_fill_distiller(palette="PuOr", name="Comp.\nscore") +
         facet_grid(src ~ sel, scales="free") +
         theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
@@ -303,12 +305,18 @@ tcga_ccle_tissue = function() {
         labs(x = "Gene",
              y = "Tissue")
 
-    gset = import('genesets')
-    sres = split(res, res$src) %>%
-        lapply(gset$test_lm, sets=gset$get_human("MSigDB_Hallmark_2020")) %>%
-        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
-        arrange(adj.p) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
+    sets = gset$get_human("MSigDB_Hallmark_2020")
+#    sres = split(res, res$src) %>%
+#        lapply(gset$test_lm, sets=sets) %>%
+#        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
+#        arrange(adj.p) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
+#        ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
+    sres = res %>% filter(n_comp >= 3) %$% split(gene, src) %>%
+        lapply(gset$test_fet, valid=unique(res$gene), sets=sets) %>%
+        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(p.value, n=12, with_ties=FALSE) %>%
+        arrange(p.value) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
         ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
+
     p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
         geom_col(fill="steelblue", alpha=0.2) +
         geom_text(aes(label=paste0(" ", label)), x=0, hjust=0) +
@@ -316,7 +324,8 @@ tcga_ccle_tissue = function() {
         theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
               axis.text.y = element_blank()) +
-        labs(x = "-log(FDR) compensation", y = "Category")
+        labs(x = "-log10 FDR compensation in >= 3 Tissues",
+             y = "Category")
 
     (p1 / p2) + plot_layout(heights=c(4,3))
 }

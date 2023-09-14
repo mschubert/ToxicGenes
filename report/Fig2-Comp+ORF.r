@@ -89,7 +89,45 @@ orf_volc = function(orfdata) {
 }
 
 comp_ov = function() {
-    dset = cm$get_comp_tissue()
+    dset = cm$get_comp_tissue() %>%
+        group_by(gene, src) %>%
+        summarize(comp = list(c(na.omit(tissue[shrunk < -0.3])))) %>%
+        tidyr::unnest(comp)
+
+    count = . %>% group_by(gene) %>%
+        summarize(CCLE = n_distinct(comp[src=="CCLE"]),
+                  TCGA = n_distinct(comp[src=="TCGA"]),
+                  both = length(intersect(comp[src=="CCLE"], comp[src=="TCGA"]))) %>%
+        tidyr::pivot_longer(c(CCLE, TCGA, both)) %>%
+        group_by(name, value) %>%
+            summarize(n = n()) %>%
+            arrange(desc(value)) %>%
+            mutate(n = cumsum(n)) %>%
+        ungroup() %>%
+        filter(value <= 5, value > 0)
+    nums_pan = dset %>% filter(comp == "Pan-Cancer") %>% count()
+    nums_tis = dset %>% filter(comp != "Pan-Cancer") %>% count()
+
+    cols = cm$cols[c("TCGA","CCLE","Compensated")]
+    names(cols)[3] = "both"
+    p1 = ggplot(nums_pan, aes(y=n, x="Pan-Cancer", fill=name)) +
+        geom_col(position="dodge", alpha=0.6) +
+        scale_y_log10(limits=c(1,NA)) +
+        scale_fill_manual(values=cols) +
+        theme_minimal() +
+        theme(axis.title.x = element_blank(),
+              legend.position = "none") +
+        labs(y = "Number of genes")
+    p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
+        geom_line(aes(group=name)) +
+        geom_point(size=5, alpha=0.6) +
+        scale_y_log10(limits=c(1,NA)) +
+        scale_color_manual(values=cols, name="Dataset") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank()) +
+        labs(x="Tissue overlap") +
+        plot_layout(tag_level="new")
+    p1 + p2 + plot_spacer() + plot_layout(widths=c(1,5,0.5))
 }
 
 sys$run({
@@ -114,7 +152,7 @@ sys$run({
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
-        comp_ov()
+        wrap_elements(comp_ov())
     right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
         orf_volc(orfdata) /
         plot_spacer()

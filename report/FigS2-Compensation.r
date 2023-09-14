@@ -102,7 +102,7 @@ cna_comp = function(gistic, comp_all) {
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
         labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
         theme_classic(),
-        coord_cartesian(ylim=coordy),
+        coord_cartesian(ylim=coordy, clip="off"),
         theme(axis.text.x = element_blank()),
         geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
                    linetype="dashed", color="black")
@@ -132,7 +132,7 @@ og_comp = function(comp) {
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
         labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
         theme_classic(),
-        coord_cartesian(ylim=coordy),
+        coord_cartesian(ylim=coordy, clip="off"),
         theme(axis.text.x = element_blank()),
         geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
                    linetype="dashed", color="black")
@@ -148,88 +148,8 @@ og_comp = function(comp) {
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
 }
 
-rpe_comp = function(rpe, all) {
-    gclass = all %>%
-        dplyr::rename(label = gene) %>%
-        mutate(gclass = case_when(
-            est_ccle < -0.3 & est_tcga < -0.3 ~ "Compensated",
-            est_ccle > 0.3 & est_tcga > 0.3 ~ "Hyperactivated",
-#            abs(est_ccle) < 0.3 & abs(est_tcga) < 0.3 ~ "Background"
-            TRUE ~ "Background"
-        ))
-
-    comp2 = rpe$segs %>% filter(type == "DNA") %>%
-        inner_join(rpe$diff_expr, by=c("clone", "seqnames")) %>%
-        mutate(cna = cut(lfc[type=="DNA"], c(-Inf, -0.15, 0.15, Inf),
-                            labels=c("Deleted", "Euploid", "Amplified")),
-               lfc_diff = log2FoldChange-lfc) %>%
-        group_by(seqnames) %>%
-            mutate(chr_has_amp = any(cna == "Amplified")) %>%
-        ungroup() %>%
-        inner_join(gclass) %>%
-        mutate(group = case_when(
-            chr_has_amp & cna == "Euploid" & gclass == "Background" ~ "Euploid\nchr 8,12,13,16,20",
-            cna == "Euploid" & gclass == "Background" ~ "Background\nother chr",
-            cna == "Amplified" & gclass == "Background" ~ "Amplified\nNon-Comp.",
-            cna == "Amplified" & gclass == "Compensated" ~ "Amplified\nCompensated"
-        )) %>% filter(!is.na(group)) %>%
-            mutate(group2 = ifelse(grepl("Compensated", group), "Compensated", "Background"),
-                   group = factor(group, levels=c("Background\nother chr",
-                "Euploid\nchr 8,12,13,16,20", "Amplified\nNon-Comp.", "Amplified\nCompensated")))
-
-    ggplot(comp2, aes(x=group, y=lfc_diff, fill=group2)) +
-        geom_boxplot(outlier.shape=NA) +
-        geom_hline(yintercept=0, linetype="dashed", color="black") +
-        coord_cartesian(ylim=c(-2,2.8), clip="off") +
-        theme_classic() +
-        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Compensation") +
-        ggsignif::geom_signif(comparisons=list(
-                c("Background\nother chr", "Euploid\nchr 8,12,13,16,20"),
-                c("Background\nother chr", "Amplified\nNon-Comp."),
-                c("Background\nother chr", "Amplified\nCompensated"),
-                c("Amplified\nNon-Comp.", "Amplified\nCompensated")),
-            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            y_position=c(1.8,1.5,1.2,0.9), color="black", test=t.test, textsize=3) +
-        labs(x = "Group",
-             y = "LFC DNA/RNA isogenic RPE-1 clones")
-}
-
-rpe1_comp = function(rpe, all) {
-    lookup = c("14.10"="chr +7 +16 +X", "14.16"="chr +20", "14.21"="chr +8")
-    comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
-    chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>%
-        filter(!is.na(label)) %>% distinct()
-    dset = rpe$diff_expr %>%
-        inner_join(chrs) %>%
-        filter((clone == "14.10" & chr %in% c("7", "16")) |
-               (clone == "14.16" & chr == "20") |
-               (clone == "14.21" & chr == "8")) %>%
-        mutate(clone = lookup[clone],
-               status = ifelse(label %in% comp, "Compensated", "Background"),
-               status = factor(status, levels=c("Background", "Compensated")))
-
-    ggplot(dset, aes(x=status, y=log2FoldChange, color=status)) +
-        geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
-        ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
-        facet_wrap(~ clone) +
-        coord_cartesian(ylim=c(-1.5, 2.5)) +
-        labs(title = "Isogenic RPE-1 lines",
-             x = "Clone with chromosome amplification",
-             y = "Log2 fold-change amplified chr vs. parental") +
-        scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
-        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
-        scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
-        theme_minimal() +
-        theme(axis.text.x = element_blank(),
-              strip.text = element_text(size=12)) +
-        ggsignif::geom_signif(color="black", y_position=1.4,
-            test=function(...) t.test(..., alternative="greater"),
-            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons=list(c("Background", "Compensated")))
-}
-
-rpe2_comp = function(rpe2, all) {
-    lookup = c(SS6="chr +7", SS51="chr +7 +22", SS111="chr +8 +9 +18")
+rpe_comp = function(all) {
+    lookup = c(SS6="chr +7", SS51="+7 +22", SS111="+8 +9 +18")
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
     comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
     dset = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
@@ -261,7 +181,7 @@ rpe2_comp = function(rpe2, all) {
         theme_minimal() +
         theme(axis.text.x = element_blank(),
               strip.text = element_text(size=12)) +
-        ggsignif::geom_signif(color="black", y_position=0.25,
+        ggsignif::geom_signif(color="black", y_position=-0.15,
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Compensated")))
@@ -279,12 +199,13 @@ triplosens = function(all) {
         scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
         ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
         stat_summary(fun=mean, geom="crossbar", colour="red") +
-        annotate("text", x=1.5, y=0.58, label=sprintf("p=%.2g (Wilcox)", wt$p.value), vjust=0.5) +
+        annotate("text", x=2.5, y=0.75, label=sprintf("p=%.2g (Wilcox)", wt$p.value)) +
         coord_flip() +
         theme_minimal() +
-        theme(axis.text.y = element_blank(),
-              axis.title.y = element_blank()) +
-        labs(y = "Probability of Triplosensitivity")
+        theme(axis.text.y = element_blank()) +
+        labs(title = "Triplosensitivity",
+             x = "Compensation status",
+             y = "Probability")
 }
 
 tcga_ccle_tissue = function() {
@@ -351,10 +272,7 @@ tcga_ccle_tissue = function() {
 }
 
 sys$run({
-    rpe = readRDS("../data/dorine_compare.rds")
-    rpe2 = readxl::read_xlsx("../data/Expression-matrix_RPE1-clones_reads.xlsx", skip=1)
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
-
     cosmic = cm$get_cosmic_annot()
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     gistic_amp = gistic %>%
@@ -371,7 +289,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe, all) / triplosens(all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp(all) / triplosens(all)) +
         plot_layout(heights=c(1,1,1.5,0.8))
 
     asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +

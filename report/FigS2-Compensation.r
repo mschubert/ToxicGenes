@@ -209,22 +209,8 @@ triplosens = function(all) {
 }
 
 tcga_ccle_tissue = function() {
-    cfg = yaml::read_yaml("../config.yaml")
-    ccle = paste0(file.path("../model/fit_ccle-amp", cfg$ccle_tissues), ".rds") %>%
-        lapply(readRDS) %>%
-        setNames(cfg$ccle_tissues) %>% bind_rows(.id="tissue") %>%
-        mutate(src = "CCLE")
-    tcga = paste0(file.path("../model/fit_tcga_puradj-amp", cfg$tcga_tissues), ".rds") %>%
-        lapply(readRDS) %>%
-        setNames(cfg$tcga_tissues) %>% bind_rows(.id="tissue") %>%
-        mutate(src = "TCGA")
-
-    dset = bind_rows(ccle, tcga) %>%
-        group_by(gene) %>% filter(all(c("CCLE", "TCGA") %in% src)) %>% ungroup() %>%
-        mutate(tissue = ifelse(tissue == "pan", "Pan-Cancer", tissue),
-               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
-               shrunk = estimate * (1-p.value),
-               s = ifelse(shrunk < -0.3, 1, 0.7))
+    dset = cm$get_comp_tissue() %>%
+        mutate(s = ifelse(shrunk < -0.3, 1, 0.7))
 
     res = bind_rows(dset, dset %>% mutate(src = "Common")) %>%
         mutate(src = factor(src, levels=c("Common", "CCLE", "TCGA"))) %>%

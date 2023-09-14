@@ -88,6 +88,10 @@ orf_volc = function(orfdata) {
              size = "# ORFs")
 }
 
+comp_ov = function() {
+    dset = cm$get_comp_tissue()
+}
+
 sys$run({
     cosmic = cm$get_cosmic_annot()
     gistic = readRDS("../data/gistic_smooth.rds")$genes
@@ -109,15 +113,17 @@ sys$run({
         filter(gene_name != "LOC254896") # not in tcga/ccle data
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
-        tcga_ccle_cor(comp, gistic_amp, cosmic)
+        tcga_ccle_cor(comp, gistic_amp, cosmic) /
+        comp_ov()
     right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
-        orf_volc(orfdata)
+        orf_volc(orfdata) /
+        plot_spacer()
 
-    asm = ((left + plot_layout(heights=c(1.2,3))) |
-        (right + plot_layout(heights=c(1.8,3)))) + plot_layout(widths=c(3,2)) +
+    asm = ((left + plot_layout(heights=c(1.2,3,1.5))) |
+        (right + plot_layout(heights=c(1.8,3,1.5)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 10)
+    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 13)
     print(asm)
     dev.off()
 })

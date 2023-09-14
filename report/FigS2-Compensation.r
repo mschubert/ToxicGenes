@@ -251,10 +251,10 @@ rpe2_comp = function(rpe2, all) {
         ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
-        coord_cartesian(ylim=c(0.2, 5)) +
+        coord_cartesian(ylim=c(0.4, 2)) +
         labs(title = "Isogenic RPE-1 lines",
              x = "Clone with chromosome amplification",
-             y = "Fold-change amplified chr vs. whole chromosomes") +
+             y = "Fold-change amplified chr\nvs. whole chromosomes") +
         scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
@@ -265,6 +265,26 @@ rpe2_comp = function(rpe2, all) {
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Compensated")))
+}
+
+triplosens = function(all) {
+    compg = all$gene[all$hit]
+    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
+    ts$is_comp = ifelse(ts$Gene %in% compg, "Compensated", "Other")
+    wd = split(ts$pTriplo, ts$is_comp)
+    wt = wilcox.test(wd[[1]], wd[[2]])
+
+    ggplot(ts, aes(x=is_comp, y=pTriplo)) +
+        geom_violin(aes(fill=is_comp), alpha=0.5) +
+        scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
+        ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
+        stat_summary(fun=mean, geom="crossbar", colour="red") +
+        annotate("text", x=1.5, y=0.58, label=sprintf("p=%.2g (Wilcox)", wt$p.value), vjust=0.5) +
+        coord_flip() +
+        theme_minimal() +
+        theme(axis.text.y = element_blank(),
+              axis.title.y = element_blank()) +
+        labs(y = "Probability of Triplosensitivity")
 }
 
 tcga_ccle_tissue = function() {
@@ -351,8 +371,8 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe, all)) +
-        plot_layout(heights=c(1,1,2))
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe2_comp(rpe, all) / triplosens(all)) +
+        plot_layout(heights=c(1,1,1.5,0.8))
 
     asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +
         plot_layout(heights=c(6,5)) +

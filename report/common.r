@@ -30,7 +30,7 @@ get_cosmic_annot = function() {
 }
 
 cols = c(
-    Genes="grey", Background="grey", Euploid="grey",
+    Genes="grey", Background="grey", Euploid="grey", Other="grey",
     Amplification="#b06166", Deletion="#8484A8",
     Amplified="#b06166", Deleted="#8484A8", "Amp+Del"="#f0f0f0",
     Oncogene="#9f7ccd", TSG="#4ec472", "OG+TSG"="#d59e88",

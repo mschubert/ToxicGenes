@@ -69,7 +69,7 @@ go_cors = function() {
         sub("e", "%*%10^", .)
 
     plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used,
-               palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5, max_ov=3) +
+               alpha=0.6, pal_alpha=0.5, tsize=3.5, n_tiles=80, h=40, max_ov=5) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
         theme_minimal() +
         guides(alpha="none") +
@@ -171,7 +171,7 @@ rpe_comp = function(all) {
         ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
-        coord_cartesian(ylim=c(0.4, 2)) +
+        coord_cartesian(ylim=c(0.5, 2)) +
         labs(title = "Isogenic RPE-1 lines",
              x = "Clone with chromosome amplification",
              y = "Fold-change amplified chr\nvs. whole chromosomes") +
@@ -195,12 +195,12 @@ triplosens = function(all) {
     wt = wilcox.test(wd[[1]], wd[[2]])
 
     ggplot(ts, aes(x=is_comp, y=pTriplo)) +
-        geom_violin(aes(fill=is_comp), alpha=0.5) +
+        geom_violin(aes(fill=is_comp), color="#00000010", alpha=0.5) +
         scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
         ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
         stat_summary(fun=mean, geom="crossbar", colour="red") +
-        annotate("text", x=2.5, y=0.75, label=sprintf("p=%.2g (Wilcox)", wt$p.value)) +
-        coord_flip() +
+        annotate("text", x=2.5, y=0.75, label=cm$fmt_p(wt$p.value), parse=TRUE) +
+        coord_flip(clip="off") +
         theme_minimal() +
         theme(axis.text.y = element_blank()) +
         labs(title = "Triplosensitivity",
@@ -259,13 +259,14 @@ tcga_ccle_tissue = function() {
         ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
 
     p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
-        geom_col(fill="steelblue", alpha=0.2) +
+        geom_col(aes(fill=ifelse(estimate>1, "Enriched", "Depleted")), alpha=0.2) +
+        scale_fill_manual(values=c(Enriched="steelblue", Depleted="coral"), name="Type") +
         geom_text(aes(label=paste0(" ", label)), x=0, hjust=0) +
         facet_wrap(~ sel, scales="free") +
         theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
               axis.text.y = element_blank()) +
-        labs(x = "-log10 FDR compensation in >= 3 Tissues",
+        labs(x = "-log10 FDR compensation in ≥ 3 Tissues",
              y = "Category")
 
     (p1 / p2) + plot_layout(heights=c(4,3))

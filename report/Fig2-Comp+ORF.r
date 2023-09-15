@@ -94,34 +94,47 @@ comp_ov = function() {
         summarize(comp = list(c(na.omit(tissue[shrunk < -0.3])))) %>%
         tidyr::unnest(comp)
 
-    count = . %>% group_by(gene) %>%
+    count_ov = function(ds, excl=c()) {
+        ds %>% group_by(gene) %>%
         summarize(CCLE = n_distinct(comp[src=="CCLE"]),
                   TCGA = n_distinct(comp[src=="TCGA"]),
-                  both = length(intersect(comp[src=="CCLE"], comp[src=="TCGA"]))) %>%
+                  both = n_distinct(intersect(comp[src=="CCLE"], comp[src=="TCGA"]))) %>%
         tidyr::pivot_longer(c(CCLE, TCGA, both)) %>%
         group_by(name, value) %>%
             summarize(n = n()) %>%
+        ungroup() %>%
+            tidyr::complete(name, value=1:6, fill=list(n=0)) %>%
+        group_by(name) %>%
             arrange(desc(value)) %>%
             mutate(n = cumsum(n)) %>%
         ungroup() %>%
-        filter(value <= 5, value > 0)
-    nums_pan = dset %>% filter(comp == "Pan-Cancer") %>% count()
-    nums_tis = dset %>% filter(comp != "Pan-Cancer") %>% count()
+        filter(value <= 6, value > 0)
+    }
+    pan_g = dset %>% filter(comp == "Pan-Cancer") %>% group_by(gene) %>%
+        filter(all(c("CCLE", "TCGA") %in% src)) %>% pull(gene) %>% unique()
+    nums_pan = dset %>% filter(comp == "Pan-Cancer") %>% count_ov()
+    nums_tis = list(
+        included = dset %>% filter(comp != "Pan-Cancer") %>% count_ov(pan_g),
+        excluded = dset %>% filter(comp != "Pan-Cancer", ! gene %in% pan_g) %>% count_ov(pan_g)
+    ) %>% bind_rows(.id="Pan-Cancer") %>% filter(`Pan-Cancer`=="included" | name == "both")
 
     cols = cm$cols[c("TCGA","CCLE","Compensated")]
     names(cols)[3] = "both"
     p1 = ggplot(nums_pan, aes(y=n, x="Pan-Cancer", fill=name)) +
         geom_col(position="dodge", alpha=0.6) +
-        scale_y_log10(limits=c(1,NA)) +
+        scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
+        coord_cartesian(ylim=c(0.5, NA)) +
         scale_fill_manual(values=cols) +
         theme_minimal() +
         theme(axis.title.x = element_blank(),
               legend.position = "none") +
         labs(y = "Number of genes")
     p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
-        geom_line(aes(group=name)) +
-        geom_point(size=5, alpha=0.6) +
-        scale_y_log10(limits=c(1,NA)) +
+        geom_line(aes(group=paste(name, `Pan-Cancer`))) +
+        geom_point(aes(shape=`Pan-Cancer`), size=5, alpha=0.6) +
+        scale_shape_manual(values=c(included=19, excluded=1)) +
+        scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
+        coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +
         theme_minimal() +
         theme(axis.title.y = element_blank()) +

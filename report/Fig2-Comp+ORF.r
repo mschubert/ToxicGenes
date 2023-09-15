@@ -136,7 +136,7 @@ comp_ov = function() {
     p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
         geom_line(aes(group=paste(name, `Pan-Cancer`))) +
         geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +
-        geom_text(data=a2, aes(label=n), color=cols["both"], angle=90, hjust=c(-0.5, 1.5)) +
+        geom_text(data=a2, aes(label=n), color=cols["both"], angle=90, hjust=c(-0.3, 1.3)) +
         scale_shape_manual(values=c(included=19, excluded=1)) +
         scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
         scale_x_continuous(breaks=1:6) +
@@ -155,8 +155,28 @@ orf_ov = function(orfdata) {
         filter(!grepl("pan", tissue),
                adj.p < 1e-5, estimate < log2(0.7)) %>%
         pull(gene_name) %>% unique()
-    plt$venn(list("Pan-Cancer"=pan_g, "≥ 1 tissue"=tis_g), alpha=0.1) +
-        scale_fill_manual(values=c("grey", "black"))
+
+    dset = tibble(src = c("Pan-Cancer", "≥ 1 tissue"),
+                  from = c(0, length(setdiff(pan_g, tis_g))),
+                  to = c(length(pan_g), length(unique(c(pan_g, tis_g))))) %>%
+        mutate(src = factor(src, levels=src))
+    nums = tibble(x = c(dset$from[-1], dset$to),
+                  n = diff(c(dset$from, dset$to))) %>%
+        mutate(x = n/2 + c(0, x[-length(x)]))
+
+    ggplot(dset, aes(y=0, yend=0, x=from, xend=to, color=src)) +
+        geom_segment(linewidth=25, alpha=0.2) +
+        geom_text(data=nums, aes(x=x, label=n), y=0, color="black", inherit.aes=FALSE) +
+        guides(color=guide_legend(override.aes=list(linewidth=5))) +
+        scale_color_manual(values=c("coral", "steelblue")) +
+        scale_x_continuous(breaks=unique(c(dset$from, dset$to))) +
+        labs(color = "",
+             x = "Number of Toxic Genes found") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank(),
+              axis.text.y = element_blank(),
+              panel.grid.major.y = element_blank(),
+              panel.grid.minor.y = element_blank())
 }
 
 sys$run({
@@ -186,8 +206,8 @@ sys$run({
         orf_volc(orfdata$pan) /
         wrap_elements(orf_ov(orfdata))
 
-    asm = ((left + plot_layout(heights=c(1.2,3,1.4))) |
-        (right + plot_layout(heights=c(1.8,3,0.9)))) + plot_layout(widths=c(3,2)) +
+    asm = ((left + plot_layout(heights=c(1.2,3,1.2))) |
+        (right + plot_layout(heights=c(5,8,1)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("Fig2-Comp+ORF.pdf", 14, 12)

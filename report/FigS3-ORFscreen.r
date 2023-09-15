@@ -111,21 +111,29 @@ amp_del_orf = function(gistic, orfdata) {
 }
 
 tissue_ov = function(orfdata) {
-    dset = bind_rows(orfdata, .id="tissue") %>%
-        filter(tissue != "pancov") %>%
-        mutate(tissue = ifelse(tissue == "pan", "Pan-Cancer", tissue),
+    fname = "../orf/fits_per_screen.xlsx"
+    meta = readr::read_tsv("../data/orf/tissues.txt")
+    cline = sapply(readxl::excel_sheets(fname), readxl::read_xlsx, path=fname, simplify=FALSE) %>%
+        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
+    dset = bind_rows(c(`Pan-Cancer`=list(orfdata$pan), cline), .id="screen") %>%
+        left_join(meta %>% select(screen=cells, tissue)) %>%
+        mutate(tissue = ifelse(screen=="Pan-Cancer", "Pan-Cancer", tissue),
                tissue = factor(tissue) %>% relevel("Pan-Cancer"),
                is_tox = p.value < 1e-5 & estimate < log2(0.7)) %>%
         group_by(gene_name) %>%
-            filter(sum(is_tox) >= 4) %>%
+            filter(sum(is_tox) >= 6) %>%
         ungroup() %>%
-        mutate(s = ifelse(is_tox, 1, 0.7))
+        mutate(s = ifelse(is_tox, 1, 0.7),
+               estimate = pmax(-3, pmin(3, estimate)))
 
-    ggplot(dset, aes(x=gene_name, y=forcats::fct_rev(tissue), fill=estimate)) +
+    ggplot(dset, aes(x=gene_name, y=forcats::fct_rev(screen), fill=estimate)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", limits=max(abs(dset$estimate))*c(-1,1), name="log2 FC") +
+        facet_grid(tissue ~ ., scales="free", space="free") +
         theme_minimal() +
-        theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
+        theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5),
+              strip.text.y = element_text(angle=0, hjust=0),
+              strip.background = element_rect(color="black", linewidth=1)) +
         labs(x = "Gene",
              y = "Tissue")
 }
@@ -150,13 +158,13 @@ sys$run({
     btm = tissue_ov(orfdata)
 
     asm = (((left | right) + plot_layout(widths=c(3,2))) / wrap_elements(btm)) +
-        plot_layout(heights=c(4,1)) +
+        plot_layout(heights=c(10,5)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS3-ORFscreen.pdf", 14, 12)
+    cairo_pdf("FigS3-ORFscreen.pdf", 14, 14)
     print(asm)
     dev.off()
 })

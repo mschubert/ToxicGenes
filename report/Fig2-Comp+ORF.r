@@ -6,7 +6,7 @@ plt = import('plot')
 cm = import('./common')
 
 schema_comp = function() {
-    img = grid::rasterGrob(magick::image_read("external/comp3.svg"))
+    img = grid::rasterGrob(magick::image_read("external/comp3.png"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -76,12 +76,108 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
 }
 
 orf_volc = function(orfdata) {
-    orfdata$fill = orfdata$statistic < -5 & orfdata$estimate < log2(0.7)
-    orfdata$circle =  TRUE
+    orfdata$fill = orfdata$adj.p < 1e-5 & orfdata$estimate < log2(0.7)
+    orfdata$circle = TRUE
+    bord = tibble(x=c(-Inf,log2(0.7)), y=c(1e-5,1e-5), yend=c(1e-5,0), xend=c(log2(0.7),log2(0.7)))
+
     plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
+        geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
+                     linetype="dotted", size=0.3, color="grey") +
         labs(x = "log fold-change ORF screen",
              y = "Adjusted p-value (FDR)",
              size = "# ORFs")
+}
+
+comp_ov = function() {
+    dset = cm$get_comp_tissue() %>%
+        group_by(gene, src) %>%
+        summarize(comp = list(c(na.omit(tissue[shrunk < -0.3])))) %>%
+        tidyr::unnest(comp)
+
+    count_ov = function(ds, excl=c()) {
+        ds %>% group_by(gene) %>%
+        summarize(CCLE = n_distinct(comp[src=="CCLE"]),
+                  TCGA = n_distinct(comp[src=="TCGA"]),
+                  both = n_distinct(intersect(comp[src=="CCLE"], comp[src=="TCGA"]))) %>%
+        tidyr::pivot_longer(c(CCLE, TCGA, both)) %>%
+        group_by(name, value) %>%
+            summarize(n = n()) %>%
+        ungroup() %>%
+            tidyr::complete(name, value=1:6, fill=list(n=0)) %>%
+        group_by(name) %>%
+            arrange(desc(value)) %>%
+            mutate(n = cumsum(n)) %>%
+        ungroup() %>%
+        filter(value <= 6, value > 0) %>%
+        mutate(name = factor(name, levels=c("TCGA", "CCLE", "both")))
+    }
+    pan_g = dset %>% filter(comp == "Pan-Cancer") %>% group_by(gene) %>%
+        filter(all(c("CCLE", "TCGA") %in% src)) %>% pull(gene) %>% unique()
+    nums_pan = dset %>% filter(comp == "Pan-Cancer") %>% count_ov()
+    nums_tis = list(
+        included = dset %>% filter(comp != "Pan-Cancer") %>% count_ov(pan_g),
+        excluded = dset %>% filter(comp != "Pan-Cancer", ! gene %in% pan_g) %>% count_ov(pan_g)
+    ) %>% bind_rows(.id="Pan-Cancer") %>% filter(`Pan-Cancer`=="included" | name == "both")
+
+    cols = cm$cols[c("TCGA","CCLE","Compensated")]
+    names(cols)[3] = "both"
+    a1 = nums_pan %>% filter(name == "both", value == 1)
+    a2 = nums_tis %>% filter(name == "both", value == 1)
+    p1 = ggplot(nums_pan, aes(y=n, x="Pan-Cancer", fill=name)) +
+        geom_col(position="dodge", alpha=0.6) +
+        geom_text(data=a1, aes(label=n), x=1.3, color=cols["both"], angle=90, hjust=-0.3) +
+        scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
+        coord_cartesian(ylim=c(0.5, NA)) +
+        scale_fill_manual(values=cols) +
+        theme_minimal() +
+        theme(axis.title.x = element_blank(),
+              legend.position = "none") +
+        labs(y = "Number of genes")
+    p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
+        geom_line(aes(group=paste(name, `Pan-Cancer`))) +
+        geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +
+        geom_label(data=a2, aes(label=n), color=cols["both"], hjust=0.4,
+                   vjust=c(-0.3,1.6), fill="#ffffff30", label.size=NA) +
+        scale_shape_manual(values=c(included=19, excluded=1)) +
+        scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
+        scale_x_continuous(breaks=1:6) +
+        coord_cartesian(ylim=c(0.5, NA)) +
+        scale_color_manual(values=cols, name="Dataset") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank()) +
+        labs(x="Tissue overlap") +
+        plot_layout(tag_level="new")
+    p1 + p2 + plot_spacer() + plot_layout(widths=c(1,5,0.5))
+}
+
+orf_ov = function(orfdata) {
+    pan_g = orfdata$pan %>% filter(adj.p < 1e-5, estimate < log2(0.7)) %>% pull(gene_name)
+    tis_g = bind_rows(orfdata, .id="tissue") %>%
+        filter(!grepl("pan", tissue),
+               adj.p < 1e-5, estimate < log2(0.7)) %>%
+        pull(gene_name) %>% unique()
+
+    dset = tibble(src = c("Pan-Cancer", "≥ 1 tissue"),
+                  from = c(0, length(setdiff(pan_g, tis_g))),
+                  to = c(length(pan_g), length(unique(c(pan_g, tis_g))))) %>%
+        mutate(src = factor(src, levels=src))
+    nums = tibble(x = c(dset$from[-1], dset$to),
+                  n = diff(c(dset$from, dset$to))) %>%
+        mutate(x = n/2 + c(0, x[-length(x)]))
+
+    ggplot(dset, aes(y=0, yend=0, x=from, xend=to, color=src)) +
+        geom_segment(linewidth=25, alpha=0.2) +
+        geom_text(data=nums, aes(x=x, label=n), y=0, color="black", inherit.aes=FALSE) +
+        guides(color=guide_legend(override.aes=list(linewidth=5))) +
+        scale_color_manual(values=c("coral", "steelblue")) +
+        scale_x_continuous(breaks=unique(c(dset$from, dset$to))) +
+        labs(color = "",
+             x = "Number of Toxic Genes found") +
+        theme_minimal() +
+        theme(axis.title.y = element_blank(),
+              axis.text.y = element_blank(),
+              panel.grid.major.y = element_blank(),
+              panel.grid.minor.y = element_blank())
 }
 
 sys$run({
@@ -100,20 +196,22 @@ sys$run({
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
-        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
-        filter(gene_name != "LOC254896") # not in tcga/ccle data
+    ofile = "../orf/fits_naive.xlsx"
+    orfdata = sapply(readxl::excel_sheets(ofile), readxl::read_xlsx, path=ofile, simplify=FALSE) %>%
+        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
-        tcga_ccle_cor(comp, gistic_amp, cosmic)
+        tcga_ccle_cor(comp, gistic_amp, cosmic) /
+        wrap_elements(comp_ov())
     right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
-        orf_volc(orfdata)
+        orf_volc(orfdata$pan) /
+        wrap_elements(orf_ov(orfdata))
 
-    asm = ((left + plot_layout(heights=c(1.2,3))) |
-        (right + plot_layout(heights=c(1.8,3)))) + plot_layout(widths=c(3,2)) +
+    asm = ((left + plot_layout(heights=c(1.2,3,1.2))) |
+        (right + plot_layout(heights=c(5,8,1)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 10)
+    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 12)
     print(asm)
     dev.off()
 })

@@ -149,6 +149,16 @@ comp_ov = function() {
     p1 + p2 + plot_spacer() + plot_layout(widths=c(1,5,0.5))
 }
 
+orf_ov = function(orfdata) {
+    pan_g = orfdata$pan %>% filter(adj.p < 1e-5, estimate < log2(0.7)) %>% pull(gene_name)
+    tis_g = bind_rows(orfdata, .id="tissue") %>%
+        filter(!grepl("pan", tissue),
+               adj.p < 1e-5, estimate < log2(0.7)) %>%
+        pull(gene_name) %>% unique()
+    plt$venn(list("Pan-Cancer"=pan_g, "≥ 1 tissue"=tis_g), alpha=0.1) +
+        scale_fill_manual(values=c("grey", "black"))
+}
+
 sys$run({
     cosmic = cm$get_cosmic_annot()
     gistic = readRDS("../data/gistic_smooth.rds")$genes
@@ -165,22 +175,22 @@ sys$run({
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    orfdata = readxl::read_xlsx("../orf/fits_naive.xlsx", sheet="pan") %>%
-        dplyr::rename(gene_name = `GENE SYMBOL`) %>%
-        filter(gene_name != "LOC254896") # not in tcga/ccle data
+    ofile = "../orf/fits_naive.xlsx"
+    orfdata = sapply(readxl::excel_sheets(ofile), readxl::read_xlsx, path=ofile, simplify=FALSE) %>%
+        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
         wrap_elements(comp_ov())
     right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
-        orf_volc(orfdata) /
-        plot_spacer()
+        orf_volc(orfdata$pan) /
+        wrap_elements(orf_ov(orfdata))
 
     asm = ((left + plot_layout(heights=c(1.2,3,1.4))) |
-        (right + plot_layout(heights=c(1.8,3,1.5)))) + plot_layout(widths=c(3,2)) +
+        (right + plot_layout(heights=c(1.8,3,0.9)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 13)
+    cairo_pdf("Fig2-Comp+ORF.pdf", 14, 12)
     print(asm)
     dev.off()
 })

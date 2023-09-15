@@ -108,7 +108,8 @@ comp_ov = function() {
             arrange(desc(value)) %>%
             mutate(n = cumsum(n)) %>%
         ungroup() %>%
-        filter(value <= 6, value > 0)
+        filter(value <= 6, value > 0) %>%
+        mutate(name = factor(name, levels=c("TCGA", "CCLE", "both")))
     }
     pan_g = dset %>% filter(comp == "Pan-Cancer") %>% group_by(gene) %>%
         filter(all(c("CCLE", "TCGA") %in% src)) %>% pull(gene) %>% unique()
@@ -120,8 +121,11 @@ comp_ov = function() {
 
     cols = cm$cols[c("TCGA","CCLE","Compensated")]
     names(cols)[3] = "both"
+    a1 = nums_pan %>% filter(name == "both", value == 1)
+    a2 = nums_tis %>% filter(name == "both", value == 1)
     p1 = ggplot(nums_pan, aes(y=n, x="Pan-Cancer", fill=name)) +
         geom_col(position="dodge", alpha=0.6) +
+        geom_text(data=a1, aes(label=n), x=1.3, color=cols["both"], angle=90, hjust=-0.3) +
         scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_fill_manual(values=cols) +
@@ -131,9 +135,11 @@ comp_ov = function() {
         labs(y = "Number of genes")
     p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
         geom_line(aes(group=paste(name, `Pan-Cancer`))) +
-        geom_point(aes(shape=`Pan-Cancer`), size=5, alpha=0.6) +
+        geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +
+        geom_text(data=a2, aes(label=n), color=cols["both"], angle=90, hjust=c(-0.5, 1.5)) +
         scale_shape_manual(values=c(included=19, excluded=1)) +
         scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
+        scale_x_continuous(breaks=1:6) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +
         theme_minimal() +
@@ -170,7 +176,7 @@ sys$run({
         orf_volc(orfdata) /
         plot_spacer()
 
-    asm = ((left + plot_layout(heights=c(1.2,3,1.5))) |
+    asm = ((left + plot_layout(heights=c(1.2,3,1.4))) |
         (right + plot_layout(heights=c(1.8,3,1.5)))) + plot_layout(widths=c(3,2)) +
         plot_annotation(tag_levels='a') & theme(plot.tag = element_text(size=24, face="bold"))
 

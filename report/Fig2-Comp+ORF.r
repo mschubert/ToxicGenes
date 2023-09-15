@@ -6,7 +6,7 @@ plt = import('plot')
 cm = import('./common')
 
 schema_comp = function() {
-    img = grid::rasterGrob(magick::image_read("external/comp3.svg"))
+    img = grid::rasterGrob(magick::image_read("external/comp3.png"))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 

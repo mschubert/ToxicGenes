@@ -126,7 +126,7 @@ comp_ov = function() {
     p1 = ggplot(nums_pan, aes(y=n, x="Pan-Cancer", fill=name)) +
         geom_col(position="dodge", alpha=0.6) +
         geom_text(data=a1, aes(label=n), x=1.3, color=cols["both"], angle=90, hjust=-0.3) +
-        scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
+        scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_fill_manual(values=cols) +
         theme_minimal() +
@@ -136,9 +136,10 @@ comp_ov = function() {
     p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
         geom_line(aes(group=paste(name, `Pan-Cancer`))) +
         geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +
-        geom_text(data=a2, aes(label=n), color=cols["both"], angle=90, hjust=c(-0.3, 1.3)) +
+        geom_label(data=a2, aes(label=n), color=cols["both"], hjust=0.4,
+                   vjust=c(-0.3,1.6), fill="#ffffff30", label.size=NA) +
         scale_shape_manual(values=c(included=19, excluded=1)) +
-        scale_y_continuous(trans="log1p", breaks=c(0,1,10,100,1000)) +
+        scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
         scale_x_continuous(breaks=1:6) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +

@@ -31,13 +31,13 @@ get_cosmic_annot = function() {
 
 get_comp_tissue = function() {
     cfg = yaml::read_yaml("../config.yaml")
-    ccle = paste0(file.path("../model_compensation/fit_ccle-amp", cfg$ccle_tissues), ".rds") %>%
-        lapply(readRDS) %>%
-        setNames(cfg$ccle_tissues) %>% bind_rows(.id="tissue") %>%
+    ccle = readxl::excel_sheets("TableS1_CCLE-comp.xlsx") %>%
+        sapply(readxl::read_xlsx, path="TableS1_CCLE-comp.xlsx", simplify=FALSE) %>%
+        bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")
-    tcga = paste0(file.path("../model/fit_tcga_puradj-amp", cfg$tcga_tissues), ".rds") %>%
-        lapply(readRDS) %>%
-        setNames(cfg$tcga_tissues) %>% bind_rows(.id="tissue") %>%
+    tcga = readxl::excel_sheets("TableS2_TCGA-comp.xlsx") %>%
+        sapply(readxl::read_xlsx, path="TableS2_TCGA-comp.xlsx", simplify=FALSE) %>%
+        bind_rows(.id="tissue") %>%
         mutate(src = "TCGA")
 
     dset = bind_rows(ccle, tcga) %>%

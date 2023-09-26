@@ -187,10 +187,10 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
-    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
-        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
-        mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
+    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="pan") %>%
+        mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
+    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="pan") %>%
+        mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
     comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
         left_join(cosmic)

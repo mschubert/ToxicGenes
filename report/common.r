@@ -52,6 +52,14 @@ get_tox = function() {
         path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
 }
 
+get_argos = function() {
+    comp = get_comp_tissue() %>%
+        filter(compensation < -0.3)
+    comp2 = with(comp, intersect(gene[src=="CCLE"], gene[src=="TCGA"]))
+    tox = get_tox()$pan %>% filter(p.value < 1e-5, estimate < log2(0.7))
+    intersect(comp2, tox$gene_name)
+}
+
 cols = c(
     Genes="grey", Background="grey", Euploid="grey", Other="grey",
     Amplification="#b06166", Deletion="#8484A8",

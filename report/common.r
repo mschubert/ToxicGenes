@@ -31,7 +31,7 @@ get_cosmic_annot = function() {
 
 get_comp_tissue = function() {
     cfg = yaml::read_yaml("../config.yaml")
-    ccle = paste0(file.path("../model/fit_ccle-amp", cfg$ccle_tissues), ".rds") %>%
+    ccle = paste0(file.path("../model_compensation/fit_ccle-amp", cfg$ccle_tissues), ".rds") %>%
         lapply(readRDS) %>%
         setNames(cfg$ccle_tissues) %>% bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")

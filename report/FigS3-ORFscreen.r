@@ -3,7 +3,6 @@ library(ggplot2)
 library(patchwork)
 sys = import('sys')
 plt = import('plot')
-orf = import('../orf/overview_naive')
 cm = import('./common')
 
 facet_plot = function(ov, mapping, hl=c("RBM14", "CDKN1A")) {
@@ -111,13 +110,10 @@ amp_del_orf = function(gistic, orfdata) {
 }
 
 tissue_ov = function(orfdata) {
-    fname = "../orf/fits_per_screen.xlsx"
     meta = readr::read_tsv("../data/orf/tissues.txt")
-    cline = sapply(readxl::excel_sheets(fname), readxl::read_xlsx, path=fname, simplify=FALSE) %>%
-        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
-    dset = bind_rows(c(`Pan-Cancer`=list(orfdata$pan), cline), .id="screen") %>%
+    dset = bind_rows(orfdata, .id="screen") %>%
         left_join(meta %>% select(screen=cells, tissue)) %>%
-        mutate(tissue = ifelse(screen=="Pan-Cancer", "Pan-Cancer", tissue),
+        mutate(tissue = ifelse(screen=="pan", "Pan-Cancer", tissue),
                tissue = factor(tissue) %>% relevel("Pan-Cancer"),
                is_tox = p.value < 1e-5 & estimate < log2(0.7)) %>%
         group_by(gene_name) %>%
@@ -140,9 +136,7 @@ tissue_ov = function(orfdata) {
 
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes
-    ofile = "../orf/fits_naive.xlsx"
-    orfdata = sapply(readxl::excel_sheets(ofile), readxl::read_xlsx, path=ofile, simplify=FALSE) %>%
-        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
+    orfdata = cm$get_tox()
     ov = readRDS("../orf/overview.rds") %>%
         mutate(cells = sprintf("%s (%s)", cells, tissue))
 

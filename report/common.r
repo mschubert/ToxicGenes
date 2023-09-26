@@ -47,6 +47,11 @@ get_comp_tissue = function() {
                shrunk = estimate * (1-p.value))
 }
 
+get_tox = function() {
+    sapply(readxl::excel_sheets("TableS3_ORF-toxicity.xlsx"), readxl::read_xlsx,
+        path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
+}
+
 cols = c(
     Genes="grey", Background="grey", Euploid="grey", Other="grey",
     Amplification="#b06166", Deletion="#8484A8",

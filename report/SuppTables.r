@@ -1,19 +1,16 @@
 library(dplyr)
 
-ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
-    mutate(compensation = (1 - p.value) * estimate) %>%
-    select(-n_genes)
+ccle = list.files("../model_compensation/fit_ccle-amp", recursive=TRUE, full.names=TRUE) %>%
+    setNames(tools::file_path_sans_ext(basename(.))) %>%
+    lapply(readRDS) %>%
+    lapply(. %>% mutate(compensation = (1 - p.value) * estimate))
+writexl::write_xlsx(ccle, "TableS1_CCLE-comp.xlsx")
 
-tcga = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
-    mutate(compensation = (1 - p.value) * estimate) %>%
-    select(-n_genes)
+tcga = list.files("../model_compensation/fit_tcga_puradj-amp", recursive=TRUE, full.names=TRUE) %>%
+    setNames(tools::file_path_sans_ext(basename(.))) %>%
+    lapply(readRDS) %>%
+    lapply(. %>% mutate(compensation = (1 - p.value) * estimate))
+writexl::write_xlsx(tcga, "TableS2_TCGA-comp.xlsx")
 
-orf = readxl::read_xlsx("../orf/fits_naive.xlsx")
-
-dset = list(
-    `S1 - CCLE compensation` = ccle,
-    `S2 - TCGA compensation` = tcga,
-    `S3 - ORF toxicity` = orf
-)
-
-writexl::write_xlsx(dset, "SuppTables.xlsx")
+orf = readxl::read_xlsx("../model_orf/fits_naive.xlsx")
+writexl::write_xlsx(orf, "TableS3_ORF-toxicity.xlsx")

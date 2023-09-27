@@ -3,14 +3,14 @@ library(dplyr)
 load_comp = function(fname) {
     dset = readRDS(fname) %>%
         mutate(compensation = (1 - p.value) * estimate,
-               is_comp = as.integer(compensation < -0.3))
+               is_comp = compensation < -0.3)
 }
 
 proc_tox = function(dset) {
     dset %>%
         dplyr::rename(gene = `GENE SYMBOL`) %>%
         filter(gene != "LOC254896") %>%
-        mutate(is_toxic = as.integer(p.value < 1e-5 & estimate < log2(0.7)))
+        mutate(is_toxic = p.value < 1e-5 & estimate < log2(0.7))
 }
 
 ccle = list.files("../model_compensation/fit_ccle-amp", recursive=TRUE, full.names=TRUE) %>%

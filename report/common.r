@@ -40,11 +40,12 @@ get_comp_tissue = function() {
         bind_rows(.id="tissue") %>%
         mutate(src = "TCGA")
 
-    dset = bind_rows(ccle, tcga) %>%
-        group_by(gene) %>% filter(all(c("CCLE", "TCGA") %in% src)) %>% ungroup() %>%
-        mutate(tissue = ifelse(tissue == "pan", "Pan-Cancer", tissue),
-               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
-               shrunk = estimate * (1-p.value))
+    bind_rows(ccle, tcga) %>%
+        group_by(tissue, gene) %>%
+            filter(all(c("CCLE", "TCGA") %in% src)) %>%
+            mutate(is_common = all(compensation < -0.3)) %>%
+        ungroup() %>%
+        mutate(tissue = factor(tissue) %>% relevel("Pan-Cancer"))
 }
 
 get_tox = function() {
@@ -52,11 +53,12 @@ get_tox = function() {
         path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
 }
 
-get_argos = function() {
-    comp = get_comp_tissue() %>%
-        filter(compensation < -0.3)
+get_argos = function(pan=FALSE) {
+    comp = get_comp_tissue() %>% filter(is_common)
+    if (pan)
+        comp = comp[comp$tissue == "Pan-Cancer",]
     comp2 = with(comp, intersect(gene[src=="CCLE"], gene[src=="TCGA"]))
-    tox = get_tox()$pan %>% filter(p.value < 1e-5, estimate < log2(0.7))
+    tox = get_tox()$pan %>% filter(is_toxic)
     intersect(comp2, tox$gene_name)
 }
 

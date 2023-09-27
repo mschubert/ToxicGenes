@@ -91,7 +91,7 @@ orf_volc = function(orfdata) {
 comp_ov = function() {
     dset = cm$get_comp_tissue() %>%
         group_by(gene, src) %>%
-        summarize(comp = list(c(na.omit(tissue[shrunk < -0.3])))) %>%
+        summarize(comp = list(c(na.omit(tissue[is_comp])))) %>%
         tidyr::unnest(comp)
 
     count_ov = function(ds, excl=c()) {
@@ -151,26 +151,28 @@ comp_ov = function() {
 }
 
 orf_ov = function(orfdata) {
-    pan_g = orfdata$pan %>% filter(adj.p < 1e-5, estimate < log2(0.7)) %>% pull(gene_name)
+    pan_g = orfdata$`Pan-Cancer` %>% filter(is_toxic) %>% pull(gene)
     tis_g = bind_rows(orfdata, .id="tissue") %>%
-        filter(!grepl("pan", tissue),
-               adj.p < 1e-5, estimate < log2(0.7)) %>%
-        pull(gene_name) %>% unique()
+        filter(!grepl("Pan-Cancer", tissue), is_toxic) %>%
+        pull(gene) %>% unique()
 
     dset = tibble(src = c("Pan-Cancer", "≥ 1 tissue"),
                   from = c(0, length(setdiff(pan_g, tis_g))),
-                  to = c(length(pan_g), length(unique(c(pan_g, tis_g))))) %>%
+                  to = c(length(pan_g), length(unique(c(pan_g, tis_g)))),
+                  y = c(2,-2)) %>%
         mutate(src = factor(src, levels=src))
     nums = tibble(x = c(dset$from[-1], dset$to),
-                  n = diff(c(dset$from, dset$to))) %>%
+                  n = diff(c(dset$from, dset$to)),
+                  y = c(2, 0, -2)) %>%
         mutate(x = n/2 + c(0, x[-length(x)]))
 
-    ggplot(dset, aes(y=0, yend=0, x=from, xend=to, color=src)) +
-        geom_segment(linewidth=25, alpha=0.2) +
-        geom_text(data=nums, aes(x=x, label=n), y=0, color="black", inherit.aes=FALSE) +
+    ggplot(dset, aes(y=y, yend=y, x=from, xend=to, color=src)) +
+        geom_segment(linewidth=5, alpha=0.2) +
+        geom_text(data=nums, aes(x=x, label=n, y=y), color="black", inherit.aes=FALSE) +
         guides(color=guide_legend(override.aes=list(linewidth=5))) +
         scale_color_manual(values=c("coral", "steelblue")) +
         scale_x_continuous(breaks=unique(c(dset$from, dset$to))) +
+        scale_y_continuous(limits=c(-9,9)) +
         labs(color = "",
              x = "Number of Toxic Genes found") +
         theme_minimal() +
@@ -187,24 +189,23 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
-    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="pan") %>%
+    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
-    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="pan") %>%
+    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
     comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    ofile = "../orf/fits_naive.xlsx"
-    orfdata = sapply(readxl::excel_sheets(ofile), readxl::read_xlsx, path=ofile, simplify=FALSE) %>%
-        lapply(. %>% dplyr::rename(gene_name = `GENE SYMBOL`) %>% filter(gene_name != "LOC254896"))
+    orfdata = sapply(readxl::excel_sheets("TableS3_ORF-toxicity.xlsx"), readxl::read_xlsx,
+                     path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
         wrap_elements(comp_ov())
     right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
-        orf_volc(orfdata$pan) /
+        orf_volc(orfdata$`Pan-Cancer`) /
         wrap_elements(orf_ov(orfdata))
 
     asm = ((left + plot_layout(heights=c(1.2,3,1.2))) |

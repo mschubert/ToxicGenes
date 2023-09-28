@@ -221,7 +221,10 @@ tcga_ccle_tissue = function() {
     sel = res %>% slice_max(n_comp, n=20, with_ties=FALSE) %>% select(gene, sel=src)
 
     dset2 = inner_join(dset, sel, relationship="many-to-many") %>%
-        mutate(compensation = pmax(-1, pmin(compensation, 1)))
+        mutate(src = factor(src),
+               compensation = pmax(-1, pmin(compensation, 1)))
+    levels(dset2$sel) = paste(levels(dset2$sel), "top genes")
+    levels(dset2$src) = paste(levels(dset2$src), "data")
     p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=compensation)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", name="Comp.\nscore") +
@@ -243,6 +246,7 @@ tcga_ccle_tissue = function() {
         bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(p.value, n=12, with_ties=FALSE) %>%
         arrange(p.value) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
         ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
+    levels(sres$sel) = paste(levels(sres$sel), "top genes")
 
     p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
         geom_col(aes(fill=ifelse(estimate>1, "Enriched", "Depleted")), alpha=0.2) +

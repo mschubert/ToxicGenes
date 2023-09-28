@@ -58,10 +58,10 @@ go_volc = function() {
 
 og_tsg_orf = function(gistic, orfdata) {
     freq_amp_genes = gistic %>%
-        filter(type == "amplification", frac > 0.15) %>% pull(gene_name)
-    cosmic = cm$get_cosmic_annot()
+        filter(type == "amplification", frac > 0.15) %>% pull(gene)
+    cosmic = cm$get_cosmic_annot() %>% dplyr::rename(gene=gene_name)
     both = left_join(orfdata, cosmic) %>%
-        filter(gene_name %in% freq_amp_genes) %>%
+        filter(gene %in% freq_amp_genes) %>%
         mutate(type = ifelse(is.na(type), "Background", type),
                type = factor(type, levels=c("Background", "Oncogene", "TSG"))) %>%
         filter(!is.na(type))
@@ -113,16 +113,15 @@ tissue_ov = function(orfdata) {
     meta = readr::read_tsv("../data/orf/tissues.txt")
     dset = bind_rows(orfdata, .id="screen") %>%
         left_join(meta %>% select(screen=cells, tissue)) %>%
-        mutate(tissue = ifelse(screen=="pan", "Pan-Cancer", tissue),
-               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
-               is_tox = p.value < 1e-5 & estimate < log2(0.7)) %>%
-        group_by(gene_name) %>%
-            filter(sum(is_tox) >= 6) %>%
+        mutate(tissue = ifelse(screen=="Pan-Cancer", "Pan-Cancer", tissue),
+               tissue = factor(tissue) %>% relevel("Pan-Cancer")) %>%
+        group_by(gene) %>%
+            filter(sum(is_toxic) >= 6) %>%
         ungroup() %>%
-        mutate(s = ifelse(is_tox, 1, 0.7),
+        mutate(s = ifelse(is_toxic, 1, 0.7),
                estimate = pmax(-3, pmin(3, estimate)))
 
-    ggplot(dset, aes(x=gene_name, y=forcats::fct_rev(screen), fill=estimate)) +
+    ggplot(dset, aes(x=gene, y=forcats::fct_rev(screen), fill=estimate)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", limits=max(abs(dset$estimate))*c(-1,1), name="log2 FC") +
         facet_grid(tissue ~ ., scales="free", space="free") +
@@ -135,7 +134,7 @@ tissue_ov = function(orfdata) {
 }
 
 sys$run({
-    gistic = readRDS("../data/gistic_smooth.rds")$genes
+    gistic = readRDS("../data/gistic_smooth.rds")$genes %>% dplyr::rename(gene=gene_name)
     orfdata = cm$get_tox()
     ov = readRDS("../orf/overview.rds") %>%
         mutate(cells = sprintf("%s (%s)", cells, tissue))
@@ -145,10 +144,11 @@ sys$run({
         xlab("Log10 read count DMSO condition") +
         coord_cartesian(ylim=c(-2.6,2.6), clip="off")
 
-    left = (naive / (og_tsg_orf(gistic, orfdata$pan) | amp_del_orf(gistic, orfdata$pan))) +
+    left = (naive / (og_tsg_orf(gistic, orfdata$`Pan-Cancer`) |
+                     amp_del_orf(gistic, orfdata$`Pan-Cancer`))) +
         plot_layout(heights=c(2,1))
-    right = (wrap_elements(screen_cor(ov)) / go_volc()) +
-        plot_layout(heights=c(1.2,2))
+    right = (go_volc()/ wrap_elements(screen_cor(ov))) +
+        plot_layout(heights=c(2,1.2))
     btm = tissue_ov(orfdata)
 
     asm = (((left | right) + plot_layout(widths=c(3,2))) / wrap_elements(btm)) +

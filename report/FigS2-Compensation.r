@@ -9,13 +9,13 @@ gset = import('genesets')
 cm = import('./common')
 
 tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
-    ccle = readxl::read_xlsx("../ccle/pan/stan-nb.xlsx") %>%
+    ccle = readRDS("../model_compensation/fit_ccle-amp/pan.rds") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    tcga1 = readxl::read_xlsx("../tcga/pan/stan-nb_naive.xlsx") %>%
+    tcga1 = readRDS("../model_compensation/fit_tcga_naive-amp/pan.rds") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    tcga2 = readxl::read_xlsx("../tcga/pan/stan-nb_pur.xlsx") %>%
+    tcga2 = readRDS("../model_compensation/fit_tcga_pur-amp/pan.rds") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
-    tcga3 = readxl::read_xlsx("../tcga/pan/stan-nb_puradj.xlsx") %>%
+    tcga3 = readRDS("../model_compensation/fit_tcga_puradj-amp/pan.rds") %>%
         mutate(estimate = pmax(-2, pmin((1 - p.value) * estimate, 2.5)))
 
     dset = ccle %>% select(gene, CCLE=estimate) %>%
@@ -148,10 +148,10 @@ og_comp = function(comp) {
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
 }
 
-rpe_comp = function(all) {
+rpe_comp = function() {
     lookup = c(SS6="chr +7", SS51="+7 +22", SS111="+8 +9 +18")
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
-    comp = all %>% filter(est_ccle < -0.3, est_tcga < -0.3) %>% pull(gene)
+    comp = cm$get_comp_genes(pan=TRUE)
     dset = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
         tidyr::unnest(genes) %>%
         inner_join(chrs) %>%
@@ -187,8 +187,8 @@ rpe_comp = function(all) {
             comparisons=list(c("Background", "Compensated")))
 }
 
-triplosens = function(all) {
-    compg = all$gene[all$hit]
+triplosens = function() {
+    compg = cm$get_comp_genes(pan=TRUE)
     ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
     ts$is_comp = ifelse(ts$Gene %in% compg, "Compensated", "Other")
     wd = split(ts$pTriplo, ts$is_comp)
@@ -210,19 +210,19 @@ triplosens = function(all) {
 
 tcga_ccle_tissue = function() {
     dset = cm$get_comp_tissue() %>%
-        mutate(s = ifelse(shrunk < -0.3, 1, 0.7))
+        mutate(s = ifelse(is_comp, 1, 0.7))
 
     res = bind_rows(dset, dset %>% mutate(src = "Common")) %>%
         mutate(src = factor(src, levels=c("Common", "CCLE", "TCGA"))) %>%
         group_by(src, gene) %>%
-            filter(sum(!is.na(shrunk)) > 2) %>%
-            summarize(n_comp = sum(shrunk < -0.3, na.rm=TRUE),
-                      broom::tidy(lm(shrunk ~ 1)))
+            filter(sum(!is.na(compensation)) > 2) %>%
+            summarize(n_comp = sum(compensation < -0.3, na.rm=TRUE),
+                      broom::tidy(lm(compensation ~ 1)))
     sel = res %>% slice_max(n_comp, n=20, with_ties=FALSE) %>% select(gene, sel=src)
 
     dset2 = inner_join(dset, sel, relationship="many-to-many") %>%
-        mutate(shrunk = pmax(-1, pmin(shrunk, 1)))
-    p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=shrunk)) +
+        mutate(compensation = pmax(-1, pmin(compensation, 1)))
+    p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=compensation)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", name="Comp.\nscore") +
         facet_grid(src ~ sel, scales="free") +
@@ -259,16 +259,15 @@ tcga_ccle_tissue = function() {
 }
 
 sys$run({
-    all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     cosmic = cm$get_cosmic_annot()
     gistic = readRDS("../data/gistic_smooth.rds")$genes
     gistic_amp = gistic %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
-    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="pan") %>%
+    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
-    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="pan") %>%
+    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
     comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
@@ -276,7 +275,7 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp(all) / triplosens(all)) +
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp() / triplosens()) +
         plot_layout(heights=c(1,1,1.5,0.8))
 
     asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +

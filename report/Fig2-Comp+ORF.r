@@ -132,7 +132,7 @@ comp_ov = function() {
         theme_minimal() +
         theme(axis.title.x = element_blank(),
               legend.position = "none") +
-        labs(y = "Number of genes")
+        labs(y = "Number of\ncompensated genes")
     p2 = ggplot(nums_tis, aes(x=value, y=n, color=name)) +
         geom_line(aes(group=paste(name, `Pan-Cancer`))) +
         geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +

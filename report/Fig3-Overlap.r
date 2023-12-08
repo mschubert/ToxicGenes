@@ -13,7 +13,7 @@ along_genome = function(dset, gistic, chrs=1:22) {
         rowwise() %>%
         mutate(scales = list(scale_x_continuous(limits=c(x, xend), expand=c(0,0))))
 
-    cosmic = cm$get_cosmic_annot() %>% select(-tier) %>% filter(type != "OG+TSG")
+    cosmic = cm$get_cosmic_annot() %>% select(-tier, -hallmark) %>% filter(type != "OG+TSG")
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
 
     comp = tibble(type="Compensated", gene_name=dset$gene[dset$est_ccle < -0.3 & dset$est_tcga < -0.3])
@@ -39,9 +39,9 @@ along_genome = function(dset, gistic, chrs=1:22) {
             summarize(xmin=min(tss), xmax=max(tss)) %>%
         ungroup()
 
-    dots = bind_rows(genes, cosmic, comp, hyp, orf) %>%
+    dots = bind_rows(genes, cosmic, distinct(comp), distinct(hyp), orf) %>%
         mutate(type = factor(type, levels=unique(type))) %>%
-        inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% distinct()) %>%
+        inner_join(gistic$genes %>% select(gene_name, chr, tss) %>% filter(!duplicated(gene_name))) %>%
         na.omit() %>%
         filter(chr %in% chrs)
 
@@ -77,7 +77,12 @@ along_genome = function(dset, gistic, chrs=1:22) {
             "Compensated", "Hyperactivated", "ORF dropout")], name="") +
         plot_layout(tag_level="new") +
         expand_limits(y=1.1) +
-        coord_cartesian(clip="off", expand=FALSE)
+        coord_cartesian(clip="off", expand=FALSE) +
+        guides(fill = guide_legend(byrow = TRUE)) +
+        theme(strip.text.x = element_text(size=12),
+              legend.title = element_text(size=12),
+              legend.text = element_text(size=11),
+              legend.spacing.y = unit(1.2, 'mm'))
 
     amp = ggplot(smooth, aes(x=tss)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0, yend=0, alpha=1) +
@@ -85,13 +90,15 @@ along_genome = function(dset, gistic, chrs=1:22) {
         scale_fill_manual(values=cm$cols["Amplification"], name="CNA") +
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
-        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21) +
+        geom_point(data=labs, aes(x=tss, y=frac), color="black", fill="white", shape=21, size=2) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         facet_grid(. ~ chr, scales="free", space="free") +
         ggh4x::facetted_pos_scales(x=lens$scales) +
         theme_minimal() +
         guides(fill="none") +
-        theme(axis.title = element_blank(),
+        theme(legend.title = element_text(size=12),
+              legend.text = element_text(size=11),
+              axis.title = element_blank(),
               axis.text = element_blank(),
               strip.text.x = element_blank(),
               panel.grid.major = element_blank(),
@@ -104,9 +111,9 @@ along_genome = function(dset, gistic, chrs=1:22) {
     glabs = ggplot(labs3, aes(x=tss, y=0)) +
         geom_segment(data=lens, aes(x=x, xend=xend), y=0.1, yend=0.1, alpha=0) +
         geom_segment(aes(xend=tss, yend=0.1)) +
-        geom_text(aes(x=tss2, label=gene_name), size=3, angle=40, hjust=1, vjust=1) +
+        geom_text(aes(x=tss2, label=gene_name), size=3.5, angle=40, hjust=1, vjust=1) +
         facet_grid(. ~ chr, scales="free", space="free") +
-        coord_cartesian(clip="off", ylim=c(-1,0.1), expand=FALSE) +
+        coord_cartesian(clip="off", ylim=c(-2,0.1), expand=FALSE) +
         theme_void() +
         theme(strip.text.x = element_blank(),
               panel.background = element_blank(),
@@ -137,7 +144,7 @@ comp_hyp_box = function(dset) {
         coord_cartesian(ylim=c(-7.5, 9)) +
         labs(fill = "Status", x = "Compensation status", y = "Δ ORF (Wald statistic)") +
         scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
-        theme_classic() +
+        cm$theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(ds$stat_orf[ds$type=="Background"], na.rm=TRUE),
                    linetype="dashed", color="black")
@@ -151,7 +158,7 @@ overlap_venn = function(dset, gistic_amp) {
     all3 = ifelse(all3 %in% gistic_amp$gene, paste("▲", all3), all3)
     plt$venn(ov, alpha=0.4) +
         scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
-        annotate("text", x=-11, y=13, label=paste(all3, collapse="\n"), size=3.5, hjust=1) +
+        annotate("text", x=-11, y=13, label=paste(all3, collapse="\n"), size=4, hjust=1) +
         annotate("segment", x=-10.5, y=4.5, xend=-10.5, yend=21.5) +
         annotate("segment", x=-10, y=15, xend=4.5, yend=0.2) +
         coord_fixed(clip="off")
@@ -231,12 +238,13 @@ complex_plot = function(dset, hits) {
         theme(legend.key.size = unit(3, "mm"),
               legend.spacing.y = unit(-3, "mm"),
               axis.title.y = element_blank(),
-              axis.title.x = element_text(size=8),
-              legend.title = element_text(size=8),
-              legend.text = element_text(size=8),
+              axis.title.x = element_text(size=10),
+              legend.title = element_text(size=10),
+              legend.text = element_text(size=10),
+              strip.text.x = element_text(size=10),
               plot.background = element_rect(color="#e5e5e5", fill="#fdfdfd")) +
         scale_x_continuous(breaks=c(-0.5, -5)) +
-        xlab("Compensation (score) / ORF dropout (Wald)") +
+        xlab("   Compensation (score) / ORF dropout (Wald)") +
         scale_fill_brewer(palette="Dark2", name="", direction=-1,
             guide=guide_legend(override.aes=list(shape=NA))) +
         scale_shape_manual(values=c("No data"=4), name="") +
@@ -247,11 +255,11 @@ complex_plot = function(dset, hits) {
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
         geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
         geom_hline(yintercept=fdr, linetype="dashed", color="black") +
-        annotate("text", y=fdr, x=-5.45, vjust=-1, hjust=0, label="20% FDR", size=3) +
+        annotate("text", y=fdr, x=-5.25, vjust=-1, hjust=0, label="20% FDR", size=3.5) +
         geom_point(data=res %>% filter(!has_hit), aes(size=n, fill=has_hit), shape=21) +
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=12, segment.alpha=0.3,
-            label.size=NA, fill="#ffffffa0", min.segment.length=0, parse=TRUE,
+            label.size=NA, fill="#ffffffd0", min.segment.length=0, parse=TRUE,
             max.iter=1e5, max.time=10, seed=1) +
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
         guides(fill = guide_legend(override.aes=list(size=3))) +
@@ -259,17 +267,17 @@ complex_plot = function(dset, hits) {
         scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),
                min(res$avg_orf[res$p.value<0.2], na.rm=TRUE))) +
-        theme_classic() +
+        cm$theme_classic() +
         labs(x = "Mean ORF dropout compensated genes (Wald statistic)",
              y = "Overlap compensated genes (p-value Fisher's Exact Test)",
              size = "Protein\ncomplex\nmembers",
              fill = "Contains\nARGOS\ngene")
 
     assocs +
-        annotate("curve", x=-1.8, y=1.5e-5, xend=-2.2, yend=4e-6, color="black",
+        annotate("curve", x=-1.8, y=1.5e-5, xend=-2.15, yend=4e-6, color="black",
                  curvature=-0.4, lineend="round", linejoin="round",
                  arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
-        inset_element(detail, 0.55, 0.57, 1, 0.82)
+        inset_element(detail, 0.54, 0.57, 1, 0.84)
 }
 
 sys$run({
@@ -283,14 +291,14 @@ sys$run({
 
     top = along_genome(dset, gistic)
     boxes = wrap_elements(comp_hyp_box(dset))
-    ov = overlap_venn(dset, gistic_amp)
+    ov = wrap_elements(overlap_venn(dset, gistic_amp) + theme(plot.margin = unit(c(0,-15,-10,0), "mm")))
     cplx = complex_plot(dset, dset$gene[dset$hit & dset$is_orf_hit])
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +
         plot_layout(widths=c(1,1.8))) + plot_layout(heights=c(1,2.3))) +
         plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("Fig3-Overlap.pdf", 14, 11)
     print(asm)

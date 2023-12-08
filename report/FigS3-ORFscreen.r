@@ -25,7 +25,7 @@ facet_plot = function(ov, mapping, hl=c("RBM14", "CDKN1A")) {
 #        geom_line(data=loess_sd, aes(x=x, y=y+sd), color="red", linetype="dashed") +
 #        geom_line(data=loess_sd, aes(x=x, y=y-sd), color="red", linetype="dashed") +
         facet_wrap(~ cells, ncol=6) +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
 
@@ -42,9 +42,11 @@ screen_cor = function(ov) {
     levels(cmat$Var1) = levels(cmat$Var2)
     plt$matrix(cmat, value ~ Var1 + Var2, geom="tile") +
         scale_fill_distiller(palette="RdBu", name="Pearson\ncorrelation") +
-        theme(axis.title = element_blank()) +
         coord_fixed() +
-        theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
+        cm$text_sizes() +
+        theme(axis.title.x = element_blank(),
+              axis.title.y = element_blank(),
+              axis.text.x = element_text(angle=90, hjust=1, vjust=0.5))
 }
 
 go_volc = function() {
@@ -53,6 +55,7 @@ go_volc = function() {
     res$name[grepl("GO:00(42100|35025|30098|30857)", res$name)] = NA # labels overlap otherwise
     plt$volcano(res, label_top=35, max.overlaps=10, text.size=3.2) + guides(size="none") +
         xlab("Mean z-score LFC") +
+        ylab("Upper bound FDR (values too close to zero)") +
         coord_cartesian(ylim=c(1,1e-95))
 }
 
@@ -73,8 +76,8 @@ og_tsg_orf = function(gistic, orfdata) {
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))) +
         coord_cartesian(ylim=c(-8, 11)) +
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]) +
-        labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset", y = "Δ ORF (Wald statistic)") +
-        theme_classic() +
+        labs(fill = "Driver status\n(freq. amplified)", x = "Driver status", y = "Δ ORF (Wald statistic)") +
+        cm$theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
@@ -97,13 +100,13 @@ amp_del_orf = function(gistic, orfdata) {
 
     ggplot(both, aes(x=type, y=statistic, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
-        ggsignif::geom_signif(y_position=c(5, 6.5), color="black", test=t.test,
+        ggsignif::geom_signif(y_position=c(4.7, 6.5), color="black", test=t.test,
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))) +
-        coord_cartesian(ylim=c(-5, 8)) +
+        coord_cartesian(ylim=c(-5, 8.5)) +
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]) +
-        labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)") +
-        theme_classic() +
+        labs(fill = "Frequent CNA", x = "Frequent CNA", y = "Δ ORF (Wald statistic)") +
+        cm$theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(both$statistic[both$type=="Background"]),
                    linetype="dashed", color="black")
@@ -124,20 +127,20 @@ tissue_ov = function(orfdata) {
     ggplot(dset, aes(x=gene, y=forcats::fct_rev(screen), fill=estimate)) +
         geom_tile(aes(width=s, height=s)) +
         scale_fill_distiller(palette="PuOr", limits=max(abs(dset$estimate))*c(-1,1), name="log2 FC") +
-        facet_grid(tissue ~ ., scales="free", space="free") +
-        theme_minimal() +
+        scale_y_discrete(position = "right") +
+        facet_grid(tissue ~ ., scales="free", space="free", switch="y") +
+        cm$theme_minimal() +
         theme(axis.text.x = element_text(angle=90, hjust=1, vjust=0.5),
-              strip.text.y = element_text(angle=0, hjust=0),
+              strip.text.y.left = element_text(angle=0, hjust=0),
               strip.background = element_rect(color="black", linewidth=1)) +
         labs(x = "Gene",
-             y = "Tissue")
+             y = "Cell line")
 }
 
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes %>% dplyr::rename(gene=gene_name)
     orfdata = cm$get_tox()
-    ov = readRDS("../orf/overview.rds") %>%
-        mutate(cells = sprintf("%s (%s)", cells, tissue))
+    ov = readRDS("../orf/overview.rds")
 
     naive = facet_plot(ov, aes(x=DMSO, y=`LFC DMSO/ETP`)) +
         ylim(c(-4,4)) +
@@ -147,16 +150,15 @@ sys$run({
     left = (naive / (og_tsg_orf(gistic, orfdata$`Pan-Cancer`) |
                      amp_del_orf(gistic, orfdata$`Pan-Cancer`))) +
         plot_layout(heights=c(2,1))
-    right = (go_volc()/ wrap_elements(screen_cor(ov))) +
+    right = (wrap_elements(go_volc() + theme(plot.margin=margin(-10,0,0,0,"mm"))) /
+             wrap_elements(screen_cor(ov) + theme(plot.margin=margin(-5,0,-15,-5,"mm")))) +
         plot_layout(heights=c(2,1.2))
     btm = tissue_ov(orfdata)
 
     asm = (((left | right) + plot_layout(widths=c(3,2))) / wrap_elements(btm)) +
-        plot_layout(heights=c(10,5)) +
+        plot_layout(heights=c(10,6)) +
         plot_annotation(tag_levels='a') &
-        theme(axis.text = element_text(size=10),
-              legend.text = element_text(size=10),
-              plot.tag = element_text(size=24, face="bold"))
+        theme(plot.tag = element_text(size=24, face="bold"))
 
     cairo_pdf("FigS3-ORFscreen.pdf", 14, 14)
     print(asm)

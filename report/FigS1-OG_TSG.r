@@ -22,18 +22,17 @@ og_tsg_cna = function(gistic, cosmic) {
     ggplot(dset, aes(x=type, y=frac, fill=type)) +
         geom_boxplot(outlier.shape=NA) +
         scale_fill_manual(values=cm$cols[levels(dset$type)]) +
-        labs(y="Frequency TCGA", x ="Gene type subset",
+        labs(y="Frequency TCGA", x ="Driver status (whole genome)",
              fill="Driver status\n(whole genome)") +
         geom_hline(data=bg_line, aes(yintercept=frac), linetype="dashed", color="black") +
         ggsignif::geom_signif(comparisons=list(c("Background", "Oncogene"), c("Background", "TSG")),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test, textsize=3) +
+            y_position=c(0.43,0.48,0.43,0.48), color="black", test=t.test) +
         facet_wrap(~ cna) +
         coord_cartesian(ylim=c(0.02, 0.52)) +
-        theme_classic() +
+        cm$theme_classic() +
         theme(strip.background = element_blank(),
               strip.placement = "outside",
-              strip.text.x = element_text(size=12),
               axis.text.x = element_blank())
 }
 
@@ -51,12 +50,12 @@ og_vs_tsg = function(gistic, cosmic) {
             linetype="dashed", alpha=0.1, inherit.aes=FALSE) +
         scale_fill_manual(values=cm$cols[c("Amplified", "Deleted")], name="Frequently") +
         geom_point(aes(shape=tier), na.rm=TRUE) +
-        ggrepel::geom_label_repel(aes(label=label), size=3, min.segment.length=0,
-            segment.alpha=0.3, fill="#ffffffc0", label.size=NA, na.rm=TRUE) +
+        ggrepel::geom_label_repel(aes(label=label), min.segment.length=0,
+            segment.alpha=0.3, fill="#ffffffca", label.size=NA, na.rm=TRUE) +
         scale_shape_manual(values=c("1"=19, "2"=1), name="Tier") +
         scale_color_manual(values=cm$cols[c("Oncogene", "TSG", "OG+TSG")], name="Driver status") +
         coord_fixed() +
-        theme_classic() +
+        cm$theme_classic() +
         labs(x = "Deletion frequency",
              y = "Amplification frequency")
 }
@@ -104,7 +103,7 @@ rpe_scaling = function(rpe) {
         facet_grid(clone ~ seqnames, scales="free", space="free") +
         coord_cartesian(ylim=c(-1.8,1.8)) +
         scale_color_manual(values=c(DNA="purple", RNA="green"), name="Data type") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.text.x = element_blank(),
               axis.ticks.x = element_blank(),
               panel.background = element_rect(fill="#f5f5f5"),
@@ -126,8 +125,8 @@ rpe_scaling = function(rpe) {
         ggbeeswarm::geom_quasirandom(size=2, aes(color=clone)) +
         ggsignif::geom_signif(comparisons=list(c("Euploid", "Amplified")),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            y_position=c(0.25,0.28), color="black", test=t.test, textsize=3) +
-        theme_classic() +
+            y_position=c(0.25,0.28), color="black", test=t.test) +
+        cm$theme_classic() +
         coord_cartesian(clip="off") +
         ylab("LFC RNA/DNA chromosome") +
         theme(axis.title.x = element_blank())
@@ -195,7 +194,7 @@ rpe2_scaling = function() {
         ggsignif::geom_signif(comparisons=list(c("Euploid", "Amplified")),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             y_position=c(0.25,0.28), color="black", test=t.test, textsize=3) +
-        theme_classic() +
+        cm$theme_classic() +
         coord_cartesian(clip="off") +
         ylab("LFC RNA/DNA chromosome") +
         theme(axis.title.x = element_blank())
@@ -219,8 +218,7 @@ sys$run({
 #    asm = ((((left | right) + plot_layout(widths=c(3,2))) / rs$genome) + plot_layout(heights=c(3,2))) +
     asm = ((left | right) + plot_layout(widths=c(3,2))) +
         plot_annotation(tag_levels='a') &
-        theme(legend.text = element_text(size=10),
-              plot.tag = element_text(size=24, face="bold"))
+        theme(plot.tag = element_text(size=24, face="bold"))
 
     pdf("FigS1-OG_TSG.pdf", 11, 8)
     print(asm)

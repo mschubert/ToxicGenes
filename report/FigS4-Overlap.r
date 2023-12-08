@@ -32,9 +32,9 @@ comp_orf = function(all, gistic_amp) {
         scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.4), name="Dropout") +
         annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
-        theme_classic() +
+        cm$theme_classic() +
         coord_cartesian(clip="off") +
-        labs(x = "Mean expression over expected CCLE/TCGA",
+        labs(x = "Mean compensation score CCLE/TCGA",
              y = "ORF log fold-chance (Wald statistic)")
 }
 
@@ -59,9 +59,9 @@ go_cors = function() {
                max_ov=10, draw_label=35, palette="Greys", alpha=0.6, pal_alpha=0.5, tsize=3.5) +
         guides(alpha=FALSE) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
-        theme_minimal() +
+        cm$theme_minimal() +
         annotate("text", x=6, y=-8, color="blue", label=lab, parse=TRUE) +
-        labs(x = "Mean expression over expected CCLE/TCGA (Wald statistic)",
+        labs(x = "Mean compensation score CCLE/TCGA (Wald statistic)",
              y = "Mean dropout ORF screen (Wald statistic)")
 }
 
@@ -89,7 +89,9 @@ dens_ov = function() {
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
-        theme(axis.text.x = element_blank()) +
+        cm$text_sizes() +
+        theme(axis.title = element_blank(),
+              axis.text.x = element_blank()) +
         ggtitle("Pairwise")
 
     p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile") +
@@ -97,10 +99,11 @@ dens_ov = function() {
         scale_discrete_manual("label", guide=guide_legend(title="Correlation\nexplained"),
             values=c("≥ 75%"="×", "≥ 60%"="o")) +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
+        cm$text_sizes() +
         theme(axis.title = element_blank()) +
         coord_fixed() +
         plot_layout(tag_level="new") +
-        ggtitle("Conditioned on genes")
+        ggtitle("Conditioned\non genes")
 
     (p1 / p2) + plot_layout(guides="collect")
 }

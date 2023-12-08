@@ -46,15 +46,14 @@ tcga_vs_ccle = function(hl=c("RBM14", "CDKN1A")) {
         facet_wrap(~ type) +
         geom_smooth(method="lm", color="blue", se=FALSE, size=0.7) +
         geom_label(data=mods, aes(x=1, y=-1, label=label), parse=TRUE, color="blue",
-                   fill="#ffffffc0", label.size=NA, hjust=1, vjust=0.8, size=4) +
+                   fill="#ffffffc0", label.size=NA, hjust=1, vjust=0.8) +
         ggnewscale::new_scale(c("fill")) +
         geom_point(data=hl, aes(fill=Gene), color="black", shape=21, size=2.5) +
-        labs(y = "Expression over expected TCGA",
-             x = "Expression over expected CCLE") +
+        labs(y = "Compensation score TCGA",
+             x = "Compensation score CCLE") +
         coord_cartesian(ylim=c(-1.2, 1.2)) +
-        theme_minimal() +
-        theme(strip.text = element_text(size=12),
-              strip.background = element_rect(color=NA, fill="#ffffffc0"))
+        cm$theme_minimal() +
+        theme(strip.background = element_rect(color=NA, fill="#ffffffc0"))
 }
 
 go_cors = function() {
@@ -67,16 +66,18 @@ go_cors = function() {
     m = broom::glance(lm(stat_ccle ~ stat_tcga, data=both))
     lab = sprintf("R^2~`=`~%.2f~\n~italic(P)~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
+    use = grep("GO:00+(6260|6261|6302|8033|10467|6412|36297|381|43484|6397|48024|22618|6396)\\)$", both$label, value=TRUE)
 
-    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label), size=size_used,
-               alpha=0.6, pal_alpha=0.5, tsize=3.5, n_tiles=80, h=40, max_ov=5) +
+    plt$denspt(both, aes(x=stat_tcga, y=stat_ccle, label=label),
+               size=size_used, alpha=0.6, pal_alpha=0.5, tsize=4, n_tiles=80, h=40,
+               draw_label=0, always_label=use) +
         scale_size_area(max_size=8, breaks=c(10,100,500,1000), name="Genes in set") +
-        theme_minimal() +
+        cm$theme_minimal() +
         guides(alpha="none") +
         labs(title = "Gene Ontology: Biological Process",
-             x = "Δ Expression over expected TCGA (Wald stat.)",
-             y = "Δ Expression over expected CCLE (Wald stat.)") +
-        annotate("text", x=11, y=-6.5, color="blue", label=lab, size=4, parse=TRUE)
+             x = "Compensation score TCGA (Wald stat.)",
+             y = "Compensation score CCLE (Wald stat.)") +
+        annotate("text", x=11, y=-6.5, color="blue", label=lab, parse=TRUE)
 }
 
 cna_comp = function(gistic, comp_all) {
@@ -100,8 +101,8 @@ cna_comp = function(gistic, comp_all) {
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Amplified"), c("Background", "Deleted"))),
         scale_fill_manual(values=cm$cols[c("Background", "Amplified", "Deleted")]),
-        labs(fill = "Frequent CNA", x = "Copy number subset", y = "Δ ORF (Wald statistic)"),
-        theme_classic(),
+        labs(fill = "Frequent CNA", x = "Frequent CNA", y = "Δ ORF (Wald statistic)"),
+        cm$theme_classic(),
         coord_cartesian(ylim=coordy, clip="off"),
         theme(axis.text.x = element_blank()),
         geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
@@ -109,10 +110,10 @@ cna_comp = function(gistic, comp_all) {
     )
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
-        common(both$estimate.x, c(-0.3, 0.7), c(0.4, 0.55)) +
-        labs(title = "CCLE", y="Δ Expression / expected")
+        common(both$estimate.x, c(-0.3, 0.7), c(0.36, 0.55)) +
+        labs(title = "CCLE", y="Compensation scores")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
-        common(both$estimate.y, c(-0.5, 1.4), c(0.9, 1.2)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.84, 1.2)) +
         labs(title = "TCGA", y="")
 
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
@@ -130,8 +131,8 @@ og_comp = function(comp) {
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("Background", "Oncogene"), c("Background", "TSG"))),
         scale_fill_manual(values=cm$cols[c("Background", "Oncogene", "TSG")]),
-        labs(fill = "Driver status\n(freq. amplified)", x = "Gene type subset"),
-        theme_classic(),
+        labs(fill = "Driver status\n(freq. amplified)", x = "Driver status"),
+        cm$theme_classic(),
         coord_cartesian(ylim=coordy, clip="off"),
         theme(axis.text.x = element_blank()),
         geom_hline(yintercept=median(y[both$type=="Background"], na.rm=TRUE),
@@ -139,10 +140,10 @@ og_comp = function(comp) {
     )
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
-        common(both$estimate.x, c(-0.3, 0.7), c(0.38, 0.55)) +
-        labs(title = "CCLE", y="Δ Expression / expected")
+        common(both$estimate.x, c(-0.3, 0.7), c(0.36, 0.55)) +
+        labs(title = "CCLE", y="Compensation scores")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
-        common(both$estimate.y, c(-0.5, 1.4), c(0.9, 1.2)) +
+        common(both$estimate.y, c(-0.5, 1.4), c(0.84, 1.2)) +
         labs(title = "TCGA", y="")
 
     (p1 | (p2 + plot_layout(tag_level="new"))) + plot_layout(guides="collect")
@@ -178,9 +179,8 @@ rpe_comp = function() {
         scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
         scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
-        theme_minimal() +
-        theme(axis.text.x = element_blank(),
-              strip.text = element_text(size=12)) +
+        cm$theme_minimal() +
+        theme(axis.text.x = element_blank()) +
         ggsignif::geom_signif(color="black", y_position=-0.15,
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
@@ -201,7 +201,7 @@ triplosens = function() {
         stat_summary(fun=mean, geom="crossbar", colour="red") +
         annotate("text", x=2.5, y=0.75, label=cm$fmt_p(wt$p.value), parse=TRUE) +
         coord_flip(clip="off") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.text.y = element_blank()) +
         labs(title = "Triplosensitivity",
              x = "Compensation status",
@@ -227,9 +227,9 @@ tcga_ccle_tissue = function() {
     levels(dset2$src) = paste(levels(dset2$src), "data")
     p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=compensation)) +
         geom_tile(aes(width=s, height=s)) +
-        scale_fill_distiller(palette="PuOr", name="Comp.\nscore") +
+        scale_fill_distiller(palette="PuOr", name="Compensation\nscore") +
         facet_grid(src ~ sel, scales="free") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
               axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
         labs(x = "Gene",
@@ -250,16 +250,16 @@ tcga_ccle_tissue = function() {
 
     p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
         geom_col(aes(fill=ifelse(estimate>1, "Enriched", "Depleted")), alpha=0.2) +
-        scale_fill_manual(values=c(Enriched="steelblue", Depleted="coral"), name="Type") +
+        scale_fill_manual(values=c(Enriched="steelblue", Depleted="coral"), name="Direction") +
         geom_text(aes(label=paste0(" ", label)), x=0, hjust=0) +
         facet_wrap(~ sel, scales="free") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
               axis.text.y = element_blank()) +
-        labs(x = "-log10 FDR compensation in ≥ 3 Tissues",
-             y = "Category")
+        labs(x = "-log10 FDR compensation in ≥ 3 Tissues (Fisher's Exact Test)",
+             y = "MSigDB Hallmark\ncategory")
 
-    (p1 / p2) + plot_layout(heights=c(4,3))
+    (p1 / p2) + plot_layout(heights=c(7,6))
 }
 
 sys$run({
@@ -283,13 +283,11 @@ sys$run({
         plot_layout(heights=c(1,1,1.5,0.8))
 
     asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +
-        plot_layout(heights=c(6,5)) +
+        plot_layout(heights=c(6,5.5)) +
         plot_annotation(tag_levels='a') &
-        theme(axis.text = element_text(size=10),
-              legend.text = element_text(size=10),
-              plot.tag = element_text(size=24, face="bold"))
+        theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS2-Compensation.pdf", 15, 20)
+    cairo_pdf("FigS2-Compensation.pdf", 14, 18)
     print(asm)
     dev.off()
 })

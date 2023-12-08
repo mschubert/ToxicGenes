@@ -206,7 +206,7 @@ sys$run({
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
         wrap_elements(comp_ov())
-    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
+    right = (wrap_elements(schema_orf() + theme(plot.margin=margin(-20,-20,-15,-5,"mm")))) /
         orf_volc(orfdata$`Pan-Cancer`) /
         wrap_elements(orf_ov(orfdata))
 

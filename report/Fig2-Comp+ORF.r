@@ -63,12 +63,12 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
         ggrepel::geom_label_repel(data=both %>% filter(pdist > 1 | gene_name %in% hl),
                    aes(label=gene_name, color=group), max.overlaps=20,
-                   box.padding=unit(0.1, "lines"), size=3, min.segment.length=0,
+                   box.padding=unit(0.1, "lines"), min.segment.length=0,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
-        theme_classic() +
+        cm$theme_classic() +
         labs(size = "TCGA\nAmplifications",
-             x = "Δ Expression over expected CCLE",
-             y = "Δ Expression over expected TCGA") +
+             x = "Compensation score CCLE",
+             y = "Compensation score TCGA") +
         plot_layout(tag_level="new")
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +
@@ -80,12 +80,13 @@ orf_volc = function(orfdata) {
     orfdata$circle = TRUE
     bord = tibble(x=c(-Inf,log2(0.7)), y=c(1e-5,1e-5), yend=c(1e-5,0), xend=c(log2(0.7),log2(0.7)))
 
-    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
+    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20, text.size=4) +
         geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
                      linetype="dotted", size=0.3, color="grey") +
-        labs(x = "log fold-change ORF screen",
+        labs(x = "log2 fold-change ORF screen",
              y = "Adjusted p-value (FDR)",
-             size = "# ORFs")
+             size = "# ORFs") +
+        cm$text_sizes()
 }
 
 comp_ov = function() {
@@ -129,7 +130,7 @@ comp_ov = function() {
         scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_fill_manual(values=cols) +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.x = element_blank(),
               legend.position = "none") +
         labs(y = "Number of\ncompensated genes")
@@ -143,7 +144,7 @@ comp_ov = function() {
         scale_x_continuous(breaks=1:6) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.y = element_blank()) +
         labs(x="Tissue overlap") +
         plot_layout(tag_level="new")
@@ -175,7 +176,7 @@ orf_ov = function(orfdata) {
         scale_y_continuous(limits=c(-9,9)) +
         labs(color = "",
              x = "Number of Toxic Genes found") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.y = element_blank(),
               axis.text.y = element_blank(),
               panel.grid.major.y = element_blank(),

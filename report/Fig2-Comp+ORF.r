@@ -62,7 +62,7 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         annotate("text", x=0.4, y=1.55, label="Hyperactivated", color=cm$cols[["Hyperactivated"]],
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
         ggrepel::geom_label_repel(data=both %>% filter(pdist > 1 | gene_name %in% hl),
-                   aes(label=gene_name, color=group), max.overlaps=20,
+                   aes(label=gene_name, color=group), max.overlaps=12,
                    box.padding=unit(0.1, "lines"), min.segment.length=0,
                    segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         cm$theme_classic() +
@@ -80,7 +80,7 @@ orf_volc = function(orfdata) {
     orfdata$circle = TRUE
     bord = tibble(x=c(-Inf,log2(0.7)), y=c(1e-5,1e-5), yend=c(1e-5,0), xend=c(log2(0.7),log2(0.7)))
 
-    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20, text.size=4) +
+    plt$volcano(orfdata, label_top=30, pos_label_bias=3, max.overlaps=15, text.size=4) +
         geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
                      linetype="dotted", size=0.3, color="grey") +
         labs(x = "log2 fold-change ORF screen",
@@ -168,19 +168,20 @@ orf_ov = function(orfdata) {
         mutate(x = n/2 + c(0, x[-length(x)]))
 
     ggplot(dset, aes(y=y, yend=y, x=from, xend=to, color=src)) +
-        geom_segment(linewidth=5, alpha=0.2) +
+        geom_segment(linewidth=8, alpha=0.2) +
         geom_text(data=nums, aes(x=x, label=n, y=y), color="black", inherit.aes=FALSE) +
         guides(color=guide_legend(override.aes=list(linewidth=5))) +
         scale_color_manual(values=c("coral", "steelblue")) +
         scale_x_continuous(breaks=unique(c(dset$from, dset$to))) +
-        scale_y_continuous(limits=c(-9,9)) +
+        scale_y_continuous(limits=c(-15,15)) +
         labs(color = "",
              x = "Number of Toxic Genes found") +
         cm$theme_minimal() +
         theme(axis.title.y = element_blank(),
               axis.text.y = element_blank(),
               panel.grid.major.y = element_blank(),
-              panel.grid.minor.y = element_blank())
+              panel.grid.minor.y = element_blank(),
+              plot.margin = margin(-5,0,0,0,"mm"))
 }
 
 sys$run({

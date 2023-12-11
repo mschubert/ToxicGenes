@@ -34,10 +34,10 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     ))
     both$pdist = with(both, sqrt(pmin(0.9,estimate.x)^2 + pmin(0.9,estimate.y)^2))
 
-    hl = c("RBM14", "CDKN1A", "SNRPA", "ZBTB14", "POU2F1", "STAT3", "BUB1",
+    hl = c("RBM14", "CDKN1A", "SNRPA", "ZBTB14", "POU2F1", "BUB1",
            "BRCA1", "RBM33", "DNMT3A", "CCNE1", "MDM2", "ERBB2", "CDC73",
-           "SRSF3", "AKT3", "BAX", "POLQ", "MPP2", "ZNF879", "MCM2", "COL11A2",
-           "ID2", "ZNF418", "NOMO2", "DAP3", "YY1AP1", "MSTO2P", "RFC4")
+           "SRSF3", "MCM2", "COL11A2", "KANSL1-AS1", "ZNF354C",
+           "ID2", "NOMO2", "DAP3", "YY1AP1", "MSTO2P", "RFC4")
     cols = cm$cols[c("Compensated", "Hyperactivated", "Background")]
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
@@ -62,9 +62,9 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         annotate("text", x=0.4, y=1.55, label="Hyperactivated", color=cm$cols[["Hyperactivated"]],
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
         ggrepel::geom_label_repel(data=both %>% filter(pdist > 1 | gene_name %in% hl),
-                   aes(label=gene_name, color=group), max.overlaps=12,
+                   aes(label=gene_name, color=group), max.overlaps=10,
                    box.padding=unit(0.1, "lines"), min.segment.length=0,
-                   segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
+                   segment.alpha=0.3, fill="#ffffff80", label.size=NA) +
         cm$theme_classic() +
         labs(size = "TCGA\nAmplifications",
              x = "Compensation score CCLE",

@@ -38,7 +38,7 @@ cna_along_genome = function(gistic) {
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
         geom_point(data=labs, aes(y=frac), color="black", fill="white", shape=21, size=2) +
-        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name),
+        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), seed=128,
                                  point.size=10, max.iter=1e5, max.time=10) +
         facet_grid(. ~ chr, scales="free", space="free") +
         labs(y = "Alteration frequency TCGA") +

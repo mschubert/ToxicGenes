@@ -203,7 +203,7 @@ sys$run({
     orfdata = sapply(readxl::excel_sheets("TableS3_ORF-toxicity.xlsx"), readxl::read_xlsx,
                      path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
 
-    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
+    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,-5,-12,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
         wrap_elements(comp_ov())
     right = (wrap_elements(schema_orf() + theme(plot.margin=margin(-20,-20,-15,-5,"mm")))) /

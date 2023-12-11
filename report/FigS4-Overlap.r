@@ -29,13 +29,13 @@ comp_orf = function(all, gistic_amp) {
         ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
             box.padding=unit(0.1, "lines"), min.segment.length=0,
             segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
-        scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
-        scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.4), name="Dropout") +
+        scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")], name="Compensation\nclass") +
+        scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.3), name="Dropout") +
         annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
         cm$theme_classic() +
         coord_cartesian(clip="off") +
         labs(x = "Mean compensation score CCLE/TCGA",
-             y = "ORF log fold-chance (Wald statistic)")
+             y = "ORF dropout (Wald statistic)")
 }
 
 go_cors = function() {
@@ -115,7 +115,8 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
-    top = (dens_ov() | comp_orf(all, gistic_amp)) + plot_layout(widths=c(2,3))
+    top = (wrap_elements(dens_ov() & theme(plot.margin = margin(0,0,-20,-10,"mm"))) |
+           comp_orf(all, gistic_amp)) #+ plot_layout(widths=c(2,3))
     mid = go_cors()
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +

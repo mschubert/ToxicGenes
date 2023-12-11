@@ -158,9 +158,9 @@ overlap_venn = function(dset, gistic_amp) {
     all3 = ifelse(all3 %in% gistic_amp$gene, paste("▲", all3), all3)
     plt$venn(ov, alpha=0.4) +
         scale_fill_manual(values=cm$cols[c("TCGA", "CCLE", "ORF")]) +
-        annotate("text", x=-11, y=13, label=paste(all3, collapse="\n"), size=4, hjust=1) +
-        annotate("segment", x=-10.5, y=4.5, xend=-10.5, yend=21.5) +
-        annotate("segment", x=-10, y=15, xend=4.5, yend=0.2) +
+        annotate("text", x=-13, y=13, label=paste(all3, collapse="\n"), size=4, hjust=1) +
+        annotate("segment", x=-12.3, y=4.5, xend=-12.3, yend=21.5) +
+        annotate("segment", x=-12, y=15, xend=4.5, yend=0.2) +
         coord_fixed(clip="off")
 }
 

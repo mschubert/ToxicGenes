@@ -50,13 +50,23 @@ screen_cor = function(ov) {
 }
 
 go_volc = function() {
-    res = readxl::read_xlsx("../orf/pan/GO_Biological_Process_2018.xlsx")
+    res = readxl::read_xlsx("../model_orf/pan/GO_Biological_Process_2018.xlsx")
+    res$name = sub("positive", "pos.", res$name)
+    res$name = sub("regulation", "reg.", res$name)
+    res$name = sub("activation", "act.", res$name)
+    res$name = sub("phosphorylation", "phosph.", res$name)
+    res$name = sub("natural killer", "NK", res$name)
+    res$name = sub("-mediated", "", res$name)
+    res$name = sub("peptidyl-serine", "pept-ser.", res$name)
+    res$name = sub("involved", "inv.", res$name)
+    res$name = sub("response", "resp.", res$name)
     res$name[abs(res$estimate) < 0.5 | res$adj.p > 1e-30] = NA
-    res$name[grepl("GO:00(42100|35025|30098|30857)", res$name)] = NA # labels overlap otherwise
-    plt$volcano(res, label_top=35, max.overlaps=10, text.size=3.2) + guides(size="none") +
+    res$name[grepl("GO:1990000|GO:00(42100|35025|30098|30857|34393|33139|43331)", res$name)] = NA # labels overlap otherwise
+    plt$volcano(res, label_top=35, max.overlaps=10, text.size=3.5) + guides(size="none") +
         xlab("Mean z-score LFC") +
         ylab("Upper bound FDR (values too close to zero)") +
-        coord_cartesian(ylim=c(1,1e-95))
+        coord_cartesian(ylim=c(1,1e-95)) +
+        cm$text_sizes()
 }
 
 og_tsg_orf = function(gistic, orfdata) {
@@ -117,7 +127,8 @@ tissue_ov = function(orfdata) {
     dset = bind_rows(orfdata, .id="screen") %>%
         left_join(meta %>% select(screen=cells, tissue)) %>%
         mutate(tissue = ifelse(screen=="Pan-Cancer", "Pan-Cancer", tissue),
-               tissue = factor(tissue) %>% relevel("Pan-Cancer")) %>%
+               tissue = factor(tissue) %>% relevel("Pan-Cancer"),
+               screen = ifelse(screen=="Pan-Cancer", "all", screen)) %>%
         group_by(gene) %>%
             filter(sum(is_toxic) >= 6) %>%
         ungroup() %>%
@@ -140,7 +151,7 @@ tissue_ov = function(orfdata) {
 sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")$genes %>% dplyr::rename(gene=gene_name)
     orfdata = cm$get_tox()
-    ov = readRDS("../orf/overview.rds")
+    ov = readRDS("../model_orf/overview.rds")
 
     naive = facet_plot(ov, aes(x=DMSO, y=`LFC DMSO/ETP`)) +
         ylim(c(-4,4)) +

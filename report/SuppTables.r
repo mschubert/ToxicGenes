@@ -3,14 +3,16 @@ library(dplyr)
 load_comp = function(fname) {
     dset = readRDS(fname) %>%
         mutate(compensation = (1 - p.value) * estimate,
-               is_comp = compensation < -0.3)
+               is_comp = compensation < -0.3) %>%
+        mutate_if(is.numeric, \(x) round(x, 3))
 }
 
 proc_tox = function(dset) {
     dset %>%
         dplyr::rename(gene = `GENE SYMBOL`) %>%
         filter(gene != "LOC254896") %>%
-        mutate(is_toxic = p.value < 1e-5 & estimate < log2(0.7))
+        mutate(is_toxic = p.value < 1e-5 & estimate < log2(0.7)) %>%
+        mutate_if(is.numeric, \(x) round(x, 3))
 }
 
 make_desc_comp = function(name) {
@@ -52,7 +54,8 @@ ccle = list.files("../model_compensation/fit_ccle-amp", recursive=TRUE, full.nam
 names(ccle)[names(ccle) == "pan"] = "Pan-Cancer"
 
 tcga = list.files("../model_compensation/fit_tcga_puradj-amp", recursive=TRUE, full.names=TRUE) %>%
-    setNames(tools::file_path_sans_ext(basename(.))) %>% lapply(load_comp)
+    setNames(tools::file_path_sans_ext(basename(.))) %>% lapply(load_comp) %>%
+    lapply(. %>% mutate(eup_reads=round(eup_reads), stroma_reads=round(stroma_reads)))
 names(tcga)[names(tcga) == "pan"] = "Pan-Cancer"
 
 pan = readxl::read_xlsx("../model_orf/fits_naive.xlsx", sheet="pan")

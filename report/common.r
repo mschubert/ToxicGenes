@@ -1,3 +1,4 @@
+import_package("ggplot2", attach=TRUE)
 import_package("dplyr", attach=TRUE)
 
 hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS1B",
@@ -81,3 +82,22 @@ fmt_p = function(p, sig=2) {
     lab = sprintf(paste0("italic(P)~`=`~%.", sig, "g"), p)
     sub("[0-9.]+e", "10^", lab)
 }
+
+text_sizes = function() {
+    theme(plot.tag = element_text(size=24, face="bold"),
+          plot.title = element_text(size=14),
+          plot.subtitle = element_text(size=13),
+          legend.title = element_text(size=12),
+          legend.text = element_text(size=11),
+          axis.title = element_text(size=12),
+          axis.text = element_text(size=11),
+          strip.text = element_text(size=12),
+          strip.text.y.left = element_text(size=12),
+          text = element_text(size=11),
+          legend.background = element_blank(),
+          legend.box.background = element_blank(),
+          plot.background = element_blank())
+}
+
+theme_classic = function() ggplot2::theme_classic() + text_sizes()
+theme_minimal = function() ggplot2::theme_minimal() + text_sizes()

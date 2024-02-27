@@ -38,7 +38,7 @@ tissue_compare = function(.hl) {
         facet_wrap(~ dset, scales="free_x") +
         scale_fill_brewer(palette="Accent", guide="none") +
         xlab("Compensation score") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.y = element_blank())
 }
 
@@ -60,11 +60,11 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         filter(chr == cur_ev$seqnames[1],
                (gtype == "Oncogene" & type == "amplification") |
                 (gtype == "TSG" & type == "deletion") |
-                gene_name == .hl) %>%
-        inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
-        rowwise() %>%
-            mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss))) %>%
-        ungroup()
+                gene_name == .hl) #%>%
+#        inner_join(gistic$smooth %>% select(type, chr, gam)) %>%
+#        rowwise() %>%
+#            mutate(frac = mgcv::predict.gam(gam, newdata=data.frame(tss=tss))) %>%
+#        ungroup()
     labs2 = labs %>%
         mutate(frac = ifelse(gene_name == .hl, 0, frac),
                gtype = ifelse(gene_name == .hl, "ARGOS", gtype)) %>%
@@ -76,9 +76,13 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         select(gene_name, type, frac, tss) %>%
         tidyr::spread(type, frac)
 
-    cnv = gistic$smooth %>%
+    cnv = gistic$genes %>%
         filter(chr == cur_ev$seqnames[1]) %>%
-        select(-gam) %>% tidyr::unnest(steps) %>%
+        group_by(type) %>%
+            arrange(tss) %>%
+            mutate(frac = zoo::rollapply(frac, 5, median, partial=TRUE)) %>%
+        ungroup() %>%
+#        select(-gam) %>% tidyr::unnest(steps) %>%
         mutate(frac_amp = ifelse(frac > 0.15, frac, NA),
                type = stringr::str_to_title(type))
 
@@ -86,7 +90,7 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         geom_vline(xintercept=rng$tss, color="black", alpha=0.5) +
         geom_step(aes(x=start, y=frac_start)) +
         geom_step(aes(x=end, y=frac_end)) +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.text.x = element_blank()) +
         labs(x = "Genomic location (bp)",
              y = "Amplification\nevents (cum.)") +
@@ -112,14 +116,14 @@ plot_ctx = function(genes, ev, cosmic, gistic, .hl) {
         scale_fill_manual(values=c(cm$cols, ARGOS=cm$cols[["Compensated"]]), name="Driver") +
         guides(fill = guide_legend(override.aes=list(size=2.5))) +
         ggrepel::geom_text_repel(data=labs3, aes(y=frac, label=gene_name),
-            size=3, point.size=3, min.segment.length=0, max.iter=1e5,
-            max.time=10, segment.alpha=0.3, force_pull=0.01) +
+            point.size=5, min.segment.length=0, max.iter=1e5,
+            max.time=10, segment.alpha=0.3, force_pull=0.01, force=10) +
         annotate("point", x=rng$tss, y=0, size=5, shape=21,
                  fill=cm$cols["Compensated"], alpha=0.9) +
         facet_grid(. ~ chr, scales="free", space="free") +
         labs(x = "Genomic location (bp)",
              y = "Alteration frequency TCGA") +
-        theme_minimal() #+
+        cm$theme_minimal() #+
 #        theme(axis.title.x = element_blank())
 
 #    (pcn/pev/tissue_compare(.hl)) + plot_layout(heights=c(3,1.2,0.8), guides="collect")

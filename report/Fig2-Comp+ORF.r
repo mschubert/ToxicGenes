@@ -34,10 +34,10 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
     ))
     both$pdist = with(both, sqrt(pmin(0.9,estimate.x)^2 + pmin(0.9,estimate.y)^2))
 
-    hl = c("RBM14", "CDKN1A", "SNRPA", "ZBTB14", "POU2F1", "STAT3", "BUB1",
+    hl = c("RBM14", "CDKN1A", "SNRPA", "ZBTB14", "POU2F1", "BUB1",
            "BRCA1", "RBM33", "DNMT3A", "CCNE1", "MDM2", "ERBB2", "CDC73",
-           "SRSF3", "AKT3", "BAX", "POLQ", "MPP2", "ZNF879", "MCM2", "COL11A2",
-           "ID2", "ZNF418", "NOMO2", "DAP3", "YY1AP1", "MSTO2P", "RFC4")
+           "SRSF3", "MCM2", "COL11A2", "KANSL1-AS1", "ZNF354C",
+           "ID2", "NOMO2", "DAP3", "YY1AP1", "MSTO2P", "RFC4")
     cols = cm$cols[c("Compensated", "Hyperactivated", "Background")]
     m = lm(estimate.y ~ estimate.x, data=both) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.2f~\n~p~`=`~%.1g", m$adj.r.squared, m$p.value) %>%
@@ -62,13 +62,13 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         annotate("text", x=0.4, y=1.55, label="Hyperactivated", color=cm$cols[["Hyperactivated"]],
                  size=4, fontface="bold", alpha=0.7, hjust=0) +
         ggrepel::geom_label_repel(data=both %>% filter(pdist > 1 | gene_name %in% hl),
-                   aes(label=gene_name, color=group), max.overlaps=20,
-                   box.padding=unit(0.1, "lines"), size=3, min.segment.length=0,
-                   segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
-        theme_classic() +
+                   aes(label=gene_name, color=group), max.overlaps=10,
+                   box.padding=unit(0.1, "lines"), min.segment.length=0,
+                   segment.alpha=0.3, fill="#ffffff80", label.size=NA) +
+        cm$theme_classic() +
         labs(size = "TCGA\nAmplifications",
-             x = "Δ Expression over expected CCLE",
-             y = "Δ Expression over expected TCGA") +
+             x = "Compensation score CCLE",
+             y = "Compensation score TCGA") +
         plot_layout(tag_level="new")
 
     dx + plot_spacer() + plot_spacer() + p + dy + guide_area() +
@@ -80,12 +80,13 @@ orf_volc = function(orfdata) {
     orfdata$circle = TRUE
     bord = tibble(x=c(-Inf,log2(0.7)), y=c(1e-5,1e-5), yend=c(1e-5,0), xend=c(log2(0.7),log2(0.7)))
 
-    plt$volcano(orfdata, label_top=35, pos_label_bias=3, max.overlaps=20) +
+    plt$volcano(orfdata, label_top=30, pos_label_bias=3, max.overlaps=15, text.size=4) +
         geom_segment(data=bord, aes(x=x, y=y, xend=xend, yend=yend),
                      linetype="dotted", size=0.3, color="grey") +
-        labs(x = "log fold-change ORF screen",
+        labs(x = "log2 fold-change ORF screen",
              y = "Adjusted p-value (FDR)",
-             size = "# ORFs")
+             size = "# ORFs") +
+        cm$text_sizes()
 }
 
 comp_ov = function() {
@@ -129,7 +130,7 @@ comp_ov = function() {
         scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_fill_manual(values=cols) +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.x = element_blank(),
               legend.position = "none") +
         labs(y = "Number of\ncompensated genes")
@@ -143,7 +144,7 @@ comp_ov = function() {
         scale_x_continuous(breaks=1:6) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.y = element_blank()) +
         labs(x="Tissue overlap") +
         plot_layout(tag_level="new")
@@ -167,19 +168,20 @@ orf_ov = function(orfdata) {
         mutate(x = n/2 + c(0, x[-length(x)]))
 
     ggplot(dset, aes(y=y, yend=y, x=from, xend=to, color=src)) +
-        geom_segment(linewidth=5, alpha=0.2) +
+        geom_segment(linewidth=8, alpha=0.2) +
         geom_text(data=nums, aes(x=x, label=n, y=y), color="black", inherit.aes=FALSE) +
         guides(color=guide_legend(override.aes=list(linewidth=5))) +
         scale_color_manual(values=c("coral", "steelblue")) +
         scale_x_continuous(breaks=unique(c(dset$from, dset$to))) +
-        scale_y_continuous(limits=c(-9,9)) +
+        scale_y_continuous(limits=c(-15,15)) +
         labs(color = "",
              x = "Number of Toxic Genes found") +
-        theme_minimal() +
+        cm$theme_minimal() +
         theme(axis.title.y = element_blank(),
               axis.text.y = element_blank(),
               panel.grid.major.y = element_blank(),
-              panel.grid.minor.y = element_blank())
+              panel.grid.minor.y = element_blank(),
+              plot.margin = margin(-5,0,0,0,"mm"))
 }
 
 sys$run({
@@ -201,10 +203,10 @@ sys$run({
     orfdata = sapply(readxl::excel_sheets("TableS3_ORF-toxicity.xlsx"), readxl::read_xlsx,
                      path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
 
-    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,0,-10,"mm")))) /
+    left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,-5,-12,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /
         wrap_elements(comp_ov())
-    right = (wrap_elements(schema_orf()) + theme(plot.margin=margin(-20,-15,-10,-5,"mm"))) /
+    right = (wrap_elements(schema_orf() + theme(plot.margin=margin(-20,-20,-15,-5,"mm")))) /
         orf_volc(orfdata$`Pan-Cancer`) /
         wrap_elements(orf_ov(orfdata))
 

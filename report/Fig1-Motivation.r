@@ -7,7 +7,7 @@ tcga = import('data/tcga')
 cm = import('./common')
 
 schema = function() {
-    img = grid::rasterGrob(magick::image_read("external/schema.svg", density=300))
+    img = grid::rasterGrob(magick::image_read("external/schema2.svg", density=300))
     ggplot() + annotation_custom(img) + theme(panel.background=element_blank())
 }
 
@@ -37,13 +37,15 @@ cna_along_genome = function(gistic) {
         geom_line(aes(y=frac_amp, group=type, color="Frequently\namplified"),
                   lineend="round", size=1) +
         scale_color_manual(values=c("Frequently\namplified"="#960019"), name="") +
-        geom_point(data=labs, aes(y=frac), color="black", fill="white", shape=21) +
-        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), size=3,
+        geom_point(data=labs, aes(y=frac), color="black", fill="white", shape=21, size=2) +
+        ggrepel::geom_text_repel(data=labs, aes(y=frac, label=gene_name), seed=128,
                                  point.size=10, max.iter=1e5, max.time=10) +
         facet_grid(. ~ chr, scales="free", space="free") +
         labs(y = "Alteration frequency TCGA") +
-        theme_minimal() +
-        theme(axis.title.x = element_blank(),
+        cm$theme_minimal() +
+        theme(legend.position = "bottom",
+              legend.margin = margin(-10,0,0,0,"mm"),
+              axis.title.x = element_blank(),
               axis.text.x = element_blank(),
               panel.grid.major.x = element_blank(),
               panel.grid.minor.x = element_blank(),
@@ -60,12 +62,12 @@ cna_length = function() {
         annotate("segment", x=c(0, f50$n_genes), xend=rep(f50$n_genes, 2), y=c(0.5, 0.5),
                  yend=c(0.5, -Inf), color="grey", linetype="dashed", linewidth=0.8) +
         annotate("label", x=f50$n_genes, y=0, label=sprintf("50%% ≥ %i", f50$n_genes),
-                 color="grey", hjust=0.65, vjust=0, fill="#ffffffa0", label.size=NA) +
+                 color="#353535", hjust=0.65, vjust=0, fill="#ffffffa0", label.size=NA) +
         geom_step(linewidth=0.8) +
         scale_x_log10() +
-        labs(x = "At least containing N genes",
+        labs(x = "At least containing\nN genes",
              y = "Fraction of CNA events") +
-        theme_classic()
+        cm$theme_classic()
 }
 
 cna_expr_scales = function() {
@@ -97,7 +99,7 @@ cna_expr_scales = function() {
                  curvature=0.2, lineend="round", linejoin="round",
                  arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
         annotate("text", x=0.8, y=0.2, label=sprintf("p=%.2g", m$p.value), color="blue", hjust=0) +
-        theme_classic() +
+        cm$theme_classic() +
         coord_fixed(ratio=2, expand=FALSE)
 }
 
@@ -105,18 +107,15 @@ sys$run({
     gistic = readRDS("../data/gistic_smooth.rds")
     cosmic = cm$get_cosmic_annot()
 
-    top = (cna_along_genome(gistic) | (cna_length() + plot_layout(tag_level="new"))) +
-        plot_layout(widths=c(10,1), guides="collect") &
-        theme(plot.margin = margin(0,5,-5,0,"mm"))
-    dens = wrap_elements(cna_expr_scales() + theme(plot.margin = margin(-5,0,0,0,"mm")))
-    venn = wrap_elements(overlap() + theme(plot.margin = margin(-5,0,0,0,"mm")))
+    dens = wrap_elements(cna_expr_scales()+ theme(plot.margin = margin(-10,0,5,0,"mm")))
+    venn = wrap_elements(overlap() + theme(plot.margin = margin(-15,-5,-10,-15,"mm")))
 
-    asm = wrap_elements(wrap_plots(top)) + dens + schema() + venn +
-        plot_layout(widths=c(1,2), design="11\n23\n43") +
+    asm = cna_along_genome(gistic) + cna_length() + dens + schema() + venn +
+        plot_layout(widths=c(1.3,1.7,0.4), heights=c(0.8,1,1), design="112\n344\n544") +
         plot_annotation(tag_levels='a') &
-        theme(plot.tag = element_text(size=18, face="bold"))
+        theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("Fig1-Motivation.pdf", 14, 10)
+    cairo_pdf("Fig1-Motivation.pdf", 14, 11)
     print(asm)
     dev.off()
 })

@@ -16,11 +16,30 @@ rbm = cns |>
     tidyr::pivot_wider(names_from="gene", values_from=c("median_cnlr_seg", "tcn"))
 
 both = inner_join(clin, rbm) |>
-    mutate(gain = tcn_RBM14 >= 3)
+    mutate(
+        gainCCND1 = case_when(
+            tcn_CCND1 >= 4 ~ TRUE,
+            tcn_CCND1 == 2 ~ FALSE,
+            TRUE ~ NA
+        ),
+        gainRBM14 = case_when(
+            tcn_RBM14 >= 4 ~ TRUE,
+            tcn_RBM14 == 2 ~ FALSE,
+            TRUE ~ NA
+        ),
+        group = case_when(
+            !gainCCND1 & gainRBM14 ~ NA_character_, # 1 sample
+            gainCCND1 & gainRBM14 ~ "both",
+            gainCCND1 ~ "CCND1",
+            TRUE ~ "neither"
+        ),
+        group = factor(group, levels=c("CCND1", "both", "neither"))
+    )
 colnames(both) = make.names(colnames(both))
 
-m = coxph(Surv(Overall.survival.days, Vital.Status) ~ Sex + Age.at.diagnosis + Pre.Treated + Tumour.Grade + gain, data=both)
+m = coxph(Surv(Overall.survival.days, Vital.Status) ~ Sex + Age.at.diagnosis + group, data=both)
 broom::tidy(m)
 
-m2 = survfit(Surv(Overall.survival.days, Vital.Status) ~ Sex, data=both)
-survplot(m2)
+m2 = survfit(Surv(Overall.survival.days, Vital.Status) ~ group, data=both)
+m2
+ggsurvplot(m2, data=both)

@@ -29,11 +29,11 @@ both = inner_join(clin, rbm) |>
         ),
         group = case_when(
             !gainCCND1 & gainRBM14 ~ NA_character_, # 1 sample
-            gainCCND1 & gainRBM14 ~ "both",
+            gainCCND1 & gainRBM14 ~ "CCND1_RBM14",
             gainCCND1 ~ "CCND1",
             TRUE ~ "neither"
         ),
-        group = factor(group, levels=c("CCND1", "both", "neither"))
+        group = factor(group, levels=c("CCND1", "CCND1_RBM14", "neither"))
     )
 colnames(both) = make.names(colnames(both))
 

@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 library(survival)
 
 clin = readxl::read_xlsx("Supplementary_Table_01.xlsx", skip=2) |>
@@ -15,7 +16,14 @@ rbm = cns |>
     select(sample, gene, median_cnlr_seg, tcn) |>
     tidyr::pivot_wider(names_from="gene", values_from=c("median_cnlr_seg", "tcn"))
 
+rna = readr::read_tsv("CRC.SW.mRNA.symbol.TPM.txt.gz") |>
+    filter(SYMBOL %in% c("CCND1", "RBM14")) |>
+    tidyr::pivot_longer(-SYMBOL, names_to="sample", values_to="tpm") |>
+    tidyr::pivot_wider(names_from=SYMBOL, values_from="tpm", names_prefix="tpm_") |>
+    mutate(sample = gsub(".", "-", sample, fixed=TRUE))
+
 both = inner_join(clin, rbm) |>
+    left_join(rna) |>
     mutate(
         gainCCND1 = case_when(
             tcn_CCND1 >= 4 ~ TRUE,
@@ -42,4 +50,19 @@ broom::tidy(m)
 
 m2 = survfit(Surv(Overall.survival.days, Vital.Status) ~ group, data=both)
 m2
-ggsurvplot(m2, data=both)
+p = ggsurvplot(m2, data=both)
+
+p2 = ggplot(both, aes(x=tcn_CCND1, y=tpm_CCND1)) +
+    geom_point() +
+    geom_smooth(method="lm") +
+    xlim(0,10) + ylim(0, 650)
+
+p3 = ggplot(both, aes(x=tcn_RBM14, y=tpm_RBM14)) +
+    geom_point() +
+    geom_smooth(method="lm") +
+    xlim(0,NA) + ylim(0,NA)
+
+pdf()
+print(p)
+print(p2 | p3)
+dev.off()

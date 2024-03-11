@@ -11,7 +11,7 @@ cna = nsclc$cna |>
     filter(Hugo_Symbol %in% c("CCND1", "RBM14")) |>
     tidyr::pivot_longer(-Hugo_Symbol, names_to="sample", values_to="copy")
 
-clin = nsclc$pt_char |>
+clin = nsclc$pt_char |> # prob get this from ca_dx_index [stage_dx, dob_ca_dx_days/mos/yrs]
     transmute(sex = factor(naaccr_sex_code),
               age = age_last_fu_yrs,
               status = as.integer(!is.na(age_death_yrs)),

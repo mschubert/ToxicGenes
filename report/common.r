@@ -6,7 +6,7 @@ hlg = c("MYC", "EGFR", "CCND1", "CDKN1A", "TP53", "BAP1", "CDKN1A", "IL7R", "CKS
         "FGFR1", "NOTCH2")
 
 get_cosmic_annot = function() {
-    manual = readRDS("../data/genesets/manual.rds")
+    manual = readRDS(module_file("../data/genesets/manual.rds"))
     hms = manual[grepl("Cosmic_(OG|TSG)_Hallmark", names(manual))] %>%
         stack() %>% as_tibble() %>%
         transmute(gene_name = values,
@@ -31,13 +31,15 @@ get_cosmic_annot = function() {
 }
 
 get_comp_tissue = function() {
-    cfg = yaml::read_yaml("../config.yaml")
-    ccle = readxl::excel_sheets("TableS1_CCLE-comp.xlsx") %>%
-        sapply(readxl::read_xlsx, path="TableS1_CCLE-comp.xlsx", simplify=FALSE) %>%
+    cfg = yaml::read_yaml(module_file("../config.yaml"))
+    fname = module_file("TableS1_CCLE-comp.xlsx")
+    ccle = readxl::excel_sheets(fname) %>%
+        sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")
-    tcga = readxl::excel_sheets("TableS2_TCGA-comp.xlsx") %>%
-        sapply(readxl::read_xlsx, path="TableS2_TCGA-comp.xlsx", simplify=FALSE) %>%
+    fname = module_file("TableS2_TCGA-comp.xlsx")
+    tcga = readxl::excel_sheets(fname) %>%
+        sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "TCGA")
 
@@ -50,8 +52,8 @@ get_comp_tissue = function() {
 }
 
 get_tox = function() {
-    sapply(readxl::excel_sheets("TableS3_ORF-toxicity.xlsx"), readxl::read_xlsx,
-        path="TableS3_ORF-toxicity.xlsx", simplify=FALSE)
+    fname = module_file("TableS3_ORF-toxicity.xlsx")
+    sapply(readxl::excel_sheets(fname), readxl::read_xlsx, path=fname, simplify=FALSE)
 }
 
 get_comp_genes = function(pan=FALSE) {

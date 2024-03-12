@@ -40,6 +40,10 @@ p = ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
     geom_hline(yintercept=median(ds$stat_orf[ds$type=="All genes"], na.rm=TRUE),
                linetype="dashed", color="black")
 
-cairo_pdf("do.pdf", 5, 4)
+ll = list(ours=ours, Goncalves=goncalves, Schukken_gene=sch_gene, Schukken_prot=sch_prot) |>
+    lapply(function(x) na.omit(x[!duplicated(x)]))
+
+pdf("do.pdf", 5, 4)
 print(p)
+print(ggvenn::ggvenn(ll, set_name_size=3, text_size=3))
 dev.off()

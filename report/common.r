@@ -66,7 +66,7 @@ get_comp_genes = function(pan=FALSE) {
 get_argos = function(pan=FALSE) {
     comp = get_comp_genes(pan)
     tox = get_tox()$`Pan-Cancer` %>% filter(is_toxic)
-    intersect(comp2, tox$gene)
+    intersect(comp, tox$gene)
 }
 
 cols = c(

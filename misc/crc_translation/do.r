@@ -50,7 +50,7 @@ broom::tidy(m)
 
 m2 = survfit(Surv(Overall.survival.days, Vital.Status) ~ group, data=both)
 m2
-p = ggsurvplot(m2, data=both)
+p = survminer::ggsurvplot(m2, data=both)
 
 p2 = ggplot(both, aes(x=tcn_CCND1, y=tpm_CCND1)) +
     geom_point() +

@@ -3,6 +3,22 @@ library(ggplot2)
 seq = import('seq')
 cm = import('../../report/common')
 
+plot_one = function(dists) {
+    mods = dists |>
+        group_by(Sample) |>
+        summarize(mod = list(broom::tidy(lm(LFC ~ dist)))) |>
+        tidyr::unnest(mod) |>
+        filter(term == "dist") |>
+        mutate(lab = sprintf("P = %.2g", p.value))
+
+    ggplot(dists, aes(x=dist, y=LFC)) +
+        geom_point(alpha=0.5) +
+        geom_text(data=mods, aes(x=0, y=10, label=lab), hjust=0, color="blue") +
+        facet_wrap(~ Sample, scales="free_x") +
+        geom_smooth(method="lm") +
+        labs(x = "Distance to closest compensated gene (Mb)")
+}
+
 # get Fig S2e data, calc dist to comp gene, make plot
 lookup = c(SS6="chr +7", SS51="+7 +22", SS111="+8 +9 +18")
 chrs = seq$gene_table() |>
@@ -29,18 +45,7 @@ dists = dset |>
     group_by(Sample, chr) |>
     mutate(dist = sapply(loc, function(l) min(abs(l - loc[status == "Compensated"])) / 1e6))
 
-mods = dists |>
-    group_by(Sample) |>
-    summarize(mod = list(broom::tidy(lm(LFC ~ dist)))) |>
-    tidyr::unnest(mod) |>
-    filter(term == "dist") |>
-    mutate(lab = sprintf("P = %.2g", p.value))
-
 pdf("gene_distance.pdf", 6, 4)
-ggplot(dists, aes(x=dist, y=LFC)) +
-    geom_point(alpha=0.5) +
-    geom_text(data=mods, aes(x=0, y=10, label=lab), hjust=0, color="blue") +
-    facet_wrap(~ Sample, scales="free_x") +
-    geom_smooth(method="lm") +
-    labs(x = "Distance to closest compensated gene (Mb)")
+plot_one(dists)
+plot_one(dists |> filter(dist <= 5))
 dev.off()

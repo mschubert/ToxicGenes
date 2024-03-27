@@ -16,7 +16,8 @@ plot_one = function(dists) {
         geom_text(data=mods, aes(x=0, y=10, label=lab), hjust=0, color="blue") +
         facet_wrap(~ Sample, scales="free_x") +
         geom_smooth(method="lm") +
-        labs(x = "Distance to closest compensated gene (Mb)")
+        labs(x = "Distance to closest compensated gene (Mb)",
+             y = "log2 fold change over expected")
 }
 
 # get Fig S2e data, calc dist to comp gene, make plot
@@ -47,5 +48,5 @@ dists = dset |>
 
 pdf("gene_distance.pdf", 6, 4)
 plot_one(dists)
-plot_one(dists |> filter(dist <= 5))
+plot_one(dists |> filter(dist <= 1))
 dev.off()

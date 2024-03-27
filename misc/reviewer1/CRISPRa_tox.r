@@ -23,14 +23,18 @@ res2 = as_tibble(cbind(dset[1:3], as.data.frame(res))) |>
     summarize(stat_CRISPRa = mean(stat, na.rm=TRUE)) |>
     dplyr::rename(gene = gene_symbol)
 
+argos = cm$get_argos(pan=TRUE)
 tox = cm$get_tox()$`Pan-Cancer` |>
-    inner_join(res2)
+    inner_join(res2) |>
+    mutate(label = ifelse(gene %in% argos, gene, NA_character_))
 
 m = broom::tidy(lm(stat_CRISPRa ~ statistic, data=tox))
+
 
 pdf("CRISPRa_tox.pdf")
 ggplot(tox, aes(x=statistic, y=stat_CRISPRa, color=is_toxic)) +
     geom_point() +
+    ggrepel::geom_text_repel(aes(label=label), color="black") +
     geom_smooth(method="lm", color="blue") +
     ggtitle("NKI HT29") +
     annotate("text", x=-12, y=-4, label=sprintf("P = %.2g", m$p.value[m$term == "statistic"]))

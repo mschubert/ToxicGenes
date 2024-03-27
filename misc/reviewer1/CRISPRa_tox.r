@@ -37,5 +37,6 @@ ggplot(tox, aes(x=statistic, y=stat_CRISPRa, color=is_toxic)) +
     ggrepel::geom_text_repel(aes(label=label), color="black") +
     geom_smooth(method="lm", color="blue") +
     ggtitle("NKI HT29") +
-    annotate("text", x=-12, y=-4, label=sprintf("P = %.2g", m$p.value[m$term == "statistic"]))
+    annotate("text", x=-12, y=-4, color="blue",
+             label=sprintf("P = %.2g", m$p.value[m$term == "statistic"]))
 dev.off()

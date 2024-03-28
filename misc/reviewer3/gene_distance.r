@@ -5,6 +5,7 @@ cm = import('../../report/common')
 
 plot_one = function(dists) {
     mods = dists |>
+        filter(status == "Background") |>
         group_by(Sample) |>
         summarize(mod = list(broom::tidy(lm(LFC ~ dist)))) |>
         tidyr::unnest(mod) |>
@@ -12,10 +13,11 @@ plot_one = function(dists) {
         mutate(lab = sprintf("P = %.2g", p.value))
 
     ggplot(dists, aes(x=dist, y=LFC)) +
-        geom_point(alpha=0.5) +
+        geom_point(aes(color=status), alpha=0.5) +
+        scale_color_manual(values=c(Background="black", Compensated="#de493d")) +
         geom_text(data=mods, aes(x=0, y=10, label=lab), hjust=0, color="blue") +
         facet_wrap(~ Sample, scales="free_x") +
-        geom_smooth(method="lm") +
+        geom_smooth(data=dists[dists$status == "Background",], method="lm") +
         labs(x = "Distance to closest compensated gene (Mb)",
              y = "log2 fold change over expected")
 }
@@ -46,7 +48,7 @@ dists = dset |>
     group_by(Sample, chr) |>
     mutate(dist = sapply(loc, function(l) min(abs(l - loc[status == "Compensated"])) / 1e6))
 
-pdf("gene_distance.pdf", 6, 4)
+pdf("gene_distance.pdf", 7, 4)
 plot_one(dists)
 plot_one(dists |> filter(dist <= 1))
 dev.off()

@@ -32,8 +32,10 @@ common = inner_join(ctl |> select(-expr) |> distinct(),
                     dset |> filter(!is.na(pert_idose)) |> select(-expr) |> distinct())
 long = list(ctl=ctl, oex=dset) |> lapply(inner_join, y=common) |> bind_rows(.id="type")
 
+pdf("level3.pdf", 5, 12)
 ggplot(long, aes(x=forcats::fct_reorder(gene_symbol, -expr), y=expr, fill=type)) +
-    geom_boxplot() +
+    geom_boxplot(outlier.shape=NA, position=position_dodge(width=0.4), alpha=0.7) +
     facet_wrap(~ cell_iname + pert_itime) +
     coord_flip() +
     labs(x = "gene")
+dev.off()

@@ -48,7 +48,7 @@ dists = dset |>
     group_by(Sample, chr) |>
     mutate(dist = sapply(loc, function(l) min(abs(l - loc[status == "Compensated"])) / 1e6))
 
-pdf("gene_distance.pdf", 7, 4)
+pdf("rpe_distance.pdf", 7, 4)
 plot_one(dists)
 plot_one(dists |> filter(dist <= 1))
 dev.off()

@@ -34,11 +34,13 @@ get_comp_tissue = function() {
     cfg = yaml::read_yaml(module_file("../config.yaml"))
     fname = module_file("TableS1_CCLE-comp.xlsx")
     ccle = readxl::excel_sheets(fname) %>%
+        setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")
     fname = module_file("TableS2_TCGA-comp.xlsx")
     tcga = readxl::excel_sheets(fname) %>%
+        setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "TCGA")
@@ -53,7 +55,9 @@ get_comp_tissue = function() {
 
 get_tox = function() {
     fname = module_file("TableS3_ORF-toxicity.xlsx")
-    sapply(readxl::excel_sheets(fname), readxl::read_xlsx, path=fname, simplify=FALSE)
+    readxl::excel_sheets(fname) %>%
+        setdiff("description") %>%
+        sapply(readxl::read_xlsx, path=fname, simplify=FALSE)
 }
 
 get_comp_genes = function(pan=FALSE) {

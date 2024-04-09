@@ -43,7 +43,7 @@ p = ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
 ll = list(ours=ours, Goncalves=goncalves, `Schukken gene`=sch_gene, `Schukken\nprotein`=sch_prot) |>
     lapply(function(x) na.omit(x[!duplicated(x)]))
 
-pdf("do.pdf", 5, 4)
+pdf("compensation.pdf", 5, 4)
 print(p)
 print(ggvenn::ggvenn(ll, set_name_size=4, text_size=3))
 dev.off()

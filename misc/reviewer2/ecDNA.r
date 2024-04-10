@@ -36,13 +36,14 @@ freqs = kim2020 |>
 #    mutate(amplicon_classification = tidyr::replace_na(amplicon_classification, "All other"))
 dset = inner_join(comp, freqs, relationship="many-to-many")
 
-pdf("ecDNA.pdf", 5, 4)
+pdf("ecDNA.pdf", 8, 4)
 ggplot(dset, aes(x=amplicon_classification, y=compensation)) +
     geom_boxplot(outlier.shape=NA) +
     ggbeeswarm::geom_quasirandom(aes(fill=amplicon_classification), shape=21, alpha=0.5) +
     guides(fill="none") +
     labs(x = "Amplification class",
          y = "Compensation score") +
+    facet_wrap(~ src) +
     ggsignif::geom_signif(y_position=c(0.7,0.85,1), color="black", test=wilcox.test,
         map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
         comparisons = list(c("BFB", "Circular"),

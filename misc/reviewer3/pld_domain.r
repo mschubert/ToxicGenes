@@ -18,7 +18,7 @@ sets = list(
 
 res = list(
     `RRM over all` = gset$test_fet(valid=all, hits=rrm, sets=sets),
-    `Prion over RRM` = gset$test_fet(valid=rrm, hits=prion, sets=sets)
+    `PLD over RRM` = gset$test_fet(valid=rrm, hits=prion, sets=sets)
 ) |> bind_rows(.id="Comparison")
 
 intersect(setdiff(rrm, prion), sets$Compensated)
@@ -29,7 +29,7 @@ ggplot(res, aes(x=estimate, y=-log10(p.value))) +
     geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5) +
     geom_point(aes(shape=Comparison, fill=label), size=2) +
     scale_x_log10() +
-    scale_shape_manual(values=c(`RRM over all`=21, `Prion over RRM`=23)) +
+    scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23)) +
     scale_fill_discrete(guide=guide_legend(override.aes=list(shape=21)), name="Gene set") +
     geom_hline(yintercept=-log10(0.05), linetype="dashed") +
     annotate("text", x=0.1, y=-log10(0.05), label="P = 0.05", vjust=-1, hjust=0.8, size=3) +

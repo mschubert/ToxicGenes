@@ -20,7 +20,8 @@ res = DESeqDataSetFromMatrix(dset[-(1:3)], meta, design=~treated) |>
 res2 = as_tibble(cbind(dset[1:3], as.data.frame(res))) |>
     arrange(padj) |>
     group_by(gene_symbol) |>
-    summarize(stat_CRISPRa = mean(stat, na.rm=TRUE)) |>
+    summarize(lfc_CRISPRa = mean(log2FoldChange, na.rm=TRUE),
+              stat_CRISPRa = mean(stat, na.rm=TRUE)) |>
     dplyr::rename(gene = gene_symbol)
 
 argos = cm$get_argos(pan=TRUE)
@@ -40,3 +41,5 @@ ggplot(tox, aes(x=statistic, y=stat_CRISPRa, color=is_toxic)) +
     annotate("text", x=-12, y=-4, color="blue",
              label=sprintf("P = %.2g", m$p.value[m$term == "statistic"]))
 dev.off()
+
+saveRDS(res2, file="CRISPRa_tox.rds")

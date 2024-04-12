@@ -27,3 +27,5 @@ ggplot(tox, aes(x=estimate, y=avg_lfc, color=is_toxic)) +
              label=sprintf("P = %.2g", m$p.value[m$term != "(Intercept)"])) +
     ggtitle("BT869")
 dev.off()
+
+saveRDS(bt869, file="CRISPRa_Veronica.rds")

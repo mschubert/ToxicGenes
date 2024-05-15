@@ -55,14 +55,14 @@ p = survminer::ggsurvplot(m2, data=both)
 p2 = ggplot(both, aes(x=tcn_CCND1, y=tpm_CCND1)) +
     geom_point() +
     geom_smooth(method="lm") +
-    xlim(0,10) + ylim(0, 650)
+    xlim(0,6) + ylim(0, 650)
 
 p3 = ggplot(both, aes(x=tcn_RBM14, y=tpm_RBM14)) +
     geom_point() +
     geom_smooth(method="lm") +
-    xlim(0,NA) + ylim(0,NA)
+    xlim(0,6) + ylim(0,180)
 
 pdf()
 print(p)
-print(p2 | p3)
+print(((p2 + p3)/plot_spacer()) + plot_layout(heights=c(2,1)))
 dev.off()

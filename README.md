@@ -19,3 +19,21 @@
 > altered DNA damage response and innate immune signaling processes following
 > gene overexpression. Finally, we provide a comprehensive catalog of
 > compensated, toxic, and ARGOS genes as a community resource.
+
+## Analysis directories
+
+The main Analysis steps are performed in the following directories:
+
+* `data` - Creating the analytical data sets
+* `model_compensation` - The compensation analysis
+* `model_orf` - The ORF toxicity analysis
+* `report` - The scripts to create all figures in the manuscript
+
+Those can be run via the `snakemake` workflow manager once all dependencies are
+met.
+
+## Dependencies
+
+* All required R packages and their versions are listed in `renv.lock`.
+* The `ebits` toolkit and setup according to the project README
+* The ORF and TCGA data sets from their respective publications

@@ -32,7 +32,7 @@ do_fit = function(dset, cna, mod, type, et=0.15, min_aneup=5) {
              b_noncancer = array(runif(n_noncancer, 0.5, 1.5)),
              b_deviation = array(0))
     }
-    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
+    res = update(mod, newdata=dset, chains=4, cores=1, iter=2000, init=init_fun)
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat))

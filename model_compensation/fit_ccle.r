@@ -1,3 +1,4 @@
+library(modules)
 library(brms)
 library(dplyr)
 sys = import('sys')
@@ -27,7 +28,7 @@ do_fit = function(dset, cna, mod, et=0.15, min_aneup=3) {
         list(b_scaling = array(runif(length(levels(dset$covar)), 0.5, 1.5)),
              b_deviation = array(0))
     }
-    res = update(mod, newdata=dset, chains=4, iter=2000, init=init_fun)
+    res = update(mod, newdata=dset, chains=4, cores=1, iter=2000, init=init_fun)
 
     rmat = as.matrix(res)
     is_covar = grepl("covar", colnames(rmat), fixed=TRUE)
@@ -76,6 +77,13 @@ make_mod = function(data) {
 #' @param ccle_df  data.frame from ccle
 #' @param tissue   character vector of tissue types, or 'pan'
 prep_data = function(ccle_df, tissue) {
+    if (grepl("WGD+", tissue)) {
+        ccle_df = ccle_df[!is.na(ccle_df$wgd) & ccle_df$wgd > 0,]
+    } else if (grepl("WGD-", tissue)) {
+        ccle_df = ccle_df[!is.na(ccle_df$wgd) & ccle_df$wgd == 0,]
+    }
+    tissue = sub("WGD.$", "", tissue)
+
     if (length(tissue) == 1 && tissue == "NSCLC")
         tissue = c("LUAD", "LUSC")
     if (!identical(tissue, "pan"))

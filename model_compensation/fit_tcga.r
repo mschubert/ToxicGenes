@@ -1,3 +1,4 @@
+library(modules)
 library(brms)
 library(dplyr)
 sys = import('sys')
@@ -105,6 +106,13 @@ make_mod = function(data, type="naive") {
 #' @param tcga_df
 #' @param tissue
 prep_data = function(tcga_df, tissue) {
+    if (grepl("WGD+", tissue)) {
+        tcga_df = tcga_df[tcga_df$wgd > 0,]
+    } else if (grepl("WGD-", tissue)) {
+        tcga_df = tcga_df[tcga_df$wgd == 0,]
+    }
+    tissue = sub("WGD.$", "", tissue)
+
     tissue = switch(tissue,
         pan = tcga$cohorts(),
         COADREAD = c("COAD", "READ"),

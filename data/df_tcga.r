@@ -16,12 +16,16 @@ purity = tcga$purity() %>%
     transmute(sample = Sample,
               purity = estimate)
 
+wgd = readr::read_tsv("TCGA_mastercalls.abs_tables_JSedit.fixed.txt") %>%
+    transmute(sample = paste0(array, "A"),
+              wgd = as.integer(`Genome doublings`))
+
 #mut = tcga$mutations()
 #net = OmnipathR::interaction_graph(OmnipathR::import_all_interactions())
 #as_ids(neighbors(net, "CDKN1A", "total"))
 
 reads = lapply(cohorts, tcga$rna_seq) %>%
-    narray::stack(along=2) %>%
+    narray::stack(along=2, allow_overwrite=TRUE) %>%
     tcga$filter(cancer=TRUE, primary=TRUE)
 rownames(reads) = idmap$gene(rownames(reads), to="hgnc_symbol")
 reads = reads[rowMeans(reads) >= 10 & !is.na(rownames(reads)),]
@@ -39,6 +43,7 @@ df = inner_join(reshape2::melt(reads, value.name="expr"),
                 reshape2::melt(copies, value.name="copies")) %>%
     inner_join(purity) %>%
     inner_join(as.data.frame(SummarizedExperiment::colData(eset))) %>%
+    inner_join(wgd) %>%
     na.omit() %>%
     dplyr::rename(sf = sizeFactor) %>%
     mutate(covar = tcga$barcode2study(sample),

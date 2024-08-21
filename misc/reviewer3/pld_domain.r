@@ -24,6 +24,8 @@ res = list(
 intersect(setdiff(rrm, prion), sets$Compensated)
 intersect(prion, sets$Compensated)
 
+saveRDS(res, file="pld_domain.rds")
+
 pdf("pld_domain.pdf", 5, 3)
 ggplot(res, aes(x=estimate, y=-log10(p.value))) +
     geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5) +

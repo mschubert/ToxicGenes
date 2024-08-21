@@ -35,6 +35,7 @@ freqs = kim2020 |>
 #dset = left_join(comp, freqs, relationship="many-to-many") |>
 #    mutate(amplicon_classification = tidyr::replace_na(amplicon_classification, "All other"))
 dset = inner_join(comp, freqs, relationship="many-to-many")
+saveRDS(dset, file="ecDNA.rds")
 
 pdf("ecDNA.pdf", 8, 4)
 ggplot(dset, aes(x=amplicon_classification, y=compensation)) +

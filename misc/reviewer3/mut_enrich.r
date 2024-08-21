@@ -19,6 +19,8 @@ freqs = muts |>
                              TRUE ~ "Other")) |>
     mutate(class = factor(class, levels=c("Other", "Compensated", "ARGOS")))
 
+saveRDS(freqs, file="mut_enrich.rds")
+
 pdf("mut_enrich.pdf", 6, 5)
 ggplot(freqs, aes(x=class, y=freq)) +
     geom_boxplot(outlier.shape=NA) +

@@ -126,6 +126,34 @@ tox_implied = function(dset) {
                    linetype="dashed", color="black")
 }
 
+tcga_mut = function(freqs) {
+    ggplot(freqs, aes(x=class, y=freq)) +
+        geom_boxplot(outlier.shape=NA) +
+        ggbeeswarm::geom_quasirandom(aes(shape=class, fill=class),size=2, alpha=0.8) +
+        scale_shape_manual(values=c(Other=NA, Compensated=21, ARGOS=21)) +
+        scale_fill_manual(values=c(Other=NA, Compensated="#74ad9b", ARGOS="#de493d")) +
+        scale_y_log10() +
+        labs(x = "Gene class",
+             y = "TCGA mutation frequency") +
+        ggsignif::geom_signif(color="black", y_position=c(-0.9,-0.6,-1), test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons = list(c("Other", "Compensated"),
+                               c("Other", "ARGOS"),
+                               c("Compensated", "ARGOS")))
+}
+
+rrm_pld = function(res) {
+    ggplot(res, aes(x=estimate, y=-log10(p.value))) +
+        geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5) +
+        geom_point(aes(shape=Comparison, fill=label), size=2) +
+        scale_x_log10() +
+        scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23)) +
+        scale_fill_discrete(guide=guide_legend(override.aes=list(shape=21)), name="Gene set") +
+        geom_hline(yintercept=-log10(0.05), linetype="dashed") +
+        annotate("text", x=0.1, y=-log10(0.05), label="P = 0.05", vjust=-1, hjust=0.8, size=3) +
+        labs(x = "Odds ratio (fold enrichment)")
+}
+
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
@@ -138,7 +166,9 @@ sys$run({
            comp_orf(all, gistic_amp)) #+ plot_layout(widths=c(2,3))
     comp_ov = ggvenn::ggvenn(rev1$overlap, set_name_size=4, text_size=3)
     comp_tox = tox_implied(rev1$genes)
-    mid = comp_ov + comp_tox
+    mut = tcga_mut(readRDS("../misc/reviewer3/mut_enrich.rds"))
+    pld = rrm_pld(readRDS("../misc/reviewer3/pld_domain.rds"))
+    mid = comp_ov + comp_tox + mut + pld
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +
         plot_annotation(tag_levels='a') &

@@ -108,16 +108,37 @@ dens_ov = function() {
     (p1 / p2) + plot_layout(guides="collect")
 }
 
+tox_implied = function(dset) {
+    ggplot(dset, aes(x=type, y=stat_orf, fill=type)) +
+        geom_boxplot(outlier.shape=NA, alpha=0.7) +
+        ggsignif::geom_signif(y_position=c(3.2, 4.4, 5.5, 6.6), color="black", test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons=list(c("All genes", "Goncalves"),
+                             c("All genes", "Schukken_Gene"),
+                             c("All genes", "Schukken_Protein"),
+                             c("All genes", "Ours"))) +
+        coord_cartesian(ylim=c(-7.5, 9)) +
+        labs(fill = "Study", x = "Study", y = "Δ ORF (Wald statistic)") +
+    #    scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
+        theme_classic() +
+        theme(axis.text.x = element_blank()) +
+        geom_hline(yintercept=median(dset$stat_orf[dset$type=="All genes"], na.rm=TRUE),
+                   linetype="dashed", color="black")
+}
+
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
+    rev1 = readRDS("../misc/reviewer1/compensation.rds")
 
     top = (wrap_elements(dens_ov() & theme(plot.margin = margin(0,0,-20,-10,"mm"))) |
            comp_orf(all, gistic_amp)) #+ plot_layout(widths=c(2,3))
-    mid = go_cors()
+    comp_ov = ggvenn::ggvenn(rev1$overlap, set_name_size=4, text_size=3)
+    comp_tox = tox_implied(rev1$genes)
+    mid = comp_ov + comp_tox
 
     asm = (top / mid) + plot_layout(heights=c(1,2)) +
         plot_annotation(tag_levels='a') &

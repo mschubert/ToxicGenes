@@ -139,14 +139,14 @@ comp_ov = function() {
         geom_point(aes(shape=`Pan-Cancer`), size=3, alpha=0.6) +
         geom_label(data=a2, aes(label=n), color=cols["both"], hjust=0.4,
                    vjust=c(-0.3,1.6), fill="#ffffff30", label.size=NA) +
-        scale_shape_manual(values=c(included=19, excluded=1)) +
+        scale_shape_manual(values=c(included=19, excluded=1), name="Pan-cancer\ngenes") +
         scale_y_continuous(trans="log1p", breaks=c(1,10,100,1000)) +
         scale_x_continuous(breaks=1:6) +
         coord_cartesian(ylim=c(0.5, NA)) +
         scale_color_manual(values=cols, name="Dataset") +
         cm$theme_minimal() +
         theme(axis.title.y = element_blank()) +
-        labs(x="Tissue overlap") +
+        labs(x="Tissues a gene is compensated in") +
         plot_layout(tag_level="new")
     p1 + p2 + plot_spacer() + plot_layout(widths=c(1,5,0.5))
 }

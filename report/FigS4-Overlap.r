@@ -30,7 +30,7 @@ comp_orf = function(all, gistic_amp) {
             box.padding=unit(0.1, "lines"), min.segment.length=0,
             segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")], name="Compensation\nclass") +
-        scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.3), name="Dropout") +
+        scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.3), na.translate=FALSE, name="Toxic gene") +
         annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
         cm$theme_classic() +
         coord_cartesian(clip="off") +
@@ -85,7 +85,7 @@ dens_ov = function() {
         )
     df$cond[df$Var1 == df$Var2 | df$Var1 == "Genes" | df$Var2 == "Genes"] = NA
 
-    p1 = plt$matrix(df, cor ~ Var1 + Var2, geom="tile") +
+    p1 = plt$matrix(df, cor ~ Var1 + Var2, geom="tile", text_size=10) +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
@@ -94,10 +94,10 @@ dens_ov = function() {
               axis.text.x = element_blank()) +
         ggtitle("Pairwise")
 
-    p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile") +
+    p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile", text_size=10) +
         geom_text(aes(label=left)) +
         scale_discrete_manual("label", guide=guide_legend(title="Correlation\nexplained"),
-            values=c("≥ 75%"="×", "≥ 60%"="o")) +
+            values=c("≥ 75%"="×", "≥ 60%"="o"), na.translate=FALSE) +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         cm$text_sizes() +
         theme(axis.title = element_blank()) +
@@ -108,16 +108,26 @@ dens_ov = function() {
     (p1 / p2) + plot_layout(guides="collect")
 }
 
+venn_comp = function(ov) {
+    names(ov)[names(ov) == "Schukken gene"] = "Schukken (gene)"
+    names(ov)[names(ov) == "Schukken\nprotein"] = "Schukken\n(protein)"
+    ggvenn::ggvenn(ov, set_name_size=4, show_percentage=FALSE) +
+        theme_void() + coord_cartesian(clip="off") +
+        theme(axis.text.x = element_blank(), axis.text.y = element_blank())
+}
+
 tox_implied = function(dset) {
+    dset$type = forcats::fct_recode(dset$type, `Schukken (gene)`="Schukken_Gene",
+                                    `Schukken (protein)`="Schukken_Protein")
     ggplot(dset, aes(x=type, y=stat_orf, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
         ggsignif::geom_signif(y_position=c(3.2, 4.4, 5.5, 6.6), color="black", test=t.test,
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
             comparisons=list(c("All genes", "Goncalves"),
-                             c("All genes", "Schukken_Gene"),
-                             c("All genes", "Schukken_Protein"),
+                             c("All genes", "Schukken (gene)"),
+                             c("All genes", "Schukken (protein)"),
                              c("All genes", "Ours"))) +
-        coord_cartesian(ylim=c(-7.5, 9)) +
+        coord_cartesian(ylim=c(-7.5, 9), clip="off") +
         labs(fill = "Study", x = "Study", y = "Δ ORF (Wald statistic)") +
     #    scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
         theme_classic() +
@@ -140,19 +150,21 @@ tcga_mut = function(freqs) {
             comparisons = list(c("Other", "Compensated"),
                                c("Other", "ARGOS"),
                                c("Compensated", "ARGOS"))) +
-        theme_classic()
+        theme_classic() +
+        coord_cartesian(clip="off")
 }
 
 rrm_pld = function(res) {
     ggplot(res, aes(x=estimate, y=p.value)) +
         geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5) +
-        geom_point(aes(shape=Comparison, fill=label), size=2) +
+        geom_point(aes(shape=Comparison, fill=label), size=3, alpha=0.8) +
         scale_x_log10() +
         scale_y_continuous(trans=ggforce::trans_reverser("log10")) +
         scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23)) +
-        scale_fill_discrete(guide=guide_legend(override.aes=list(shape=21)), name="Gene set") +
+        scale_fill_manual(guide=guide_legend(override.aes=list(shape=21)), name="Gene class",
+                          values=c(Toxic="#226b94", Compensated="#74ad9b", ARGOS="#de493d")) +
         geom_hline(yintercept=-log10(0.05), linetype="dashed") +
-        annotate("text", x=0.02, y=-log10(0.05), label="P = 0.05", vjust=-1, hjust=0, size=3) +
+        annotate("text", x=0.02, y=-log10(10), label=cm$fmt_p(0.05), vjust=-1, hjust=0, parse=TRUE) +
         labs(x = "Odds ratio (fold enrichment)",
              y = "P-value") +
         theme_classic() +
@@ -167,22 +179,21 @@ sys$run({
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
     rev1 = readRDS("../misc/reviewer1/compensation.rds")
 
-    top = (wrap_elements(dens_ov() & theme(plot.margin = margin(0,0,-20,-10,"mm"))) |
-           comp_orf(all, gistic_amp)) #+ plot_layout(widths=c(2,3))
-    comp_ov = ggvenn::ggvenn(rev1$overlap, set_name_size=4, text_size=3) + theme_void()
+    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp)) + plot_layout(widths=c(2,3))
+    comp_ov = venn_comp(rev1$overlap) + theme(plot.margin = margin(0,10,0,-20,"mm"))
     comp_tox = tox_implied(rev1$genes)
     mut = tcga_mut(readRDS("../misc/reviewer3/mut_enrich.rds"))
     pld = rrm_pld(readRDS("../misc/reviewer3/pld_domain.rds"))
-    mid = (comp_ov + comp_tox) + plot_layout(widths=c(3,2))
+    mid = (wrap_elements(comp_ov) + comp_tox) + plot_layout(widths=c(4,3))
     btm = mut + pld
 
-    asm = (top / mid / btm) + plot_layout(heights=c(1,1.2,1)) +
+    asm = (top / mid / btm) + plot_layout(heights=c(1.1,1.2,1)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS4-Overlap.pdf", 11, 14)
+    cairo_pdf("FigS4-Overlap.pdf", 11, 13)
     print(asm)
     dev.off()
 })

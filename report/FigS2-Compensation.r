@@ -266,20 +266,39 @@ tcga_ccle_tissue = function() {
                       broom::tidy(lm(compensation ~ 1)))
     sel = res %>% slice_max(n_comp, n=20, with_ties=FALSE) %>% select(gene, sel=src)
 
+    ov = readRDS("../misc/reviewer1/compensation.rds")$overlap
+    names(ov)[names(ov) == "Goncalves"] = "Goncalves et al."
+    names(ov)[names(ov) == "Schukken gene"] = "Schukken (gene)"
+    names(ov)[names(ov) == "Schukken\nprotein"] = "Schukken (protein)"
     dset2 = inner_join(dset, sel, relationship="many-to-many") %>%
-        mutate(src = factor(src),
+        mutate(src = paste(src, "data"),
+               gene = factor(gene),
                compensation = pmax(-1, pmin(compensation, 1)))
     levels(dset2$sel) = paste(levels(dset2$sel), "top genes")
-    levels(dset2$src) = paste(levels(dset2$src), "data")
-    p1 = ggplot(dset2, aes(x=gene, y=forcats::fct_rev(tissue), fill=compensation)) +
-        geom_tile(aes(width=s, height=s)) +
-        scale_fill_distiller(palette="PuOr", name="Compensation\nscore") +
-        facet_grid(src ~ sel, scales="free") +
+    ov2 = as_tibble(stack(ov)) %>%
+        transmute(gene=factor(values, levels=levels(dset2$gene)), study=ind, in_study="Yes") %>%
+        filter(grepl("Gonc|Schuk", study))
+    dset3 = dset2 %>%
+        select(gene, sel) %>% distinct() %>%
+        inner_join(ov2, relationship="many-to-many") %>%
+        mutate(tissue = droplevels(study), compensation = NA, src = "Study") %>%
+        filter(!is.na(study))
+    dset4 = bind_rows(dset2, dset3) %>%
+        mutate(src = factor(src, levels=c("CCLE data", "TCGA data", "Study")))
+
+    p1 = ggplot(dset4, aes(x=gene, y=forcats::fct_rev(tissue))) +
+        geom_tile(aes(fill=compensation, width=s, height=s)) +
+        scale_fill_distiller(palette="PuOr", name="Compensation\nscore", na.value="#ababab00") +
+        ggnewscale::new_scale_fill() +
+        geom_tile(aes(fill=in_study), color="white") +
+        scale_fill_manual(values=c(Yes="#323232a0"), name="In Study",
+                          na.value="transparent", na.translate=FALSE) +
+        facet_grid(src ~ sel, scales="free", space="free") +
         cm$theme_minimal() +
         theme(strip.background = element_rect(color="black", linewidth=1),
               axis.text.x = element_text(angle=90, hjust=1, vjust=0.5)) +
         labs(x = "Gene",
-             y = "Tissue")
+             y = "Study / Tissue")
 
     sets = gset$get_human("MSigDB_Hallmark_2020")
 #    sres = split(res, res$src) %>%
@@ -305,7 +324,7 @@ tcga_ccle_tissue = function() {
         labs(x = "-log10 FDR compensation in ≥ 3 Tissues (Fisher's Exact Test)",
              y = "MSigDB Hallmark\ncategory")
 
-    (p1 / p2) + plot_layout(heights=c(7,6))
+    (p1/ p2) + plot_layout(heights=c(7,6))
 }
 
 sys$run({
@@ -338,7 +357,7 @@ sys$run({
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS2-Compensation.pdf", 14, 19.5)
+    cairo_pdf("FigS2-Compensation.pdf", 14.5, 19.5) # 14.5: extra space on labels left
     print(asm)
     dev.off()
 })

@@ -216,22 +216,30 @@ venn_comp = function() {
         theme(axis.text.x = element_blank(), axis.text.y = element_blank())
 }
 
-tcga_mut = function(freqs) {
-    ggplot(freqs, aes(x=class, y=freq)) +
+tcga_mut = function() {
+    lookup = c(all="All genes", Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
+               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
+        dplyr::rename(gene=values, coll=ind)
+    freqs = readRDS("../misc/reviewer3/mut_enrich.rds") %>% select(-class)
+    freqs2 = left_join(freqs, ov %>% bind_rows(data.frame(gene=freqs$gene, coll="all"))) %>%
+        mutate(coll = factor(lookup[coll], levels=lookup))
+
+    ggplot(freqs2, aes(x=coll, fill=coll, y=freq)) +
         geom_boxplot(outlier.shape=NA) +
-        ggbeeswarm::geom_quasirandom(aes(shape=class, fill=class),size=2, alpha=0.8) +
-        scale_shape_manual(values=c(Other=NA, Compensated=21, ARGOS=21), name="Gene class") +
-        scale_fill_manual(values=c(Other=NA, Compensated="#74ad9b", ARGOS="#de493d"), name="Gene class") +
         scale_y_log10() +
-        labs(x = "Gene class",
-             y = "TCGA mutation frequency") +
-        ggsignif::geom_signif(color="black", y_position=c(-0.9,-0.6,-1), test=t.test,
+        ggsignif::geom_signif(color="black", y_position=c(-1,-0.2,0.6,1.4), test=t.test,
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons = list(c("Other", "Compensated"),
-                               c("Other", "ARGOS"),
-                               c("Compensated", "ARGOS"))) +
-        theme_classic() +
-        coord_cartesian(clip="off")
+            comparisons = list(c("All genes", "Goncalves"),
+                               c("All genes", "Schukken\n(protein)"),
+                               c("All genes", "Schukken\n(gene)"),
+                               c("All genes", "ours"))) +
+        labs(x = "Study",
+             y = "TCGA mutation\nfrequency",
+             fill = "Study") +
+        cm$theme_classic() +
+        theme(axis.text.x = element_blank()) +
+        coord_cartesian(ylim=c(1e-3, 10), clip="off")
 }
 
 rrm_pld = function() {
@@ -349,8 +357,7 @@ sys$run({
         plot_layout(heights=c(1,1,1.1,2.4))
     top = ((left | right) + plot_layout(widths=c(2,1)))
 
-    mid = (tcga_mut(readRDS("../misc/reviewer3/mut_enrich.rds")) |
-        rpe_comp() | triplosens()) + plot_layout(widths=c(5,6,4))
+    mid = (tcga_mut() |rpe_comp() | triplosens()) + plot_layout(widths=c(5,6,4))
 
     asm = (top / mid / tcga_ccle_tissue()) +
         plot_layout(heights=c(6,1,5.5)) +

@@ -161,8 +161,8 @@ rpe_comp = function() {
                (term == "SS111" & chr %in% c("8", "9", "18"))) %>%
         transmute(Sample = factor(lookup[term], levels=lookup),
                   Gene=label, chr=chr, LFC=log2FoldChange,
-                  status = ifelse(Gene %in% comp, "Compensated", "Background"),
-                  status = factor(status, levels=c("Background", "Compensated"))) %>%
+                  status = ifelse(Gene %in% comp, "Comp.", "Other"),
+                  status = factor(status, levels=c("Other", "Comp."))) %>%
         group_by(Sample, chr) %>%
             mutate(LFC = scale(LFC, scale=FALSE)[,1]) %>%
         ungroup()
@@ -173,18 +173,17 @@ rpe_comp = function() {
         scale_y_log10() +
         facet_wrap(~ Sample) +
         coord_cartesian(ylim=c(0.5, 2)) +
-        labs(title = "Isogenic RPE-1 lines",
-             x = "Clone with chromosome amplification",
-             y = "Fold-change amplified chr\nvs. whole chromosomes") +
-        scale_color_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
-        scale_fill_manual(values=c(cm$cols[c("Background", "Compensated")]), name="Genes") +
+        labs(x = "Isogenic RPE-1 clones",
+             y = "Fold-change on\ngained chromosomes") +
+        scale_color_manual(values=c(cm$cols[c("Other", "Comp.")]), name="Genes") +
+        scale_fill_manual(values=c(cm$cols[c("Other", "Comp.")]), name="Genes") +
         scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
         cm$theme_minimal() +
         theme(axis.text.x = element_blank()) +
         ggsignif::geom_signif(color="black", y_position=-0.15,
             test=function(...) t.test(..., alternative="greater"),
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons=list(c("Background", "Compensated")))
+            comparisons=list(c("Other", "Comp.")))
 }
 
 triplosens = function() {
@@ -203,9 +202,56 @@ triplosens = function() {
         coord_flip(clip="off") +
         cm$theme_minimal() +
         theme(axis.text.y = element_blank()) +
-        labs(title = "Triplosensitivity",
-             x = "Compensation status",
-             y = "Probability")
+        labs(x = "Compensation\nstatus",
+             y = "prob. Triplosensitivity")
+}
+
+venn_comp = function() {
+    ov = readRDS("../misc/reviewer1/compensation.rds")$overlap
+    names(ov)[names(ov) == "Goncalves"] = "Goncalves et al."
+    names(ov)[names(ov) == "Schukken gene"] = "    Schukken et al. (gene)"
+    names(ov)[names(ov) == "Schukken\nprotein"] = "Schukken et al.\n(protein)"
+    ggvenn::ggvenn(ov, set_name_size=4, show_percentage=FALSE) +
+        theme_void() + coord_cartesian(clip="off") +
+        theme(axis.text.x = element_blank(), axis.text.y = element_blank())
+}
+
+tcga_mut = function(freqs) {
+    ggplot(freqs, aes(x=class, y=freq)) +
+        geom_boxplot(outlier.shape=NA) +
+        ggbeeswarm::geom_quasirandom(aes(shape=class, fill=class),size=2, alpha=0.8) +
+        scale_shape_manual(values=c(Other=NA, Compensated=21, ARGOS=21), name="Gene class") +
+        scale_fill_manual(values=c(Other=NA, Compensated="#74ad9b", ARGOS="#de493d"), name="Gene class") +
+        scale_y_log10() +
+        labs(x = "Gene class",
+             y = "TCGA mutation frequency") +
+        ggsignif::geom_signif(color="black", y_position=c(-0.9,-0.6,-1), test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons = list(c("Other", "Compensated"),
+                               c("Other", "ARGOS"),
+                               c("Compensated", "ARGOS"))) +
+        theme_classic() +
+        coord_cartesian(clip="off")
+}
+
+rrm_pld = function() {
+    res = readRDS("../misc/reviewer3/pld_domain.rds") %>%
+        filter(label == "Compensated")
+    ggplot(res, aes(x=estimate, y=p.value)) +
+        geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5, height=0.2) +
+        geom_point(aes(shape=Comparison), fill="#74ad9b", size=3, alpha=0.8) +
+        scale_x_log10() +
+        scale_y_continuous(trans=ggforce::trans_reverser("log10"), breaks=c(0.05, 1e-10, 1e-20)) +
+        scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23), name="Compensated\ngenes") +
+#        scale_fill_manual(guide=guide_legend(override.aes=list(shape=21)), name="Gene class",
+#                          values=c(Toxic="#226b94", Compensated="#74ad9b", ARGOS="#de493d")) +
+        geom_hline(yintercept=0.05, linetype="dashed") +
+#        annotate("text", x=0.02, y=-log10(10), label=cm$fmt_p(0.05), vjust=-1, hjust=0, parse=TRUE) +
+        labs(x = "Odds ratio (fold enrichment)",
+             y = "P-value") +
+        coord_cartesian(ylim=c(20,1e-27), clip="off") +
+        cm$theme_classic() +
+        theme(panel.grid.major = element_line(color="#dededea0"))
 }
 
 tcga_ccle_tissue = function() {
@@ -279,15 +325,20 @@ sys$run({
     comp = comp_all %>% inner_join(gistic_amp)
 
     left = (tcga_vs_ccle() / go_cors()) + plot_layout(heights=c(1,3))
-    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rpe_comp() / triplosens()) +
-        plot_layout(heights=c(1,1,1.5,0.8))
+    right = (cna_comp(gistic, comp_all) / og_comp(comp) / rrm_pld() /
+             wrap_elements(venn_comp() + theme(plot.margin=margin(0,-20,-10,-5,"mm")))) +
+        plot_layout(heights=c(1,1,1.1,2.4))
+    top = ((left | right) + plot_layout(widths=c(2,1)))
 
-    asm = (((left | right) + plot_layout(widths=c(2,1))) / tcga_ccle_tissue()) +
-        plot_layout(heights=c(6,5.5)) +
+    mid = (tcga_mut(readRDS("../misc/reviewer3/mut_enrich.rds")) |
+        rpe_comp() | triplosens()) + plot_layout(widths=c(5,6,4))
+
+    asm = (top / mid / tcga_ccle_tissue()) +
+        plot_layout(heights=c(6,1,5.5)) +
         plot_annotation(tag_levels='a') &
         theme(plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS2-Compensation.pdf", 14, 18)
+    cairo_pdf("FigS2-Compensation.pdf", 14, 19.5)
     print(asm)
     dev.off()
 })

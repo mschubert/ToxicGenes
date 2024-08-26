@@ -169,7 +169,7 @@ rpe_comp = function() {
 
     ggplot(dset, aes(x=status, y=2^LFC, color=status)) +
         geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
-        ggbeeswarm::geom_quasirandom(dodge.width=0.8, aes(alpha=status)) +
+        ggbeeswarm::geom_quasirandom(data=dset[dset$status == "Comp.",], dodge.width=0.8, aes(alpha=status)) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
         coord_cartesian(ylim=c(0.5, 2)) +

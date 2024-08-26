@@ -243,21 +243,32 @@ tcga_mut = function() {
 }
 
 rrm_pld = function() {
-    res = readRDS("../misc/reviewer3/pld_domain.rds") %>%
-        filter(label == "Compensated")
+    gs = readRDS("../misc/reviewer3/pld_domain.rds")[c("rrm", "prion")]
+    comp = list(comp=cm$get_comp_genes(pan=TRUE))
+    gclass = seq$gene_table() %>% select(external_gene_name, gene_biotype) %>% distinct() %>%
+        filter(gene_biotype %in% c("lncRNA", "processed_pseudogene", "protein_coding"),
+               !is.na(external_gene_name)) %>%
+        unstack()
+
+    res = bind_rows(.id="comp",
+        `protein coding` = gset$test_fet(valid=comp_all$gene_name, hits=gclass$protein_coding, sets=comp),
+        lncRNA = gset$test_fet(valid=comp_all$gene_name, hits=gclass$lncRNA, sets=comp),
+        pseudogene =  gset$test_fet(valid=comp_all$gene_name, hits=gclass$processed_pseudogene, sets=comp),
+        `RRM vs.\nprotein coding` =  gset$test_fet(valid=gclass$protein_coding, hits=gs$rrm, sets=comp),
+        `PLD vs. RRM` =  gset$test_fet(valid=gs$rrm, hits=gs$prion, sets=comp)
+    ) %>% mutate(comp = factor(comp, levels=comp))
+
     ggplot(res, aes(x=estimate, y=p.value)) +
+        geom_vline(xintercept=1, color="darkgrey", linetype="dotted") +
         geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5, height=0.2) +
-        geom_point(aes(shape=Comparison), fill="#74ad9b", size=3, alpha=0.8) +
-        scale_x_log10() +
-        scale_y_continuous(trans=ggforce::trans_reverser("log10"), breaks=c(0.05, 1e-10, 1e-20)) +
-        scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23), name="Compensated\ngenes") +
-#        scale_fill_manual(guide=guide_legend(override.aes=list(shape=21)), name="Gene class",
-#                          values=c(Toxic="#226b94", Compensated="#74ad9b", ARGOS="#de493d")) +
+        geom_point(aes(color=comp), fill="#74ad9b", size=3, alpha=0.8) +
+        scale_x_log10(breaks=c(`0.001`=0.001, `0.01`=0.01, `0.1`=0.1, `1`=1, `10`=10, `30`=30)) +
+        scale_y_continuous(trans=ggforce::trans_reverser("log10"), breaks=c(0.05, 1e-10, 1e-20, 1e-30)) +
         geom_hline(yintercept=0.05, linetype="dashed") +
-#        annotate("text", x=0.02, y=-log10(10), label=cm$fmt_p(0.05), vjust=-1, hjust=0, parse=TRUE) +
         labs(x = "Odds ratio (fold enrichment)",
-             y = "P-value") +
-        coord_cartesian(ylim=c(20,1e-27), clip="off") +
+             y = "P-value",
+             color = "Comparison") +
+        coord_cartesian(ylim=c(20,NA), clip="off") +
         cm$theme_classic() +
         theme(panel.grid.major = element_line(color="#dededea0"))
 }

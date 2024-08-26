@@ -50,7 +50,7 @@ og_vs_tsg = function(gistic, cosmic) {
             linetype="dashed", alpha=0.1, inherit.aes=FALSE) +
         scale_fill_manual(values=cm$cols[c("Amplified", "Deleted")], name="Frequently") +
         geom_point(aes(shape=tier), na.rm=TRUE) +
-        ggrepel::geom_label_repel(aes(label=label), min.segment.length=0,
+        ggrepel::geom_label_repel(aes(label=label), min.segment.length=0, fontface="italic",
             segment.alpha=0.3, fill="#ffffffca", label.size=NA, na.rm=TRUE) +
         scale_shape_manual(values=c("1"=19, "2"=1), name="COSMIC tier") +
         scale_color_manual(values=cm$cols[c("Oncogene", "TSG", "OG+TSG")], name="Driver status") +

@@ -309,21 +309,26 @@ tcga_ccle_tissue = function() {
              y = "Study / Tissue")
 
     sets = gset$get_human("MSigDB_Hallmark_2020")
-#    sres = split(res, res$src) %>%
-#        lapply(gset$test_lm, sets=sets) %>%
-#        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(adj.p, n=12, with_ties=FALSE) %>%
-#        arrange(adj.p) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
-#        ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
     sres = res %>% filter(n_comp >= 3) %$% split(gene, src) %>%
-        lapply(gset$test_fet, valid=unique(res$gene), sets=sets) %>%
-        bind_rows(.id="sel") %>% group_by(sel) %>% slice_min(p.value, n=12, with_ties=FALSE) %>%
+#        c(ov[c("Goncalves et al.", "Schukken (protein)", "Schukken (gene)")]) %>%
+        lapply(gset$test_fet, valid=unique(res$gene), sets=sets)
+    sres2 = sres[c("Common", "CCLE", "TCGA")] %>% bind_rows(.id="sel") %>%
+        group_by(sel) %>% slice_min(p.value, n=12, with_ties=FALSE) %>%
         arrange(p.value) %>% mutate(rank = factor(seq_len(n()), levels=seq_len(n()))) %>%
         ungroup() %>% mutate(sel = factor(sel, levels=c("Common", "CCLE", "TCGA")))
-    levels(sres$sel) = paste(levels(sres$sel), "top genes")
+    levels(sres2$sel) = paste(levels(sres2$sel), "top genes")
+#    add = sres[c("Goncalves et al.", "Schukken (protein)", "Schukken (gene)")] %>%
+#        bind_rows(.id = "Study\ncomparison") %>%
+#        mutate(sel = factor("Common top genes"),
+#               rank = factor(match(label, sres2$label[sres2$sel == "Common top genes"])),
+#               adj.p = pmax(adj.p, 1e-10)) %>%
+#        filter(label %in% sres2$label[sres2$sel == "Common top genes"])
 
-    p2 = ggplot(sres, aes(x=-log10(adj.p), y=forcats::fct_rev(rank))) +
+#    p2 = ggplot(sres2, aes(x=abs(log2(estimate)), y=forcats::fct_rev(rank))) +
+    p2 = ggplot(sres2, aes(x=-log10(p.value), y=forcats::fct_rev(rank))) +
         geom_col(aes(fill=ifelse(estimate>1, "Enriched", "Depleted")), alpha=0.2) +
         scale_fill_manual(values=c(Enriched="steelblue", Depleted="coral"), name="Direction") +
+#        geom_point(data=add, aes(color=`Study\ncomparison`), fill=NA, size=3, alpha=0.7) +
         geom_text(aes(label=paste0(" ", label)), x=0, hjust=0) +
         facet_wrap(~ sel, scales="free") +
         cm$theme_minimal() +
@@ -357,7 +362,7 @@ sys$run({
         plot_layout(heights=c(1,1,1.1,2.4))
     top = ((left | right) + plot_layout(widths=c(2,1)))
 
-    mid = (tcga_mut() |rpe_comp() | triplosens()) + plot_layout(widths=c(5,6,4))
+    mid = (tcga_mut() | rpe_comp() | triplosens()) + plot_layout(widths=c(2,3,2))
 
     asm = (top / mid / tcga_ccle_tissue()) +
         plot_layout(heights=c(6,1,5.5)) +

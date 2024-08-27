@@ -141,11 +141,13 @@ wgd_compare = function() {
         mutate(`Gene class` = case_when(
             gene %in% argos ~ "ARGOS",
             gene %in% comp ~ "Compensated",
+            gene %in% tox ~ "Toxic",
             TRUE ~ NA_character_
         ))
     p1 = ggplot(ccle, aes(x=est_eup, y=est_wgd)) +
         geom_point(color="black", alpha=0.5) +
-        geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9)
+        geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
+        labs(title = "CCLE")
 
     tcga1 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD+.rds")
     tcga2 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD-.rds")
@@ -154,13 +156,29 @@ wgd_compare = function() {
         mutate(`Gene class` = case_when(
             gene %in% argos ~ "ARGOS",
             gene %in% comp ~ "Compensated",
+            gene %in% tox ~ "Toxic",
             TRUE ~ NA_character_
         ))
     p2 = ggplot(tcga, aes(x=est_eup, y=est_wgd)) +
         geom_point(color="black", alpha=0.5) +
-        geom_point(data=tcga[!is.na(tcga$`Gene class`),], aes(color=`Gene class`), alpha=0.9)
+        geom_point(data=tcga[!is.na(tcga$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
+        labs(title = "TCGA")
 
-    ((p1 | p2) & cm$theme_minimal()) + plot_layout(guides="collect")
+    orf1 = readRDS("../model_orf/fitsWGD.rds")
+    orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
+                     orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
+        mutate(`Gene class` = case_when(
+            gene %in% argos ~ "ARGOS",
+            gene %in% comp ~ "Compensated",
+            gene %in% tox ~ "Toxic",
+            TRUE ~ NA_character_
+        ))
+    p3 = ggplot(orf, aes(x=stat_eup, y=stat_wgd)) +
+        geom_point(color="black", alpha=0.5) +
+        geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
+        labs(title = "ORF")
+
+    ((p1 | p2 | p3) & cm$theme_minimal()) + plot_layout(guides="collect")
 }
 
 sys$run({

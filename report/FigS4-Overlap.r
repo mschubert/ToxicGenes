@@ -129,6 +129,40 @@ tox_implied = function() {
                    linetype="dashed", color="black")
 }
 
+wgd_compare = function() {
+    comp = cm$get_comp_genes(pan=TRUE)
+    tox = cm$get_tox()$`Pan-Cancer` %>% filter(is_toxic) %>% pull(gene)
+    argos = intersect(comp, tox)
+
+    ccle1 = readRDS("../model_compensation/fit_ccle-amp/panWGD+.rds")
+    ccle2 = readRDS("../model_compensation/fit_ccle-amp/panWGD-.rds")
+    ccle = inner_join(ccle1 %>% select(gene, est_wgd=estimate),
+                      ccle2 %>% select(gene, est_eup=estimate)) %>%
+        mutate(`Gene class` = case_when(
+            gene %in% argos ~ "ARGOS",
+            gene %in% comp ~ "Compensated",
+            TRUE ~ NA_character_
+        ))
+    p1 = ggplot(ccle, aes(x=est_eup, y=est_wgd)) +
+        geom_point(color="black", alpha=0.5) +
+        geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9)
+
+    tcga1 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD+.rds")
+    tcga2 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD-.rds")
+    tcga = inner_join(tcga1 %>% select(gene, est_wgd=estimate),
+                      tcga2 %>% select(gene, est_eup=estimate)) %>%
+        mutate(`Gene class` = case_when(
+            gene %in% argos ~ "ARGOS",
+            gene %in% comp ~ "Compensated",
+            TRUE ~ NA_character_
+        ))
+    p2 = ggplot(tcga, aes(x=est_eup, y=est_wgd)) +
+        geom_point(color="black", alpha=0.5) +
+        geom_point(data=tcga[!is.na(tcga$`Gene class`),], aes(color=`Gene class`), alpha=0.9)
+
+    ((p1 | p2) & cm$theme_minimal()) + plot_layout(guides="collect")
+}
+
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%

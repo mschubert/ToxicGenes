@@ -108,15 +108,8 @@ dens_ov = function() {
     (p1 / p2) + plot_layout(guides="collect")
 }
 
-venn_comp = function(ov) {
-    names(ov)[names(ov) == "Schukken gene"] = "Schukken (gene)"
-    names(ov)[names(ov) == "Schukken\nprotein"] = "Schukken\n(protein)"
-    ggvenn::ggvenn(ov, set_name_size=4, show_percentage=FALSE) +
-        theme_void() + coord_cartesian(clip="off") +
-        theme(axis.text.x = element_blank(), axis.text.y = element_blank())
-}
-
-tox_implied = function(dset) {
+tox_implied = function() {
+    dset = readRDS("../misc/reviewer1/compensation.rds")$genes
     dset$type = forcats::fct_recode(dset$type, `Schukken (gene)`="Schukken_Gene",
                                     `Schukken (protein)`="Schukken_Protein")
     ggplot(dset, aes(x=type, y=stat_orf, fill=type)) +
@@ -136,64 +129,23 @@ tox_implied = function(dset) {
                    linetype="dashed", color="black")
 }
 
-tcga_mut = function(freqs) {
-    ggplot(freqs, aes(x=class, y=freq)) +
-        geom_boxplot(outlier.shape=NA) +
-        ggbeeswarm::geom_quasirandom(aes(shape=class, fill=class),size=2, alpha=0.8) +
-        scale_shape_manual(values=c(Other=NA, Compensated=21, ARGOS=21), name="Gene class") +
-        scale_fill_manual(values=c(Other=NA, Compensated="#74ad9b", ARGOS="#de493d"), name="Gene class") +
-        scale_y_log10() +
-        labs(x = "Gene class",
-             y = "TCGA mutation frequency") +
-        ggsignif::geom_signif(color="black", y_position=c(-0.9,-0.6,-1), test=t.test,
-            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons = list(c("Other", "Compensated"),
-                               c("Other", "ARGOS"),
-                               c("Compensated", "ARGOS"))) +
-        theme_classic() +
-        coord_cartesian(clip="off")
-}
-
-rrm_pld = function(res) {
-    ggplot(res, aes(x=estimate, y=p.value)) +
-        geom_errorbarh(aes(xmin=conf.low, xmax=conf.high), alpha=0.5) +
-        geom_point(aes(shape=Comparison, fill=label), size=3, alpha=0.8) +
-        scale_x_log10() +
-        scale_y_continuous(trans=ggforce::trans_reverser("log10")) +
-        scale_shape_manual(values=c(`RRM over all`=21, `PLD over RRM`=23)) +
-        scale_fill_manual(guide=guide_legend(override.aes=list(shape=21)), name="Gene class",
-                          values=c(Toxic="#226b94", Compensated="#74ad9b", ARGOS="#de493d")) +
-        geom_hline(yintercept=-log10(0.05), linetype="dashed") +
-        annotate("text", x=0.02, y=-log10(10), label=cm$fmt_p(0.05), vjust=-1, hjust=0, parse=TRUE) +
-        labs(x = "Odds ratio (fold enrichment)",
-             y = "P-value") +
-        theme_classic() +
-        theme(panel.grid.major = element_line(color="#dededea0"))
-}
-
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
-    rev1 = readRDS("../misc/reviewer1/compensation.rds")
 
-    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp)) + plot_layout(widths=c(2,3))
-    comp_ov = venn_comp(rev1$overlap) + theme(plot.margin = margin(0,10,0,-20,"mm"))
-    comp_tox = tox_implied(rev1$genes)
-    mut = tcga_mut(readRDS("../misc/reviewer3/mut_enrich.rds"))
-    pld = rrm_pld(readRDS("../misc/reviewer3/pld_domain.rds"))
-    mid = (wrap_elements(comp_ov) + comp_tox) + plot_layout(widths=c(4,3))
-    btm = mut + pld
+    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp)) + plot_layout(widths=c(3,4))
+    mid = (tox_implied() + plot_spacer()) + plot_layout(widths=c(1,2))
 
-    asm = (top / mid / btm) + plot_layout(heights=c(1.1,1.2,1)) +
+    asm = (top / mid) + plot_layout(heights=c(3,2)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS4-Overlap.pdf", 11, 13)
+    cairo_pdf("FigS4-Overlap.pdf", 11, 9)
     print(asm)
     dev.off()
 })

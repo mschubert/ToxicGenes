@@ -77,9 +77,9 @@ make_mod = function(data) {
 #' @param ccle_df  data.frame from ccle
 #' @param tissue   character vector of tissue types, or 'pan'
 prep_data = function(ccle_df, tissue) {
-    if (grepl("WGD+", tissue)) {
+    if (grepl("WGD+", tissue, fixed=TRUE)) {
         ccle_df = ccle_df[!is.na(ccle_df$wgd) & ccle_df$wgd > 0,]
-    } else if (grepl("WGD-", tissue)) {
+    } else if (grepl("WGD-", tissue, fixed=TRUE)) {
         ccle_df = ccle_df[!is.na(ccle_df$wgd) & ccle_df$wgd == 0,]
     }
     tissue = sub("WGD.$", "", tissue)

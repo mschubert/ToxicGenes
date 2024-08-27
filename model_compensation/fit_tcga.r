@@ -106,9 +106,9 @@ make_mod = function(data, type="naive") {
 #' @param tcga_df
 #' @param tissue
 prep_data = function(tcga_df, tissue) {
-    if (grepl("WGD+", tissue)) {
+    if (grepl("WGD+", tissue, fixed=TRUE)) {
         tcga_df = tcga_df[tcga_df$wgd > 0,]
-    } else if (grepl("WGD-", tissue)) {
+    } else if (grepl("WGD-", tissue, fixed=TRUE)) {
         tcga_df = tcga_df[tcga_df$wgd == 0,]
     }
     tissue = sub("WGD.$", "", tissue)

@@ -144,8 +144,7 @@ wgd_compare = function() {
             gene %in% tox ~ "Toxic",
             TRUE ~ NA_character_
         ))
-    p1 = ggplot(ccle, aes(x=est_eup, y=est_wgd)) +
-        geom_point(color="black", alpha=0.5) +
+    p1 = plt$denspt(ccle, aes(x=est_eup, y=est_wgd, alpha=0.2)) +
         geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
         labs(title = "CCLE")
 
@@ -159,22 +158,21 @@ wgd_compare = function() {
             gene %in% tox ~ "Toxic",
             TRUE ~ NA_character_
         ))
-    p2 = ggplot(tcga, aes(x=est_eup, y=est_wgd)) +
-        geom_point(color="black", alpha=0.5) +
+    p2 = plt$denspt(tcga, aes(x=est_eup, y=est_wgd, alpha=0.2)) +
         geom_point(data=tcga[!is.na(tcga$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
         labs(title = "TCGA")
 
     orf1 = readRDS("../model_orf/fitsWGD.rds")
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
                      orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
+        filter(gene != "LOC254896") %>%
         mutate(`Gene class` = case_when(
             gene %in% argos ~ "ARGOS",
             gene %in% comp ~ "Compensated",
             gene %in% tox ~ "Toxic",
             TRUE ~ NA_character_
         ))
-    p3 = ggplot(orf, aes(x=stat_eup, y=stat_wgd)) +
-        geom_point(color="black", alpha=0.5) +
+    p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.2)) +
         geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
         labs(title = "ORF")
 
@@ -188,16 +186,17 @@ sys$run({
     cosmic = cm$get_cosmic_annot()
     all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
-    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp)) + plot_layout(widths=c(3,4))
-    mid = (tox_implied() + plot_spacer()) + plot_layout(widths=c(1,2))
+    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp) | tox_implied()) +
+        plot_layout(widths=c(0.75,2,1.2))
+    btm = wgd_compare()
 
-    asm = (top / mid) + plot_layout(heights=c(3,2)) +
+    asm = (top / btm) + plot_layout() +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS4-Overlap.pdf", 11, 9)
+    cairo_pdf("FigS4-Overlap.pdf", 14, 10)
     print(asm)
     dev.off()
 })

@@ -177,9 +177,15 @@ tissue_compare = function() {
         filter(tissue != "Pan-Cancer") %>%
         select(src, tissue, gene, compensation) %>%
         tidyr::pivot_wider(names_from=src, values_from=compensation)
+    m = tidyr::pivot_longer(comp, c(CCLE, TCGA)) %>%
+        group_by(tissue) %>%
+        summarize(res = broom::glance(lm(value ~ name))) %>%
+        tidyr::unnest(res) %>%
+        mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=20, draw_pt=0) +
         xlim(-1.5,2) + ylim(-1.5,2) +
-        facet_grid(. ~ tissue)
+        facet_grid(. ~ tissue) +
+        geom_text(data=m, aes(label=lab), x=-1, y=1.5, hjust=0, color="blue", parse=TRUE)
 
     toxf = "../model_orf/fits_naive.xlsx"
     sheets = readxl::excel_sheets(toxf)
@@ -187,8 +193,15 @@ tissue_compare = function() {
         bind_rows(.id="tissue") %>% filter(!grepl("pan", tissue)) %>%
         select(tissue, gene=`GENE SYMBOL`, statistic)
     comp2 = comp %>% mutate(both = (CCLE+TCGA)/2) %>% inner_join(tox)
+    m = tidyr::pivot_longer(comp2, c(both, statistic)) %>%
+        group_by(tissue) %>%
+        summarize(res = broom::glance(lm(value ~ name))) %>%
+        tidyr::unnest(res) %>%
+        mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=20, draw_pt=0) +
+        xlim(-1.5,2) + ylim(-10,5) +
         facet_grid(. ~ tissue) +
+        geom_text(data=m, aes(label=lab), x=-1, y=4, hjust=0, color="blue", parse=TRUE) +
         labs(x = "Mean compensation score CCLE/TCGA",
              y = "ORF (Wald st.)")
 

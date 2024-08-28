@@ -134,10 +134,12 @@ wgd_compare = function() {
     tox = cm$get_tox()$`Pan-Cancer` %>% filter(is_toxic) %>% pull(gene)
     argos = intersect(comp, tox)
 
-    ccle1 = readRDS("../model_compensation/fit_ccle-amp/panWGD+.rds")
-    ccle2 = readRDS("../model_compensation/fit_ccle-amp/panWGD-.rds")
-    ccle = inner_join(ccle1 %>% select(gene, est_wgd=estimate),
-                      ccle2 %>% select(gene, est_eup=estimate)) %>%
+    ccle1 = readRDS("../model_compensation/fit_ccle-amp/panWGD+.rds") %>%
+        mutate(compensation = (1 - p.value) * estimate)
+    ccle2 = readRDS("../model_compensation/fit_ccle-amp/panWGD-.rds") %>%
+        mutate(compensation = (1 - p.value) * estimate)
+    ccle = inner_join(ccle1 %>% select(gene, est_wgd=compensation),
+                      ccle2 %>% select(gene, est_eup=compensation)) %>%
         mutate(`Gene class` = case_when(
             gene %in% argos ~ "ARGOS",
             gene %in% comp ~ "Compensated",
@@ -148,10 +150,12 @@ wgd_compare = function() {
         geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
         labs(title = "CCLE")
 
-    tcga1 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD+.rds")
-    tcga2 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD-.rds")
-    tcga = inner_join(tcga1 %>% select(gene, est_wgd=estimate),
-                      tcga2 %>% select(gene, est_eup=estimate)) %>%
+    tcga1 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD+.rds") %>%
+        mutate(compensation= (1 - p.value) * estimate)
+    tcga2 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD-.rds") %>%
+        mutate(compensation = (1 - p.value) * estimate)
+    tcga = inner_join(tcga1 %>% select(gene, est_wgd=compensation),
+                      tcga2 %>% select(gene, est_eup=compensation)) %>%
         mutate(`Gene class` = case_when(
             gene %in% argos ~ "ARGOS",
             gene %in% comp ~ "Compensated",
@@ -188,15 +192,16 @@ sys$run({
 
     top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp) | tox_implied()) +
         plot_layout(widths=c(0.75,2,1.2))
-    btm = wgd_compare()
+    mid = wgd_compare()
+    btm = tissue_compare()
 
-    asm = (top / btm) + plot_layout() +
+    asm = (top / mid / btm) + plot_layout(heights=c(1,1,1)) +
         plot_annotation(tag_levels='a') &
         theme(axis.text = element_text(size=10),
               legend.text = element_text(size=10),
               plot.tag = element_text(size=24, face="bold"))
 
-    cairo_pdf("FigS4-Overlap.pdf", 14, 10)
+    cairo_pdf("FigS4-Overlap.pdf", 14, 15)
     print(asm)
     dev.off()
 })

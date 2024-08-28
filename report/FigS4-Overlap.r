@@ -134,22 +134,22 @@ wgd_compare = function() {
     tox = cm$get_tox()$`Pan-Cancer` %>% filter(is_toxic) %>% pull(gene)
     argos = intersect(comp, tox)
 
+    make_class = . %>% mutate(`Gene class` = case_when(
+        gene %in% argos ~ "ARGOS",
+        gene %in% comp ~ "Compensated",
+        gene %in% tox ~ "Toxic",
+        TRUE ~ NA_character_
+    ))
     comp_comp = function(dfs) {
         df1 = readRDS(dfs[[1]]) %>% mutate(compensation = (1 - p.value) * estimate)
         df2 = readRDS(dfs[[2]]) %>% mutate(compensation = (1 - p.value) * estimate)
-        both = inner_join(df1 %>% select(gene, `WGD+ compensation`=compensation),
-                          df2 %>% select(gene, `WGD- compensation`=compensation)) %>%
-            mutate(`Gene class` = case_when(
-                gene %in% argos ~ "ARGOS",
-                gene %in% comp ~ "Compensated",
-                gene %in% tox ~ "Toxic",
-                TRUE ~ NA_character_
-            ))
-        m = tidyr::pivot_longer(both, c(`WGD+ compensation`, `WGD- compensation`)) %>%
+        both = inner_join(df1 %>% select(gene, `Compensation WGD+`=compensation),
+                          df2 %>% select(gene, `Compensation WGD-`=compensation)) %>%
+        make_class()
+        m = tidyr::pivot_longer(both, c(`Compensation WGD+`, `Compensation WGD-`)) %>%
             lm(value ~ name, data=.) %>% broom::glance()
-        lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
-            sub("e", "%*%10^", .)
-        plt$denspt(both, aes(x=`WGD+ compensation`, y=`WGD- compensation`, alpha=0.2)) +
+        lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
+        plt$denspt(both, aes(x=`Compensation WGD+`, y=`Compensation WGD-`, alpha=0.2)) +
             geom_point(data=both[!is.na(both$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
             coord_cartesian(xlim=c(-1.1,1.5), ylim=c(-1.1,1.5)) +
             annotate("text", y=1.4, x=-1.1, hjust=0, label=lab, color="blue", parse=TRUE)
@@ -160,16 +160,14 @@ wgd_compare = function() {
     orf1 = readRDS("../model_orf/fitsWGD.rds")
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
                      orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
-        filter(gene != "LOC254896") %>%
-        mutate(`Gene class` = case_when(
-            gene %in% argos ~ "ARGOS",
-            gene %in% comp ~ "Compensated",
-            gene %in% tox ~ "Toxic",
-            TRUE ~ NA_character_
-        ))
+        filter(gene != "LOC254896") %>% make_class()
+    m = tidyr::pivot_longer(orf, c(stat_wgd, stat_eup)) %>%
+        lm(value ~ name, data=.) %>% broom::glance()
+    lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
     p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.2)) +
         geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
-        labs(title = "ORF")
+        annotate("text", y=4, x=-10, hjust=0, label=lab, color="blue", parse=TRUE) +
+        labs(title = "ORF", x="ORF dropout WGD+", y="ORF dropout WGD-")
 
     ((p1 | p2 | p3) & cm$theme_minimal()) + plot_layout(guides="collect")
 }

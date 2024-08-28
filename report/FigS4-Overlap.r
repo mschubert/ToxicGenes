@@ -145,9 +145,14 @@ wgd_compare = function() {
                 gene %in% tox ~ "Toxic",
                 TRUE ~ NA_character_
             ))
+        m = tidyr::pivot_longer(both, c(`WGD+ compensation`, `WGD- compensation`)) %>%
+            lm(value ~ name, data=.) %>% broom::glance()
+        lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
+            sub("e", "%*%10^", .)
         plt$denspt(both, aes(x=`WGD+ compensation`, y=`WGD- compensation`, alpha=0.2)) +
             geom_point(data=both[!is.na(both$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
-            xlim(-1.2,1.5) + ylim(-1.2,1.5)
+            coord_cartesian(xlim=c(-1.1,1.5), ylim=c(-1.1,1.5)) +
+            annotate("text", y=1.4, x=-1.1, hjust=0, label=lab, color="blue", parse=TRUE)
     }
     p1 = comp_comp(sprintf("../model_compensation/fit_ccle-amp/panWGD%s.rds", c("+", "-"))) + ggtitle("CCLE")
     p2 = comp_comp(sprintf("../model_compensation/fit_tcga_puradj-amp/panWGD%s.rds", c("+", "-"))) + ggtitle("TCGA")

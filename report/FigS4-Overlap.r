@@ -183,6 +183,21 @@ wgd_compare = function() {
     ((p1 | p2 | p3) & cm$theme_minimal()) + plot_layout(guides="collect")
 }
 
+tissue_compare = function() {
+    comp = cm$get_comp_tissue() %>%
+        filter(tissue != "Pan-Cancer") %>%
+        select(src, tissue, gene, compensation) %>%
+        tidyr::pivot_wider(names_from=src, values_from=compensation)
+    p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=20, draw_pt=0) +
+        xlim(-1.5,2) + ylim(-1.5,2) +
+        facet_grid(. ~ tissue)
+
+    tox = cm$get_tox()
+    p2 = plot_spacer()
+
+    (p1 / p2)
+}
+
 sys$run({
     gistic_amp = readRDS("../data/gistic_smooth.rds")$genes %>%
         filter(type == "amplification", frac > 0.15) %>%

@@ -134,37 +134,23 @@ wgd_compare = function() {
     tox = cm$get_tox()$`Pan-Cancer` %>% filter(is_toxic) %>% pull(gene)
     argos = intersect(comp, tox)
 
-    ccle1 = readRDS("../model_compensation/fit_ccle-amp/panWGD+.rds") %>%
-        mutate(compensation = (1 - p.value) * estimate)
-    ccle2 = readRDS("../model_compensation/fit_ccle-amp/panWGD-.rds") %>%
-        mutate(compensation = (1 - p.value) * estimate)
-    ccle = inner_join(ccle1 %>% select(gene, est_wgd=compensation),
-                      ccle2 %>% select(gene, est_eup=compensation)) %>%
-        mutate(`Gene class` = case_when(
-            gene %in% argos ~ "ARGOS",
-            gene %in% comp ~ "Compensated",
-            gene %in% tox ~ "Toxic",
-            TRUE ~ NA_character_
-        ))
-    p1 = plt$denspt(ccle, aes(x=est_eup, y=est_wgd, alpha=0.2)) +
-        geom_point(data=ccle[!is.na(ccle$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
-        labs(title = "CCLE")
-
-    tcga1 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD+.rds") %>%
-        mutate(compensation= (1 - p.value) * estimate)
-    tcga2 = readRDS("../model_compensation/fit_tcga_puradj-amp/panWGD-.rds") %>%
-        mutate(compensation = (1 - p.value) * estimate)
-    tcga = inner_join(tcga1 %>% select(gene, est_wgd=compensation),
-                      tcga2 %>% select(gene, est_eup=compensation)) %>%
-        mutate(`Gene class` = case_when(
-            gene %in% argos ~ "ARGOS",
-            gene %in% comp ~ "Compensated",
-            gene %in% tox ~ "Toxic",
-            TRUE ~ NA_character_
-        ))
-    p2 = plt$denspt(tcga, aes(x=est_eup, y=est_wgd, alpha=0.2)) +
-        geom_point(data=tcga[!is.na(tcga$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
-        labs(title = "TCGA")
+    comp_comp = function(dfs) {
+        df1 = readRDS(dfs[[1]]) %>% mutate(compensation = (1 - p.value) * estimate)
+        df2 = readRDS(dfs[[2]]) %>% mutate(compensation = (1 - p.value) * estimate)
+        both = inner_join(df1 %>% select(gene, `WGD+ compensation`=compensation),
+                          df2 %>% select(gene, `WGD- compensation`=compensation)) %>%
+            mutate(`Gene class` = case_when(
+                gene %in% argos ~ "ARGOS",
+                gene %in% comp ~ "Compensated",
+                gene %in% tox ~ "Toxic",
+                TRUE ~ NA_character_
+            ))
+        plt$denspt(both, aes(x=`WGD+ compensation`, y=`WGD- compensation`, alpha=0.2)) +
+            geom_point(data=both[!is.na(both$`Gene class`),], aes(color=`Gene class`), alpha=0.9) +
+            xlim(-1.2,1.5) + ylim(-1.2,1.5)
+    }
+    p1 = comp_comp(sprintf("../model_compensation/fit_ccle-amp/panWGD%s.rds", c("+", "-"))) + ggtitle("CCLE")
+    p2 = comp_comp(sprintf("../model_compensation/fit_tcga_puradj-amp/panWGD%s.rds", c("+", "-"))) + ggtitle("TCGA")
 
     orf1 = readRDS("../model_orf/fitsWGD.rds")
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),

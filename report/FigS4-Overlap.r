@@ -85,7 +85,7 @@ dens_ov = function() {
         )
     df$cond[df$Var1 == df$Var2 | df$Var1 == "Genes" | df$Var2 == "Genes"] = NA
 
-    p1 = plt$matrix(df, cor ~ Var1 + Var2, geom="tile", text_size=10) +
+    p1 = plt$matrix(df, cor ~ Var1 + Var2, geom="tile") +
         scale_fill_distiller(palette="RdBu", name=ltit, limits=c(-1,1)) +
         theme(axis.title = element_blank()) +
         coord_fixed() +
@@ -94,7 +94,7 @@ dens_ov = function() {
               axis.text.x = element_blank()) +
         ggtitle("Pairwise")
 
-    p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile", text_size=10) +
+    p2 = plt$matrix(df, cond ~ Var1 + Var2, geom="tile") +
         geom_text(aes(label=left)) +
         scale_discrete_manual("label", guide=guide_legend(title="Correlation\nexplained"),
             values=c("≥ 75%"="×", "≥ 60%"="o"), na.translate=FALSE) +
@@ -181,8 +181,16 @@ tissue_compare = function() {
         xlim(-1.5,2) + ylim(-1.5,2) +
         facet_grid(. ~ tissue)
 
-    tox = cm$get_tox()
-    p2 = plot_spacer()
+    toxf = "../model_orf/fits_naive.xlsx"
+    sheets = readxl::excel_sheets(toxf)
+    tox = lapply(sheets, readxl::read_xlsx, path=toxf) %>% setNames(sheets) %>%
+        bind_rows(.id="tissue") %>% filter(!grepl("pan", tissue)) %>%
+        select(tissue, gene=`GENE SYMBOL`, statistic)
+    comp2 = comp %>% mutate(both = (CCLE+TCGA)/2) %>% inner_join(tox)
+    p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=20, draw_pt=0) +
+        facet_grid(. ~ tissue) +
+        labs(x = "Mean compensation score CCLE/TCGA",
+             y = "ORF (Wald st.)")
 
     (p1 / p2)
 }

@@ -15,7 +15,7 @@ do_fit = function(expr, fml) {
     res = expr %>%
         select(`GENE SYMBOL`) %>%
         distinct() %>%
-        mutate(result = clustermq::Q(ffun, `GENE SYMBOL`, n_jobs=10,
+        mutate(result = clustermq::Q(ffun, `GENE SYMBOL`, n_jobs=0,
             export=list(expr=expr, fml=fml), pkgs="dplyr")) %>%
         tidyr::unnest() %>%
         filter(term == "geneTRUE") %>%
@@ -39,7 +39,7 @@ sys$run({
         pancov = do_fit(expr, as.formula(sprintf("`%s` ~ tissue + gene", args$field)))
     )
 
-    tissue = sapply(c("NB", "OV", "BRCA", "SKCM", "MB"),
+    tissue = sapply(c("NB", "OV", "BRCA", "SKCM", "MB", "LUAD", "PRAD"),
                     function(t) expr %>%
                         filter(tissue %in% t) %>%
                         do_fit(as.formula(sprintf("`%s` ~ gene", args$field))),

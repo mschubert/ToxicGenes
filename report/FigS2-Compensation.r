@@ -111,7 +111,7 @@ cna_comp = function(gistic, comp_all) {
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
         common(both$estimate.x, c(-0.3, 0.7), c(0.36, 0.55)) +
-        labs(title = "CCLE", y="Compensation scores")
+        labs(title = "CCLE", y="Compensation\nscores")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
         common(both$estimate.y, c(-0.5, 1.4), c(0.84, 1.2)) +
         labs(title = "TCGA", y="")
@@ -141,7 +141,7 @@ og_comp = function(comp) {
 
     p1 = ggplot(both, aes(x=type, y=estimate.x, fill=type)) +
         common(both$estimate.x, c(-0.3, 0.7), c(0.36, 0.55)) +
-        labs(title = "CCLE", y="Compensation scores")
+        labs(title = "CCLE", y="Compensation\nscores")
     p2 = ggplot(both, aes(x=type, y=estimate.y, fill=type)) +
         common(both$estimate.y, c(-0.5, 1.4), c(0.84, 1.2)) +
         labs(title = "TCGA", y="")

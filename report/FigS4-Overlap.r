@@ -192,7 +192,7 @@ tissue_compare = function() {
         scale_fill_continuous(type="viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         xlim(-1.5,2) + ylim(-1.5,2) +
         facet_grid(. ~ tissue) +
-        geom_label(data=m, aes(label=lab), x=-1, y=1.5, hjust=0, color="blue",
+        geom_label(data=m, aes(label=lab), x=0, y=1.7, color="blue",
                    parse=TRUE, fill="#ffffffc0", label.size=NA)
 
     toxf = "../model_orf/fits_naive.xlsx"
@@ -210,7 +210,7 @@ tissue_compare = function() {
         scale_fill_distiller(palette="PuOr", trans="log1p", breaks=c(1,5,20,100,500)) +
         xlim(-1.5,2) + ylim(-10,5) +
         facet_grid(. ~ tissue) +
-        geom_label(data=m, aes(label=lab), x=-1, y=1.5, hjust=0, color="blue",
+        geom_label(data=m, aes(label=lab), x=0, y=4, color="blue",
                    parse=TRUE, fill="#ffffffc0", label.size=NA) +
         labs(x = "Mean compensation score CCLE/TCGA",
              y = "ORF (Wald st.)")

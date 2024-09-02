@@ -186,24 +186,76 @@ rpe_comp = function() {
             comparisons=list(c("Other", "Comp.")))
 }
 
-triplosens = function() {
-    compg = cm$get_comp_genes(pan=TRUE)
-    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
-    ts$is_comp = ifelse(ts$Gene %in% compg, "Compensated", "Other")
-    wd = split(ts$pTriplo, ts$is_comp)
-    wt = wilcox.test(wd[[1]], wd[[2]])
+rpe_study = function() {
+    chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
+    lookup = c(Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
+               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
+        dplyr::rename(Gene=values, Study=ind) %>%
+        mutate(Study = lookup[as.character(Study)])
+    dset1 = readRDS("../data/rnaseq_rpe1_broad/compute_fcs.rds") %>%
+        tidyr::unnest(genes) %>%
+        inner_join(chrs) %>%
+        filter((term == "SS6" & chr == "7") |
+               (term == "SS51" & chr %in% c("7", "22")) |
+               (term == "SS111" & chr %in% c("8", "9", "18"))) %>%
+        transmute(Sample=term, Gene=label, chr=chr, LFC=log2FoldChange) %>%
+        group_by(Sample, chr) %>%
+            mutate(LFC = scale(LFC, scale=FALSE)[,1]) %>%
+        ungroup()
+    dset2 = dset1 %>% inner_join(ov, relationship="many-to-many") %>%
+        bind_rows(dset1 %>% mutate(Study = "All genes")) %>%
+        mutate(Study = factor(Study, levels=c("All genes", lookup)))
 
-    ggplot(ts, aes(x=is_comp, y=pTriplo)) +
-        geom_violin(aes(fill=is_comp), color="#00000010", alpha=0.5) +
-        scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
-        ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
-        stat_summary(fun=mean, geom="crossbar", colour="red") +
-        annotate("text", x=2.5, y=0.75, label=cm$fmt_p(wt$p.value), parse=TRUE) +
-        coord_flip(clip="off") +
-        cm$theme_minimal() +
-        theme(axis.text.y = element_blank()) +
-        labs(x = "Compensation\nstatus",
-             y = "prob. Triplosensitivity")
+    ggplot(dset2, aes(x=Study, fill=Study, y=2^LFC)) +
+        geom_boxplot(outlier.shape=NA) +
+        scale_y_log10() +
+        coord_cartesian(ylim=c(0.3, 4)) +
+        labs(y = "Fold-change on\ngained chromosomes") +
+        ggsignif::geom_signif(color="black", y_position=c(-0.01, 0.05, 0.1, 0.15),
+            test=t.test,
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+            comparisons = list(c("All genes", "Goncalves"),
+                               c("All genes", "Schukken\n(protein)"),
+                               c("All genes", "Schukken\n(gene)"),
+                               c("All genes", "ours"))) +
+        cm$theme_classic() +
+        theme(axis.text.x = element_blank())
+}
+
+triplosens = function() {
+    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx") %>%
+        select(gene=Gene, pTriplo)
+    lookup = c(Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
+               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
+        transmute(gene=values, Study=lookup[as.character(ind)])
+    dset = inner_join(ov, ts) %>%
+        bind_rows(ts %>% mutate(Study="All genes")) %>%
+        mutate(Study = factor(Study, levels=c("All genes", lookup)))
+    ggplot(dset, aes(x=Study, fill=Study, y=pTriplo)) +
+        geom_boxplot() +
+        ylab("Probability of\nTriplosensitivity") +
+        cm$theme_classic() +
+        theme(axis.text.x = element_blank())
+
+#    compg = cm$get_comp_genes(pan=TRUE)
+#    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
+#    ts$is_comp = ifelse(ts$Gene %in% compg, "Compensated", "Other")
+#    wd = split(ts$pTriplo, ts$is_comp)
+#    wt = wilcox.test(wd[[1]], wd[[2]])
+#
+#    ggplot(ts, aes(x=is_comp, y=pTriplo)) +
+#        geom_violin(aes(fill=is_comp), color="#00000010", alpha=0.5) +
+#        scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
+#        ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
+#        stat_summary(fun=mean, geom="crossbar", colour="red") +
+#        annotate("text", x=2.5, y=0.75, label=cm$fmt_p(wt$p.value), parse=TRUE) +
+#        coord_flip(clip="off") +
+#        cm$theme_minimal() +
+#        theme(axis.text.y = element_blank()) +
+#        labs(x = "Compensation\nstatus",
+#             y = "prob. Triplosensitivity")
 }
 
 venn_comp = function() {
@@ -373,7 +425,8 @@ sys$run({
         plot_layout(heights=c(1,1,1.1,2.4))
     top = ((left | right) + plot_layout(widths=c(2,1)))
 
-    mid = (tcga_mut() | rpe_comp() | triplosens()) + plot_layout(widths=c(2,3,2))
+    mid = (tcga_mut() | rpe_comp() | rpe_study() | triplosens()) +
+        plot_layout(widths=c(2,3,2,2), guides="collect")
 
     asm = (top / mid / tcga_ccle_tissue()) +
         plot_layout(heights=c(6,1,5.5)) +

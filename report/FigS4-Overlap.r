@@ -186,7 +186,7 @@ tissue_compare = function() {
         summarize(res = broom::glance(lm(TCGA ~ CCLE))) %>%
         tidyr::unnest(res) %>%
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
-    p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=20, draw_pt=0) +
+    p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=19, draw_pt=0) +
         scale_fill_continuous(type="viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_grid(. ~ tissue) +
         geom_label(data=m, aes(label=lab), x=0, y=1.7, color="blue",
@@ -203,7 +203,7 @@ tissue_compare = function() {
         summarize(res = broom::glance(lm(statistic ~ both))) %>%
         tidyr::unnest(res) %>%
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
-    p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=20, draw_pt=0) +
+    p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=19, draw_pt=0) +
         scale_fill_distiller(palette="PuOr", trans="log1p", breaks=c(1,5,20,100,500)) +
         facet_grid(. ~ tissue) +
         geom_label(data=m, aes(label=lab), x=0, y=4, color="blue",

@@ -182,6 +182,7 @@ tissue_compare = function() {
     comp = cm$get_comp_tissue() %>%
         filter(tissue != "Pan-Cancer") %>%
         select(src, tissue, gene, compensation) %>%
+        mutate(compensation = pmax(-1.5, pmin(2, compensation))) %>%
         tidyr::pivot_wider(names_from=src, values_from=compensation)
     m = tidyr::pivot_longer(comp, c(CCLE, TCGA)) %>%
         group_by(tissue) %>%
@@ -190,7 +191,6 @@ tissue_compare = function() {
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=20, draw_pt=0) +
         scale_fill_continuous(type="viridis", trans="log1p", breaks=c(1,5,20,100,500)) +
-        xlim(-1.5,2) + ylim(-1.5,2) +
         facet_grid(. ~ tissue) +
         geom_label(data=m, aes(label=lab), x=0, y=1.7, color="blue",
                    parse=TRUE, fill="#ffffffc0", label.size=NA)
@@ -199,7 +199,8 @@ tissue_compare = function() {
     sheets = readxl::excel_sheets(toxf)
     tox = lapply(sheets, readxl::read_xlsx, path=toxf) %>% setNames(sheets) %>%
         bind_rows(.id="tissue") %>% filter(!grepl("pan", tissue)) %>%
-        select(tissue, gene=`GENE SYMBOL`, statistic)
+        select(tissue, gene=`GENE SYMBOL`, statistic) %>%
+        mutate(statistic = pmax(-10, pmin(5, statistic)))
     comp2 = comp %>% mutate(both = (CCLE+TCGA)/2) %>% inner_join(tox)
     m = tidyr::pivot_longer(comp2, c(both, statistic)) %>%
         group_by(tissue) %>%
@@ -208,7 +209,6 @@ tissue_compare = function() {
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=20, draw_pt=0) +
         scale_fill_distiller(palette="PuOr", trans="log1p", breaks=c(1,5,20,100,500)) +
-        xlim(-1.5,2) + ylim(-10,5) +
         facet_grid(. ~ tissue) +
         geom_label(data=m, aes(label=lab), x=0, y=4, color="blue",
                    parse=TRUE, fill="#ffffffc0", label.size=NA) +

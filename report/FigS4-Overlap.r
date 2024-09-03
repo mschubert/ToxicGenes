@@ -147,7 +147,7 @@ wgd_compare = function() {
                           df2 %>% select(gene, `Compensation WGD-`=compensation)) %>%
         make_class()
         m = broom::glance(lm(`Compensation WGD-` ~ `Compensation WGD+`, data=both))
-        lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
+        lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>% sub("e", "%*%10^", .)
         plt$denspt(both, aes(x=`Compensation WGD+`, y=`Compensation WGD-`), alpha=0.2) +
             geom_point(data=both[!is.na(both$`Gene class`),], aes(color=`Gene class`),
                        shape=1, alpha=0.8, stroke=1) +
@@ -165,7 +165,7 @@ wgd_compare = function() {
                      orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
         filter(gene != "LOC254896") %>% make_class()
     m = broom::glance(lm(stat_eup ~ stat_wgd, data=orf))
-    lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
+    lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>% sub("e", "%*%10^", .)
     p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.2)) +
         geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`),
                    shape=1, alpha=0.8, stroke=1) +

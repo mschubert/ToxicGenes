@@ -35,9 +35,9 @@ sys$run({
         mutate(`LFC DMSO/ETP` = `LFC DMSO/ETP` + runif(nrow(.)) * 0.01)
 
     `WGD+` = c("BT474", "D458", "Kuramochi", "NB69", "SK-BR-3", "OVSAHO", "T47D", "WM266-4")
-    `WGD-` = c("Meljuso", "TC32")
-    # NA: D283, LnCaP, OVCAR4
-    # not in data: BE2C, H2077, LAN-1, SK-NEP-1
+    `WGD-` = c("Meljuso", "TC32", # bona fide WGD-
+               "D283", "LnCaP", "OVCAR4", # NA value for WGD
+               "BE2C", "H2077", "LAN-1", "SK-NEP-1") # not in data
 
     result = list(
         `panWGD+` = do_fit(expr[expr$cells %in% `WGD+`,], `LFC DMSO/ETP` ~ gene),

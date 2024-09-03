@@ -111,19 +111,19 @@ dens_ov = function() {
 tox_implied = function() {
     dset = readRDS("../misc/reviewer1/compensation.rds")$genes
     dset$type = forcats::fct_recode(dset$type, `Schukken (gene)`="Schukken_Gene",
-                                    `Schukken (protein)`="Schukken_Protein")
+        `Schukken (protein)`="Schukken_Protein", `ours`="Ours")
     ggplot(dset, aes(x=type, y=stat_orf, fill=type)) +
-        geom_boxplot(outlier.shape=NA, alpha=0.7) +
-        ggsignif::geom_signif(y_position=c(3.2, 4.4, 5.5, 6.6), color="black", test=t.test,
-            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
+        geom_boxplot(outlier.shape=NA, alpha=0.9) +
+        ggsignif::geom_signif(y_position=c(3.2, 4.4, 5.5, 6.6), color="black",
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0, test=t.test,
             comparisons=list(c("All genes", "Goncalves"),
                              c("All genes", "Schukken (gene)"),
                              c("All genes", "Schukken (protein)"),
-                             c("All genes", "Ours"))) +
+                             c("All genes", "ours"))) +
         coord_cartesian(ylim=c(-7.5, 9), clip="off") +
+        scale_fill_manual(values=setNames(cm$col_study, sub("\n", " ", names(cm$col_study)))) +
         labs(fill = "Study", x = "Study", y = "Δ ORF (Wald statistic)") +
-    #    scale_fill_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")]) +
-        theme_classic() +
+        cm$theme_classic() +
         theme(axis.text.x = element_blank()) +
         geom_hline(yintercept=median(dset$stat_orf[dset$type=="All genes"], na.rm=TRUE),
                    linetype="dashed", color="black")

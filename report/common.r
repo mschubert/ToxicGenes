@@ -83,6 +83,11 @@ cols = c(
     "ORF dropout"="#f7974e",
     "Comp+ORF"="#E35740"
 )
+col_study = c(
+    `All genes` = "#c1c1c1", ours = "#7f7fff", Goncalves = "#ffff7f",
+    `Schukken\n(gene)` = "#7fff7f", `Schukken\n(protein)` = "#ff7f7f",
+    Other = "#c1c1c1", Comp. = "#7f7fff"
+)
 
 fmt_p = function(p, sig=2) {
     lab = sprintf(paste0("italic(P)~`=`~%.", sig, "g"), p)

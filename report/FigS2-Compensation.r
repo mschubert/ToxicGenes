@@ -167,17 +167,16 @@ rpe_comp = function() {
             mutate(LFC = scale(LFC, scale=FALSE)[,1]) %>%
         ungroup()
 
-    ggplot(dset, aes(x=status, y=2^LFC, color=status)) +
-        geom_boxplot(aes(fill=status), outlier.shape=NA, alpha=0.3) +
-        ggbeeswarm::geom_quasirandom(data=dset[dset$status == "Comp.",], dodge.width=0.8, aes(alpha=status)) +
+    ggplot(dset, aes(x=status, y=2^LFC, fill=status)) +
+        geom_boxplot(color="#40404055", outlier.shape=NA) +
+        ggbeeswarm::geom_quasirandom(data=dset[dset$status == "Comp.",],
+            shape=21, color="black", alpha=0.9, dodge.width=0.8) +
         scale_y_log10() +
         facet_wrap(~ Sample) +
         coord_cartesian(ylim=c(0.5, 2)) +
         labs(x = "Isogenic RPE-1 clones",
              y = "Fold-change on\ngained chromosomes") +
-        scale_color_manual(values=c(cm$cols[c("Other", "Comp.")]), name="Genes") +
-        scale_fill_manual(values=c(cm$cols[c("Other", "Comp.")]), name="Genes") +
-        scale_alpha_manual(values=c(Background=0.1, Compensated=0.6), guide="none") +
+        scale_fill_manual(values=cm$col_study, guide="none") +
         cm$theme_minimal() +
         theme(axis.text.x = element_blank()) +
         ggsignif::geom_signif(color="black", y_position=-0.15,
@@ -188,8 +187,8 @@ rpe_comp = function() {
 
 rpe_study = function() {
     chrs = seq$gene_table() %>% select(label=external_gene_name, chr=chromosome_name) %>% distinct()
-    lookup = c(Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
-               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    lookup = c(all="All genes", ours="ours", Goncalves="Goncalves",
+               `Schukken\nprotein`="Schukken\n(protein)", `Schukken gene`="Schukken\n(gene)")
     ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
         dplyr::rename(Gene=values, Study=ind) %>%
         mutate(Study = lookup[as.character(Study)])
@@ -205,19 +204,20 @@ rpe_study = function() {
         ungroup()
     dset2 = dset1 %>% inner_join(ov, relationship="many-to-many") %>%
         bind_rows(dset1 %>% mutate(Study = "All genes")) %>%
-        mutate(Study = factor(Study, levels=c("All genes", lookup)))
+        mutate(group = ifelse(grepl("Gonc|Schukk", Study), "prev", Study),
+               Study = factor(Study, levels=lookup))
 
-    ggplot(dset2, aes(x=Study, fill=Study, y=2^LFC)) +
+    ggplot(dset2, aes(x=group, fill=Study, y=2^LFC)) +
         geom_boxplot(outlier.shape=NA) +
         scale_y_log10() +
-        coord_cartesian(ylim=c(0.3, 4)) +
-        labs(y = "Fold-change on\ngained chromosomes") +
-        ggsignif::geom_signif(color="black", y_position=c(-0.01, 0.05, 0.1, 0.15),
-            test=t.test,
-            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons = list(c("All genes", "Goncalves"),
-                               c("All genes", "Schukken\n(protein)"),
-                               c("All genes", "Schukken\n(gene)"),
+        scale_fill_manual(values=cm$col_study) +
+        coord_cartesian(ylim=c(0.3, 4), clip="off") +
+        labs(x = "Study",
+             y = "Fold-change on\ngained chromosomes") +
+        ggsignif::geom_signif(color="black", y_position=c(0.48, 0.12, 0.28),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0, test=t.test,
+            comparisons = list(c("All genes", "prev"),
+                               c("prev", "ours"),
                                c("All genes", "ours"))) +
         cm$theme_classic() +
         theme(axis.text.x = element_blank())
@@ -226,18 +226,28 @@ rpe_study = function() {
 triplosens = function() {
     ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx") %>%
         select(gene=Gene, pTriplo)
-    lookup = c(Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
-               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    lookup = c(all="All genes", ours="ours", Goncalves="Goncalves",
+               `Schukken\nprotein`="Schukken\n(protein)", `Schukken gene`="Schukken\n(gene)")
     ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
         transmute(gene=values, Study=lookup[as.character(ind)])
     dset = inner_join(ov, ts) %>%
         bind_rows(ts %>% mutate(Study="All genes")) %>%
-        mutate(Study = factor(Study, levels=c("All genes", lookup)))
-    ggplot(dset, aes(x=Study, fill=Study, y=pTriplo)) +
+        mutate(group = ifelse(grepl("Gonc|Schukk", Study), "prev", Study),
+               Study = factor(Study, levels=lookup))
+    ggplot(dset, aes(x=group, fill=Study, y=pTriplo)) +
         geom_boxplot() +
-        ylab("Probability of\nTriplosensitivity") +
+        labs(x = "Study",
+             y = "Probability of\nTriplosensitivity") +
+        scale_y_continuous(breaks=c(0, 0.5, 1)) +
+        scale_fill_manual(values=cm$col_study) +
+        coord_cartesian(ylim=c(0,1.15), clip="off") +
         cm$theme_classic() +
-        theme(axis.text.x = element_blank())
+        theme(axis.text.x = element_blank()) +
+        ggsignif::geom_signif(color="black", y_position=c(1.4, 1.03, 1.19),
+            map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0, test=t.test,
+            comparisons = list(c("All genes", "prev"),
+                               c("prev", "ours"),
+                               c("All genes", "ours")))
 
 #    compg = cm$get_comp_genes(pan=TRUE)
 #    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
@@ -269,29 +279,30 @@ venn_comp = function() {
 }
 
 tcga_mut = function() {
-    lookup = c(all="All genes", Goncalves="Goncalves", `Schukken\nprotein`="Schukken\n(protein)",
-               `Schukken gene`="Schukken\n(gene)", ours="ours")
+    lookup = c(all="All genes", ours="ours", Goncalves="Goncalves",
+               `Schukken\nprotein`="Schukken\n(protein)", `Schukken gene`="Schukken\n(gene)")
     ov = stack(readRDS("../misc/reviewer1/compensation.rds")$overlap) %>%
         dplyr::rename(gene=values, coll=ind)
     freqs = readRDS("../misc/reviewer3/mut_enrich.rds") %>% select(-class)
     freqs2 = left_join(freqs, ov %>% bind_rows(data.frame(gene=freqs$gene, coll="all"))) %>%
-        mutate(coll = factor(lookup[coll], levels=lookup))
+        mutate(group = ifelse(grepl("Gonc|Schukk", coll), "prev", coll),
+               coll = factor(lookup[coll], levels=lookup))
 
-    ggplot(freqs2, aes(x=coll, fill=coll, y=freq)) +
+    ggplot(freqs2, aes(x=group, fill=coll, y=freq)) +
         geom_boxplot(outlier.shape=NA) +
         scale_y_log10() +
-        ggsignif::geom_signif(color="black", y_position=c(-1,-0.2,0.6,1.4), test=t.test,
+        scale_fill_manual(values=cm$col_study) +
+        ggsignif::geom_signif(color="black", y_position=c(-0.6,-1.25,-0.97), test=t.test,
             map_signif_level=cm$fmt_p, parse=TRUE, tip_length=0,
-            comparisons = list(c("All genes", "Goncalves"),
-                               c("All genes", "Schukken\n(protein)"),
-                               c("All genes", "Schukken\n(gene)"),
-                               c("All genes", "ours"))) +
+            comparisons = list(c("all", "prev"),
+                               c("prev", "ours"),
+                               c("all", "ours"))) +
         labs(x = "Study",
              y = "TCGA mutation\nfrequency",
              fill = "Study") +
         cm$theme_classic() +
         theme(axis.text.x = element_blank()) +
-        coord_cartesian(ylim=c(1e-3, 10), clip="off")
+        coord_cartesian(ylim=c(1e-3, 0.1), clip="off")
 }
 
 rrm_pld = function() {

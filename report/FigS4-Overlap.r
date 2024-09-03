@@ -146,14 +146,13 @@ wgd_compare = function() {
         both = inner_join(df1 %>% select(gene, `Compensation WGD+`=compensation),
                           df2 %>% select(gene, `Compensation WGD-`=compensation)) %>%
         make_class()
-        m = tidyr::pivot_longer(both, c(`Compensation WGD+`, `Compensation WGD-`)) %>%
-            lm(value ~ name, data=.) %>% broom::glance()
+        m = broom::glance(lm(`Compensation WGD-` ~ `Compensation WGD+`, data=both))
         lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
         plt$denspt(both, aes(x=`Compensation WGD+`, y=`Compensation WGD-`), alpha=0.2) +
             geom_point(data=both[!is.na(both$`Gene class`),], aes(color=`Gene class`),
                        shape=1, alpha=0.8, stroke=1) +
             coord_cartesian(xlim=c(-1.1,1.5), ylim=c(-1.1,1.5)) +
-            annotate("text", y=1.4, x=-1.1, hjust=0, label=lab, color="blue", parse=TRUE) +
+            annotate("text", y=1.4, x=-0.8, hjust=0, label=lab, color="blue", parse=TRUE) +
             guides(alpha = "none")
     }
     p1 = comp_comp(sprintf("../model_compensation/fit_ccle-amp/panWGD%s.rds", c("+", "-"))) +
@@ -165,13 +164,12 @@ wgd_compare = function() {
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
                      orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
         filter(gene != "LOC254896") %>% make_class()
-    m = tidyr::pivot_longer(orf, c(stat_wgd, stat_eup)) %>%
-        lm(value ~ name, data=.) %>% broom::glance()
+    m = broom::glance(lm(stat_eup ~ stat_wgd, data=orf))
     lab = sprintf("italic(P)~`=`~%.2g", m$p.value) %>% sub("e", "%*%10^", .)
     p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.2)) +
         geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`),
                    shape=1, alpha=0.8, stroke=1) +
-        annotate("text", y=4, x=-10, hjust=0, label=lab, color="blue", parse=TRUE) +
+        annotate("text", y=3.2, x=-17, hjust=0, label=lab, color="blue", parse=TRUE) +
         labs(title = "ORF", x="ORF dropout WGD+", y="ORF dropout WGD-") +
         guides(alpha = "none", fill="none")
 
@@ -184,9 +182,8 @@ tissue_compare = function() {
         select(src, tissue, gene, compensation) %>%
         mutate(compensation = pmax(-1.5, pmin(2, compensation))) %>%
         tidyr::pivot_wider(names_from=src, values_from=compensation)
-    m = tidyr::pivot_longer(comp, c(CCLE, TCGA)) %>%
-        group_by(tissue) %>%
-        summarize(res = broom::glance(lm(value ~ name))) %>%
+    m = comp %>% group_by(tissue) %>%
+        summarize(res = broom::glance(lm(TCGA ~ CCLE))) %>%
         tidyr::unnest(res) %>%
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p1 = plt$denspt(comp, aes(x=CCLE, y=TCGA), n_tile=20, draw_pt=0) +
@@ -202,9 +199,8 @@ tissue_compare = function() {
         select(tissue, gene=`GENE SYMBOL`, statistic) %>%
         mutate(statistic = pmax(-10, pmin(5, statistic)))
     comp2 = comp %>% mutate(both = (CCLE+TCGA)/2) %>% inner_join(tox)
-    m = tidyr::pivot_longer(comp2, c(both, statistic)) %>%
-        group_by(tissue) %>%
-        summarize(res = broom::glance(lm(value ~ name))) %>%
+    m = comp2 %>% group_by(tissue) %>%
+        summarize(res = broom::glance(lm(statistic ~ both))) %>%
         tidyr::unnest(res) %>%
         mutate(lab = sprintf("italic(P)~`=`~%.2g", p.value) %>% sub("e", "%*%10^", .))
     p2 = plt$denspt(comp2, aes(x=both, y=statistic), n_tile=20, draw_pt=0) +

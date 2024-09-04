@@ -145,7 +145,7 @@ wgd_compare = function() {
         df2 = readRDS(dfs[[2]]) %>% mutate(compensation = (1 - p.value) * estimate)
         both = inner_join(df1 %>% select(gene, `Compensation WGD+`=compensation),
                           df2 %>% select(gene, `Compensation WGD-`=compensation)) %>%
-        make_class()
+        mutate(label = ifelse(gene %in% c("CDKN1A", "RBM14"), gene, NA)) %>% make_class()
         m = broom::glance(lm(`Compensation WGD-` ~ `Compensation WGD+`, data=both))
         lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>% sub("e", "%*%10^", .)
         plt$denspt(both, aes(x=`Compensation WGD+`, y=`Compensation WGD-`), alpha=0.2) +
@@ -153,6 +153,8 @@ wgd_compare = function() {
                        shape=1, alpha=0.8, stroke=1) +
             coord_cartesian(xlim=c(-1.1,1.5), ylim=c(-1.1,1.5)) +
             annotate("text", y=1.4, x=-0.8, hjust=0, label=lab, color="blue", parse=TRUE) +
+#            ggrepel::geom_label_repel(aes(label=label, color=`Gene class`), segment.alpha=0.3,
+#                fill="#ffffffc0", box.padding=unit(0.1, "lines"), label.size=NA) +
             guides(alpha = "none")
     }
     p1 = comp_comp(sprintf("../model_compensation/fit_ccle-amp/panWGD%s.rds", c("+", "-"))) +
@@ -163,13 +165,16 @@ wgd_compare = function() {
     orf1 = readRDS("../model_orf/fitsWGD.rds")
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
                      orf1$`panWGD-` %>% select(gene=`GENE SYMBOL`, stat_eup=statistic)) %>%
-        filter(gene != "LOC254896") %>% make_class()
+        filter(gene != "LOC254896") %>% make_class() %>%
+        mutate(label = ifelse(gene %in% c("CDKN1A", "RBM14"), gene, NA))
     m = broom::glance(lm(stat_eup ~ stat_wgd, data=orf))
     lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>% sub("e", "%*%10^", .)
-    p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.2)) +
+    p3 = plt$denspt(orf, aes(x=stat_eup, y=stat_wgd, alpha=0.8)) +
         geom_point(data=orf[!is.na(orf$`Gene class`),], aes(color=`Gene class`),
                    shape=1, alpha=0.8, stroke=1) +
         annotate("text", y=3.2, x=-17, hjust=0, label=lab, color="blue", parse=TRUE) +
+#        ggrepel::geom_label_repel(aes(label=label, color=`Gene class`), segment.alpha=0.3,
+#            fill="#ffffffc0", box.padding=unit(0.1, "lines"), label.size=NA) +
         labs(title = "ORF", x="ORF dropout WGD+", y="ORF dropout WGD-") +
         guides(alpha = "none", fill="none")
 

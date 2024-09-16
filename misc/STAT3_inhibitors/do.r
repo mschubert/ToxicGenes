@@ -48,6 +48,7 @@ ggplot(dset2, aes(x=oex, fill=oex, y=value)) +
     coord_cartesian(ylim=c(0.5, 1.55)) +
     scale_fill_brewer(palette="Set1") +
     labs(x = "Gene overexpressed",
+         y = "Viability at 1 uM drug\nvs. untreated",
          shape = "Drug",
          fill = "Gene\noverexpressed") +
     cm$theme_minimal()

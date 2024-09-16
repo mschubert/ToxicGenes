@@ -34,12 +34,13 @@ dset2 = dset |>
     mutate(value = value / value[conc == "0uM"]) |>
     filter(conc == "1uM")
 
-pdf("Rplots.pdf", 6, 3)
+pdf("Rplots.pdf", 7, 5)
 ggplot(dset2, aes(x=oex, fill=oex, y=value)) +
+    geom_hline(yintercept=1, linetype="dashed", color="black") +
     geom_boxplot(alpha=0.7) +
     geom_line(aes(group=paste(sample, drug, IR), linetype=IR), alpha=0.15) +
-    ggbeeswarm::geom_quasirandom(aes(shape=drug), width=0.2, alpha=0.9) +
-    facet_grid(. ~ cell_line) +
+    ggbeeswarm::geom_quasirandom(aes(shape=IR), width=0.2, alpha=0.9) +
+    facet_grid(drug ~ cell_line) +
     ggsignif::geom_signif(y_position=1.45, color="black", tip_length=0,
         test=function(...) t.test(..., paired=TRUE),
         map_signif_level=cm$fmt_p, parse=TRUE,
@@ -48,8 +49,8 @@ ggplot(dset2, aes(x=oex, fill=oex, y=value)) +
     coord_cartesian(ylim=c(0.5, 1.55)) +
     scale_fill_brewer(palette="Set1") +
     labs(x = "Gene overexpressed",
-         y = "Viability at 1 uM drug\nvs. untreated",
-         shape = "Drug",
+         y = "Relative viability 1 uM drug vs. DMSO",
+         shape = "IR",
          fill = "Gene\noverexpressed") +
     cm$theme_minimal()
 dev.off()

@@ -1,5 +1,7 @@
+library(modules)
 library(dplyr)
 library(ggplot2)
+cm = import('../../report/common')
 
 parse_tables = function(sheet, range_index, range_values) {
     idx = readxl::read_xlsx(fname, sheet, range=range_index) |>
@@ -26,3 +28,27 @@ dset = sapply(sheets, load_sheet, simplify=FALSE) |>
     bind_rows(.id="sample") |>
     mutate(cell_line = sub("([^ ]+) ([0-9]+)", "\\1", sample),
            rep = sub("([^ ]+) ([0-9]+)", "\\2", sample))
+
+dset2 = dset |>
+    group_by(cell_line, drug, oex, IR) |>
+    mutate(value = value / value[conc == "0uM"]) |>
+    filter(conc == "1uM")
+
+pdf("Rplots.pdf", 6, 3)
+ggplot(dset2, aes(x=oex, fill=oex, y=value)) +
+    geom_boxplot(alpha=0.7) +
+    geom_line(aes(group=paste(sample, drug, IR), linetype=IR), alpha=0.15) +
+    ggbeeswarm::geom_quasirandom(aes(shape=drug), width=0.2, alpha=0.9) +
+    facet_grid(. ~ cell_line) +
+    ggsignif::geom_signif(y_position=1.45, color="black", tip_length=0,
+        test=function(...) t.test(..., paired=TRUE),
+        map_signif_level=cm$fmt_p, parse=TRUE,
+        comparisons=list(c("Luc", "RBM14"))) +
+    scale_shape_manual(values=c(21,22)) +
+    coord_cartesian(ylim=c(0.5, 1.55)) +
+    scale_fill_brewer(palette="Set1") +
+    labs(x = "Gene overexpressed",
+         shape = "Drug",
+         fill = "Gene\noverexpressed") +
+    cm$theme_minimal()
+dev.off()

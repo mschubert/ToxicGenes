@@ -20,27 +20,29 @@ sys$run({
     cols = c(neither="#00bfc4", CCND1="#f8766d", CCND1_RBM14="#7cae00")
 
     p2 = ggplot(both, aes(x=tcn_CCND1, y=tpm_CCND1)) +
-        geom_point(aes(fill=group), position=position_jitter(width=0.2), shape=21, alpha=0.8) +
+        geom_point(aes(fill=group), position=position_jitter(width=0.1), shape=21, alpha=0.8) +
         scale_fill_manual(values=cols, na.translate=FALSE) +
-        geom_smooth(method="lm") +
+        geom_smooth(method="lm", se=FALSE) +
         xlim(0,6) + ylim(0, 650) +
         labs(x = "Copy number CCND1",
-             y = "Gene expression CCND1 (tpm)") +
+             y = "Gene expression CCND1 (tpm)",
+             fill = "Amplification") +
         cm$theme_minimal()
 
     p3 = ggplot(both, aes(x=tcn_RBM14, y=tpm_RBM14)) +
-        geom_point(aes(fill=group), position=position_jitter(width=0.2), shape=21, alpha=0.8) +
+        geom_point(aes(fill=group), position=position_jitter(width=0.1), shape=21, alpha=0.8) +
         scale_fill_manual(values=cols, na.translate=FALSE) +
-        geom_smooth(method="lm") +
+        geom_smooth(method="lm", se=FALSE) +
         xlim(0,6) + ylim(0,180) +
         labs(x = "Copy number RBM14",
-             y = "Gene expression RBM14 (tpm)") +
+             y = "Gene expression RBM14 (tpm)",
+             fill = "Amplification") +
         cm$theme_minimal()
 
-    asm = ((plot_spacer() + p2 + p3 + (p$plot + guides(color=FALSE))) & cm$text_sizes()) +
-        plot_annotation(tag_levels='a') + plot_layout(ncol=2, nrow=2, guides="collect")
+    asm = ((p2 + p3 + (p$plot + guides(color=FALSE))) & cm$text_sizes()) +
+        plot_annotation(tag_levels='a') + plot_layout(ncol=3, nrow=1, guides="collect")
 
-    pdf("Fig7-Clinical.pdf", 10, 8)
+    pdf("Fig7-Clinical.pdf", 14, 4)
     print(asm)
     dev.off()
 })

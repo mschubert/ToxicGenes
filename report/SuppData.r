@@ -59,6 +59,9 @@ tcga = list.files("../model_compensation/fit_tcga_puradj-amp", recursive=TRUE, f
     setNames(tools::file_path_sans_ext(basename(.))) %>% lapply(load_comp) %>%
     lapply(. %>% mutate(eup_reads=round(eup_reads), stroma_reads=round(stroma_reads)))
 names(tcga)[names(tcga) == "pan"] = "Pan-Cancer"
+# below: recover std.error from previous run where we haven't saved it, rerun is comp. expensive
+tcga$`Pan-Cancer` = tcga$`Pan-Cancer` |> select(-n_genes) |> mutate(std.error = round(estimate/z_comp,3)) |>
+    select(gene, estimate, std.error, everything())
 
 pan = readxl::read_xlsx("../model_orf/fits_naive.xlsx", sheet="pan")
 cline = sapply(readxl::excel_sheets("../model_orf/fits_per_screen.xlsx"), readxl::read_xlsx,

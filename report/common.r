@@ -48,7 +48,7 @@ get_comp_tissue = function() {
     bind_rows(ccle, tcga) %>%
         group_by(tissue, gene) %>%
             filter(all(c("CCLE", "TCGA") %in% src)) %>%
-            mutate(is_common = all(is_comp)) %>%
+            mutate(is_common = all(type == "Compensated")) %>%
         ungroup() %>%
         mutate(tissue = factor(tissue) %>% relevel("Pan-Cancer"))
 }
@@ -71,6 +71,20 @@ get_argos = function(pan=FALSE) {
     comp = get_comp_genes(pan)
     tox = get_tox()$`Pan-Cancer` %>% filter(is_toxic)
     intersect(comp, tox$gene)
+}
+
+get_pancan_summary = function() {
+    ccle = readxl::read_xlsx("SuppData1_CCLE-comp.xlsx", sheet="Pan-Cancer") |>
+        transmute(gene, comp_ccle=compensation, type_ccle=type)
+    tcga = readxl::read_xlsx("SuppData2_TCGA-comp.xlsx", sheet="Pan-Cancer") |>
+        transmute(gene, comp_tcga=compensation, type_tcga=type)
+    orf = readxl::read_xlsx("SuppData4_ORF-toxicity.xlsx", sheet="Pan-Cancer") |>
+        transmute(gene, est_orf=estimate, stat_orf=statistic, is_tox=is_toxic)
+    inner_join(ccle, tcga) |>
+        mutate(type = ifelse(type_ccle == type_tcga, type_ccle, "Background"),
+               is_comp = type == "Compensated") |>
+        left_join(orf) |>
+        mutate(is_argos = is_comp & is_tox)
 }
 
 cols = c(

@@ -201,15 +201,13 @@ complex_plot = function(dset, hits) {
                               (p.value < 0.1 & avg_orf < -4), set_name, NA))
 
     # names too long for nice alignment
-    res$label[grepl("CPSF6|Cleavage|CDC5L|p130|SIN3B", res$label)] = NA
+    res$label[grepl("CPSF6|CDC5L|p130|SIN3B", res$label)] = NA
     res$label = sub("components-", "", res$label)
-    res$p.value[res$label == "Large Drosha complex"] = 1e-9 # 1e-13
 
     res2 = res %>%
         mutate(label = sub("(.*)", "`\\1`", label),
                label = ifelse(is.na(label) | !has_hit, label,
                               sprintf("%s^{%s}", label, hit_str)))
-    res2$label[res2$label == "`Large Drosha complex`"] = "`Large Drosha complex (`~italic(P)<10^{-10}~`)`"
     fdr = mean(c(res2$p.value[res$adj.p>0.2][1], rev(res2$p.value[res$adj.p<0.2])[1]))
 
     membs = corum[[grep("HEXIM1-DNA-PK", names(corum))]]
@@ -240,7 +238,7 @@ complex_plot = function(dset, hits) {
               legend.text = element_text(size=10),
               strip.text.x = element_text(size=10),
               plot.background = element_rect(color="#e5e5e5", fill="#fdfdfd")) +
-        scale_x_continuous(breaks=c(-0.5, -5)) +
+        scale_x_continuous(breaks=c(-0.5, -10)) +
         xlab("   Compensation (score) / ORF dropout (Wald)") +
         scale_fill_brewer(palette="Dark2", name="", direction=-1,
             guide=guide_legend(override.aes=list(shape=NA))) +
@@ -271,10 +269,10 @@ complex_plot = function(dset, hits) {
              fill = "Contains\nARGOS\ngene")
 
     assocs +
-        annotate("curve", x=-1.8, y=1.5e-5, xend=-2.15, yend=4e-6, color="black",
+        annotate("curve", x=-1.8, y=8e-8, xend=-2.2, yend=8e-9, color="black",
                  curvature=-0.4, lineend="round", linejoin="round",
                  arrow=arrow(type="closed", length=unit(2.5,"mm"))) +
-        inset_element(detail, 0.54, 0.57, 1, 0.84)
+        inset_element(detail, 0.65, 0.61, 1.13, 0.9)
 }
 
 sys$run({

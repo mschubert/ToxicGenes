@@ -32,13 +32,13 @@ get_cosmic_annot = function() {
 
 get_comp_tissue = function() {
     cfg = yaml::read_yaml(module_file("../config.yaml"))
-    fname = module_file("TableS1_CCLE-comp.xlsx")
+    fname = module_file("SuppData1_CCLE-comp.xlsx")
     ccle = readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")
-    fname = module_file("TableS2_TCGA-comp.xlsx")
+    fname = module_file("SuppData2_TCGA-comp.xlsx")
     tcga = readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
@@ -54,7 +54,7 @@ get_comp_tissue = function() {
 }
 
 get_tox = function() {
-    fname = module_file("TableS3_ORF-toxicity.xlsx")
+    fname = module_file("SuppData4_ORF-toxicity.xlsx")
     readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE)

@@ -5,14 +5,11 @@ sys = import('sys')
 plt = import('plot')
 cm = import('./common')
 
-comp_orf = function(all, gistic_amp) {
-    dset = left_join(all %>% dplyr::rename(gene_name=gene), gistic_amp) %>%
-        mutate(type = case_when(
-                   est_tcga < -0.3 & est_ccle < -0.3 ~ "Compensated",
-                   est_tcga > 0.3 & est_ccle > 0.3 ~ "Hyperactivated",
-                   TRUE ~ "Background"
-               ),
-               est_ccle_tcga = (est_ccle + est_tcga)/2,
+comp_orf = function(gistic_amp) {
+    dset = cm$get_pancan_summary() |>
+        dplyr::rename(gene_name = gene) |>
+        inner_join(gistic_amp) |>
+        mutate(est_ccle_tcga = (comp_ccle + comp_tcga)/2,
                dropout = stat_orf < -5,
                label = ifelse((type != "Background" & abs(stat_orf) > 4) | stat_orf > 6 |
                               stat_orf < -15 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
@@ -21,7 +18,7 @@ comp_orf = function(all, gistic_amp) {
     lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
 
-    ggplot(dset, aes(x=(est_ccle+est_tcga)/2, y=stat_orf)) +
+    ggplot(dset, aes(x=est_ccle_tcga, y=stat_orf)) +
         geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_point(aes(color=type, alpha=dropout)) +
@@ -140,9 +137,9 @@ wgd_compare = function() {
         gene %in% tox ~ "Toxic",
         TRUE ~ NA_character_
     ))
-    comp_comp = function(dfs) {
-        df1 = readRDS(dfs[[1]]) %>% mutate(compensation = (1 - p.value) * estimate)
-        df2 = readRDS(dfs[[2]]) %>% mutate(compensation = (1 - p.value) * estimate)
+    comp_comp = function(path) {
+        df1 = readxl::read_xlsx(path, sheet="panWGD+")
+        df2 = readxl::read_xlsx(path, sheet="panWGD-")
         both = inner_join(df1 %>% select(gene, `Compensation WGD+`=compensation),
                           df2 %>% select(gene, `Compensation WGD-`=compensation)) %>%
         mutate(label = ifelse(gene %in% c("CDKN1A", "RBM14"), gene, NA)) %>% make_class()
@@ -157,10 +154,8 @@ wgd_compare = function() {
 #                fill="#ffffffc0", box.padding=unit(0.1, "lines"), label.size=NA) +
             guides(alpha = "none")
     }
-    p1 = comp_comp(sprintf("../model_compensation/fit_ccle-amp/panWGD%s.rds", c("+", "-"))) +
-        ggtitle("CCLE") + guides(fill="none")
-    p2 = comp_comp(sprintf("../model_compensation/fit_tcga_puradj-amp/panWGD%s.rds", c("+", "-"))) +
-        ggtitle("TCGA")
+    p1 = comp_comp("SuppData1_CCLE-comp.xlsx") + ggtitle("CCLE") + guides(fill="none")
+    p2 = comp_comp("SuppData2_TCGA-comp.xlsx") + ggtitle("TCGA")
 
     orf1 = readRDS("../model_orf/fitsWGD.rds")
     orf = inner_join(orf1$`panWGD+` %>% select(gene=`GENE SYMBOL`, stat_wgd=statistic),
@@ -183,7 +178,7 @@ wgd_compare = function() {
 
 tissue_compare = function() {
     comp = cm$get_comp_tissue() %>%
-        filter(tissue != "Pan-Cancer") %>%
+        filter(!grepl("[pP]an", tissue)) %>%
         select(src, tissue, gene, compensation) %>%
         mutate(compensation = pmax(-1.5, pmin(2, compensation))) %>%
         tidyr::pivot_wider(names_from=src, values_from=compensation)
@@ -224,9 +219,8 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
     cosmic = cm$get_cosmic_annot()
-    all = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv")
 
-    top = (wrap_plots(dens_ov()) | comp_orf(all, gistic_amp) | tox_implied()) +
+    top = (wrap_plots(dens_ov()) | comp_orf(gistic_amp) | tox_implied()) +
         plot_layout(widths=c(0.75,2,1.2))
     mid = wgd_compare()
     btm = tissue_compare()

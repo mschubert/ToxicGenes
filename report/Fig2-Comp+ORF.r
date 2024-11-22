@@ -28,8 +28,7 @@ tcga_ccle_cor = function(both, gistic_amp, cosmic) {
         plot_layout(tag_level="new")
 
     both$group = with(both, case_when(
-        estimate.x < -0.3 & estimate.y < -0.3 ~ "Compensated",
-        estimate.x > 0.3 & estimate.y > 0.3 ~ "Hyperactivated",
+        type.x == type.y ~ type.x,
         TRUE ~ "Background"
     ))
     both$pdist = with(both, sqrt(pmin(0.9,estimate.x)^2 + pmin(0.9,estimate.y)^2))
@@ -93,7 +92,7 @@ orf_volc = function(orfdata) {
 comp_ov = function() {
     dset = cm$get_comp_tissue() %>%
         group_by(gene, src) %>%
-        summarize(comp = list(c(na.omit(tissue[is_comp])))) %>%
+        summarize(comp = list(c(na.omit(tissue[type == "Compensated"])))) %>%
         tidyr::unnest(comp)
 
     count_ov = function(ds, excl=c()) {

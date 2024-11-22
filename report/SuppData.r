@@ -75,6 +75,12 @@ orf = c(`Pan-Cancer`=list(pan), cline) %>% lapply(proc_tox)
 #tcga = left_join(tcga, common)
 #ccle = left_join(ccle, common)
 
+fnames = c("ORF_DMSO_2019-02.txt", "ORF_DMSO-ETP_2019-07.xlsx", "20101003_ORF-size-plasmid.txt")
+fpath = file.path("../data/orf/", fnames)
+orfdata = list(readr::read_tsv(fpath[1]), readxl::read_xlsx(fpath[2]), readr::read_tsv(fpath[3])[1:7]) |>
+    setNames(tools::file_path_sans_ext(fnames))
+
+writexl::write_xlsx(orfdata, "SuppData1_ORFscreens.xlsx")
 writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 2: CCLE compensation"),
                       ccle[c("Pan-Cancer", sort(setdiff(names(ccle), "Pan-Cancer")))]),
                     "SuppData2_CCLE-comp.xlsx")

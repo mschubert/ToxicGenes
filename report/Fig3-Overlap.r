@@ -244,7 +244,7 @@ complex_plot = function(dset, hits) {
         xlab("   Compensation (score) / ORF dropout (Wald)") +
         scale_fill_brewer(palette="Dark2", name="", direction=-1,
             guide=guide_legend(override.aes=list(shape=NA))) +
-        scale_shape_manual(values=c("No data"=4), name="") +
+        scale_shape_manual(values=c("No data"=4), name="", na.translate=FALSE) +
         plot_layout(tag_level="new")
 
     assocs = ggplot(res2, aes(x=avg_orf, y=p.value)) +

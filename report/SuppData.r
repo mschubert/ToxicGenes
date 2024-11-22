@@ -77,8 +77,14 @@ orf = c(`Pan-Cancer`=list(pan), cline) %>% lapply(proc_tox)
 
 fnames = c("ORF_DMSO_2019-02.txt", "ORF_DMSO-ETP_2019-07.xlsx", "20101003_ORF-size-plasmid.txt")
 fpath = file.path("../data/orf/", fnames)
-orfdata = list(readr::read_tsv(fpath[1]), readxl::read_xlsx(fpath[2]), readr::read_tsv(fpath[3])[1:7]) |>
+orfdata = list(readr::read_tsv(fpath[1]), readxl::read_xlsx(fpath[2]), readr::read_tsv(fpath[3])) |>
     setNames(tools::file_path_sans_ext(fnames))
+libinfo = orfdata[[3]][9:10] |> filter(!(is.na(...9) & is.na(...10))) |>
+    rename(lib=...9, cells=...10) |>
+    tidyr::fill(lib, cells, .direction="down") |> filter(!is.na(cells))
+libinfo$cells[9] = "ORF-T47D" # remove invalid character
+orfdata$`Libraries` = libinfo
+orfdata[[3]] = orfdata[[3]][1:7]
 
 writexl::write_xlsx(orfdata, "SuppData1_ORFscreens.xlsx")
 writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 2: CCLE compensation"),

@@ -4,7 +4,8 @@ load_comp = function(fname) {
     dset = readRDS(fname) %>%
         mutate(compensation = (1 - p.value) * estimate,
                is_comp = compensation < -0.3) %>%
-        mutate_if(is.numeric, \(x) round(x, 3))
+        mutate(across(where(is.numeric) & !matches("p.value|adj.p"), ~ round(.x, 3)),
+               across(matches("p.value|adj.p"), ~ sprintf("%.3g", .)))
 }
 
 proc_tox = function(dset) {
@@ -12,7 +13,8 @@ proc_tox = function(dset) {
         dplyr::rename(gene = `GENE SYMBOL`) %>%
         filter(gene != "LOC254896") %>%
         mutate(is_toxic = p.value < 1e-5 & estimate < log2(0.7)) %>%
-        mutate_if(is.numeric, \(x) round(x, 3))
+        mutate(across(where(is.numeric) & !matches("p.value|adj.p"), ~ round(.x, 3)),
+               across(matches("p.value|adj.p"), ~ sprintf("%.3g", .)))
 }
 
 make_desc_comp = function(name) {
@@ -36,7 +38,7 @@ make_desc_comp = function(name) {
 
 make_desc_orf = function() {
     list(description=tibble::tribble(
-        ~ "Supplementary Table 3: ORF Toxicity", ~ "",
+        ~ "Supplementary Data 4: ORF Toxicity", ~ "",
         "", "",
         "gene", "HGNC gene symbol",
         "estimate", "The estimate of the linear regression model",
@@ -73,10 +75,10 @@ orf = c(`Pan-Cancer`=list(pan), cline) %>% lapply(proc_tox)
 #tcga = left_join(tcga, common)
 #ccle = left_join(ccle, common)
 
-writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Table 1: CCLE compensation"),
+writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 2: CCLE compensation"),
                       ccle[c("Pan-Cancer", sort(setdiff(names(ccle), "Pan-Cancer")))]),
-                    "TableS1_CCLE-comp.xlsx")
-writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Table 2: TCGA compensation"),
+                    "SuppData2_CCLE-comp.xlsx")
+writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 3: TCGA compensation"),
                       tcga[c("Pan-Cancer", sort(setdiff(names(tcga), "Pan-Cancer")))]),
-                    "TableS2_TCGA-comp.xlsx")
-writexl::write_xlsx(c(make_desc_orf(), orf), "TableS3_ORF-toxicity.xlsx")
+                    "SuppData3_TCGA-comp.xlsx")
+writexl::write_xlsx(c(make_desc_orf(), orf), "SuppData4_ORF-toxicity.xlsx")

@@ -3,7 +3,12 @@ library(dplyr)
 load_comp = function(fname) {
     dset = readRDS(fname) %>%
         mutate(compensation = (1 - p.value) * estimate,
-               is_comp = compensation < -0.3) %>%
+            type = case_when(
+                compensation < -0.3 & adj.p <= 0.2 ~ "Compensated",
+                compensation > 0.3 & adj.p <= 0.2 ~ "Hyperactivated",
+                TRUE ~ NA_character_
+            )
+        ) %>%
         mutate(across(where(is.numeric) & !matches("p.value|adj.p"), ~ round(.x, 3)),
                across(matches("p.value|adj.p"), ~ sprintf("%.3g", .)))
 }

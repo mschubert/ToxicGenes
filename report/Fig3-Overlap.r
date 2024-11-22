@@ -15,10 +15,9 @@ along_genome = function(dset, gistic, chrs=1:22) {
 
     cosmic = cm$get_cosmic_annot() %>% select(-tier, -hallmark) %>% filter(type != "OG+TSG")
     genes = gistic$genes %>% select(gene_name) %>% distinct() %>% mutate(type="Genes")
-
-    comp = tibble(type="Compensated", gene_name=dset$gene[dset$est_ccle < -0.3 & dset$est_tcga < -0.3])
-    hyp = tibble(type="Hyperactivated", gene_name=dset$gene[dset$est_ccle > 0.3 & dset$est_tcga > 0.3])
-    orf = tibble(type="ORF dropout", gene_name=dset$gene[dset$is_orf_hit])
+    comp = dset %>% filter(type == "Compensated") %>% select(type, gene_name=gene)
+    hyp = dset %>% filter(type == "Hyperactivated") %>% select(type, gene_name=gene)
+    orf = dset %>% filter(is_tox) %>% transmute(type="ORF dropout", gene_name=gene)
 
     labs = gistic$genes %>%
         filter(type == "amplification",
@@ -129,12 +128,8 @@ along_genome = function(dset, gistic, chrs=1:22) {
 
 comp_hyp_box = function(dset) {
     ds = dset %>%
-        mutate(type = case_when(
-            est_ccle < -0.3 & est_tcga < -0.3 ~ "Compensated",
-            est_ccle > 0.3 & est_tcga > 0.3 ~ "Hyperactivated",
-            TRUE ~ "Background"
-        )) %>%
-        mutate(type = factor(type, levels=c("Background", "Compensated", "Hyperactivated")))
+        mutate(type = ifelse(is.na(type), "Background", type),
+               type = factor(type, levels=c("Background", "Compensated", "Hyperactivated")))
 
     ggplot(ds, aes(x=type, y=stat_orf, fill=type)) +
         geom_boxplot(outlier.shape=NA, alpha=0.7) +
@@ -151,9 +146,9 @@ comp_hyp_box = function(dset) {
 }
 
 overlap_venn = function(dset, gistic_amp) {
-    ov = list(CCLE = unique(with(dset, gene[est_ccle < -0.3])),
-              TCGA = unique(with(dset, gene[est_tcga < -0.3])),
-              ORF = unique(with(dset, gene[is_orf_hit])))
+    ov = list(CCLE = dset %>% filter(type_ccle == "Compensated") %>% pull(gene) %>% unique(),
+              TCGA = dset %>% filter(type_tcga == "Compensated") %>% pull(gene) %>% unique(),
+              ORF = dset %>% filter(is_tox) %>% pull(gene) %>% unique())
     all3 = Reduce(intersect, ov)
     all3 = ifelse(all3 %in% gistic_amp$gene, paste("▲", all3), all3)
     plt$venn(ov, alpha=0.4) +
@@ -164,10 +159,10 @@ overlap_venn = function(dset, gistic_amp) {
         coord_fixed(clip="off")
 }
 
-test_fet = function(set, corum, dset, hits) {
+test_fet = function(set, corum, dset, comp, argos) {
     mat = matrix(nrow=2, c(
-        length(intersect(corum[[set]], dset$gene[dset$hit])),
-        length(dset$gene[dset$hit]),
+        length(intersect(corum[[set]], comp)),
+        length(comp),
         length(corum[[set]]),
         length(dset$gene)
     ))
@@ -175,7 +170,7 @@ test_fet = function(set, corum, dset, hits) {
     broom::tidy(fisher.test(mat)) %>%
         mutate(n = length(corum[[set]]),
                avg_orf = mean(dset$stat_orf[dset$gene %in% corum[[set]]], na.rm=TRUE),
-               hit_str = paste(sprintf("bold(`%s`)", intersect(hits, corum[[set]])), collapse=", "),
+               hit_str = paste(sprintf("bold(`%s`)", intersect(argos, corum[[set]])), collapse=", "),
                has_hit = hit_str != "")
 }
 
@@ -195,7 +190,9 @@ complex_plot = function(dset, hits) {
     corum = gset$get_human("CORUM_all") %>%
         gset$filter(min=3, valid=dset$gene)
 
-    res = sapply(names(corum), test_fet, simplify=FALSE, corum=corum, dset=dset, hits=hits) %>%
+    comp = dset %>% filter(is_comp) %>% pull(gene)
+    argos = dset %>% filter(is_argos) %>% pull(gene)
+    res = sapply(names(corum), test_fet, simplify=FALSE, corum=corum, dset=dset, comp=comp, argos=argos) %>%
         bind_rows(.id="set_name") %>%
         select(-method, -alternative) %>%
         mutate(adj.p = p.adjust(p.value, method="fdr")) %>%
@@ -219,7 +216,7 @@ complex_plot = function(dset, hits) {
     gobp = gset$get_human("GO_Biological_Process_2021") %>% gset$filter(valid=membs)
     nhej = gobp[[grep("GO:0006303", names(gobp))]]
     ds2 = dset %>% filter(gene %in% membs) %>%
-        select(gene, CCLE=est_ccle, TCGA=est_tcga, ORF=stat_orf) %>%
+        select(gene, CCLE=comp_ccle, TCGA=comp_tcga, ORF=stat_orf) %>%
         mutate(gene = forcats::fct_reorder(gene, TCGA, .desc=TRUE)) %>%
         tidyr::gather("type", "value", -gene) %>%
         mutate(missing = ifelse(is.na(value), "No data", NA),
@@ -285,14 +282,12 @@ sys$run({
     gistic_amp = gistic$genes %>%
         filter(type == "amplification", frac > 0.15) %>%
         select(gene=gene_name, frac)
-    dset = readr::read_tsv("../cor_tcga_ccle/positive_comp_set.tsv") %>%
-        left_join(gistic_amp) %>%
-        mutate(is_orf_hit = stat_orf < -5 & est_orf < log2(0.7) & !is.na(stat_orf))
+    dset = cm$get_pancan_summary() %>% left_join(gistic_amp)
 
     top = along_genome(dset, gistic)
     boxes = wrap_elements(comp_hyp_box(dset))
     ov = wrap_elements(overlap_venn(dset, gistic_amp) + theme(plot.margin = unit(c(0,-15,-10,0), "mm")))
-    cplx = complex_plot(dset, dset$gene[dset$hit & dset$is_orf_hit])
+    cplx = complex_plot(dset)
 
     asm = (wrap_plots(top) /
         ((((boxes / ov) + plot_layout(heights=c(1,1.5))) | cplx) +

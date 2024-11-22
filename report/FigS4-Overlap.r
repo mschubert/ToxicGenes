@@ -9,7 +9,8 @@ comp_orf = function(gistic_amp) {
     dset = cm$get_pancan_summary() |>
         dplyr::rename(gene_name = gene) |>
         inner_join(gistic_amp) |>
-        mutate(est_ccle_tcga = (comp_ccle + comp_tcga)/2,
+        mutate(type = ifelse(is.na(type), "Background", type),
+               est_ccle_tcga = (comp_ccle + comp_tcga)/2,
                dropout = stat_orf < -5,
                label = ifelse((type != "Background" & abs(stat_orf) > 4) | stat_orf > 6 |
                               stat_orf < -15 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
@@ -23,12 +24,13 @@ comp_orf = function(gistic_amp) {
         geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
         geom_point(aes(color=type, alpha=dropout)) +
         geom_smooth(method="lm", se=FALSE) +
-        ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
-            box.padding=unit(0.1, "lines"), min.segment.length=0,
-            segment.alpha=0.3, fill="#ffffff50", label.size=NA) +
         scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")], name="Compensation\nclass") +
         scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.3), na.translate=FALSE, name="Toxic gene") +
-        annotate("text", y=10, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
+        ggnewscale::new_scale("alpha") +
+        ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
+            box.padding=unit(0.1, "lines"), min.segment.length=0,
+            segment.alpha=0.3, fill="#ffffffa0", label.size=NA) +
+        annotate("text", y=6, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
         cm$theme_classic() +
         coord_cartesian(clip="off") +
         labs(x = "Mean compensation score CCLE/TCGA",

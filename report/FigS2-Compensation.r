@@ -248,24 +248,6 @@ triplosens = function() {
             comparisons = list(c("All genes", "prev"),
                                c("prev", "ours"),
                                c("All genes", "ours")))
-
-#    compg = cm$get_comp_genes(pan=TRUE)
-#    ts = readxl::read_xlsx("../misc/triplosensitive_compare/1-s2.0-S0092867422007887-mmc7.xlsx")
-#    ts$is_comp = ifelse(ts$Gene %in% compg, "Compensated", "Other")
-#    wd = split(ts$pTriplo, ts$is_comp)
-#    wt = wilcox.test(wd[[1]], wd[[2]])
-#
-#    ggplot(ts, aes(x=is_comp, y=pTriplo)) +
-#        geom_violin(aes(fill=is_comp), color="#00000010", alpha=0.5) +
-#        scale_fill_manual(values=cm$cols[c("Compensated", "Other")], name="Genes") +
-#        ggbeeswarm::geom_quasirandom(data=ts[ts$is_comp=="Compensated",], alpha=0.5) +
-#        stat_summary(fun=mean, geom="crossbar", colour="red") +
-#        annotate("text", x=2.5, y=0.75, label=cm$fmt_p(wt$p.value), parse=TRUE) +
-#        coord_flip(clip="off") +
-#        cm$theme_minimal() +
-#        theme(axis.text.y = element_blank()) +
-#        labs(x = "Compensation\nstatus",
-#             y = "prob. Triplosensitivity")
 }
 
 venn_comp = function() {
@@ -338,7 +320,7 @@ rrm_pld = function() {
 
 tcga_ccle_tissue = function() {
     dset = cm$get_comp_tissue() %>%
-        mutate(s = ifelse(is_comp, 1, 0.7))
+        mutate(s = ifelse(!is.na(type) & type == "Compensated", 1, 0.7))
 
     res = bind_rows(dset, dset %>% mutate(src = "Common")) %>%
         mutate(src = factor(src, levels=c("Common", "CCLE", "TCGA"))) %>%
@@ -421,9 +403,9 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
-    ccle = readxl::read_xlsx("TableS1_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
+    ccle = readxl::read_xlsx("SuppData1_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
-    tcga3 = readxl::read_xlsx("TableS2_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
+    tcga3 = readxl::read_xlsx("SuppData2_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
     comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%

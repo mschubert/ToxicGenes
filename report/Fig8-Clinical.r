@@ -42,7 +42,7 @@ sys$run({
     asm = ((p2 + p3 + (p$plot + guides(color=FALSE))) & cm$text_sizes()) +
         plot_annotation(tag_levels='a') + plot_layout(ncol=3, nrow=1, guides="collect")
 
-    pdf("Fig7-Clinical.pdf", 14, 4)
+    pdf("Fig8-Clinical.pdf", 14, 4)
     print(asm)
     dev.off()
 })

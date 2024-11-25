@@ -49,6 +49,11 @@ luc_vs_rbm_1uM = function(dset) {
         cm$theme_minimal()
 }
 
+scalar = function(x) {
+    if (length(x) != 1) stop("not scalar")
+    x
+}
+
 fname = "RBM14 data（calculation）Normalize to Luciferase.xlsx"
 sheets = readxl::excel_sheets(fname) |> setdiff("Sum up")
 dset = sapply(sheets, load_sheet, simplify=FALSE) |>
@@ -57,12 +62,12 @@ dset = sapply(sheets, load_sheet, simplify=FALSE) |>
            conc = factor(conc, levels=c("0uM", "0.1uM", "1uM", "10uM")),
            rep = sub("([^ ]+) ([0-9]+)", "\\2", sample)) |>
     group_by(sample, drug, IR) |>
-        mutate(value = value / mean(value[conc == "0uM" & oex == "Luc"])) |>
+        mutate(value = value / scalar(value[conc == "0uM" & oex == "Luc"])) |>
     ungroup()
 
 dset2 = dset |>
     group_by(sample, drug, oex, IR) |>
-        mutate(value = value / mean(value[conc == "0uM"])) |>
+        mutate(value = value / scalar(value[conc == "0uM"])) |>
     ungroup()
 
 # 0 uM in HCC70 is unreliable, plate effect?
@@ -73,7 +78,7 @@ dset3 = dset |>
         TRUE ~ conc
     )) |>
     group_by(sample, drug, oex, IR) |>
-        mutate(value = value / mean(value[conc == "0uM"])) |>
+        mutate(value = value / scalar(value[conc == "0uM"])) |>
     ungroup()
 
 pdf("Rplots.pdf", 7, 5)

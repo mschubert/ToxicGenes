@@ -15,12 +15,12 @@ sys$run({
 
     m2 = survfit(Surv(Overall.survival.days, Vital.Status) ~ group, data=both)
     m2
-    p = survminer::ggsurvplot(m2, data=both)
+    p = survminer::ggsurvplot(m2, data=both, xlab="Overall survival (days)", ggtheme=cm$theme_classic())
 
     cols = c(neither="#00bfc4", CCND1="#f8766d", CCND1_RBM14="#7cae00")
 
     p2 = ggplot(both, aes(x=tcn_CCND1, y=tpm_CCND1)) +
-        geom_point(aes(fill=group), position=position_jitter(width=0.1), shape=21, alpha=0.8) +
+        geom_point(aes(fill=group), position=position_jitter(width=0.1), size=2, shape=21, alpha=0.8) +
         scale_fill_manual(values=cols, na.translate=FALSE) +
         geom_smooth(method="lm", se=FALSE) +
         xlim(0,6) + ylim(0, 650) +
@@ -30,7 +30,7 @@ sys$run({
         cm$theme_minimal()
 
     p3 = ggplot(both, aes(x=tcn_RBM14, y=tpm_RBM14)) +
-        geom_point(aes(fill=group), position=position_jitter(width=0.1), shape=21, alpha=0.8) +
+        geom_point(aes(fill=group), position=position_jitter(width=0.1), size=2, shape=21, alpha=0.8) +
         scale_fill_manual(values=cols, na.translate=FALSE) +
         geom_smooth(method="lm", se=FALSE) +
         xlim(0,6) + ylim(0,180) +

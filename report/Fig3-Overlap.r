@@ -250,7 +250,7 @@ complex_plot = function(dset, hits) {
         geom_rect(ymin=-Inf, ymax=Inf, xmin=-1, xmax=1, fill="#FAF4CD10") +
         geom_vline(xintercept=0, linetype="dashed", size=2, color="grey") +
         geom_hline(yintercept=fdr, linetype="dashed", color="black") +
-        annotate("text", y=fdr, x=-5.25, vjust=-1, hjust=0, label="20% FDR", size=3.5) +
+        annotate("text", y=fdr, x=-4.3, vjust=-1, hjust=0, label="20% FDR", size=3.5) +
         geom_point(data=res %>% filter(!has_hit), aes(size=n, fill=has_hit), shape=21) +
         geom_point(data=res %>% filter(has_hit), aes(size=n, fill=has_hit), shape=21) +
         ggrepel::geom_label_repel(aes(label=label), max.overlaps=12, segment.alpha=0.3,
@@ -259,7 +259,7 @@ complex_plot = function(dset, hits) {
         scale_fill_manual(values=c(`FALSE`="grey", `TRUE`=cm$cols[["Comp+ORF"]])) +
         guides(fill = guide_legend(override.aes=list(size=3))) +
         scale_size_binned_area(max_size=10) +
-        scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10) +
+        scale_y_continuous(trans=.reverselog_trans(10), labels=.scientific_10, breaks=10^-c(1,3,5,7,9,11,13)) +
         xlim(c(max(res$avg_orf[res$p.value<0.2], na.rm=TRUE),
                min(res$avg_orf[res$p.value<0.2], na.rm=TRUE))) +
         cm$theme_classic() +

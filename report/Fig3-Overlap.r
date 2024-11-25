@@ -201,7 +201,7 @@ complex_plot = function(dset, hits) {
                               (p.value < 0.1 & avg_orf < -4), set_name, NA))
 
     # names too long for nice alignment
-    res$label[grepl("CPSF6|CDC5L|p130|SIN3B", res$label)] = NA
+    res$label[grepl("CPSF6|CDC5L|p130|SIN3B|hs4|CDC2|CTCF|CDK4", res$label)] = NA
     res$label = sub("components-", "", res$label)
 
     res2 = res %>%

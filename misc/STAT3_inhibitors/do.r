@@ -81,6 +81,8 @@ dset3 = dset |>
         mutate(value = value / scalar(value[conc == "0uM"])) |>
     ungroup()
 
+writexl::write_xlsx(dset3, "7c_source_data.xlsx")
+
 pdf("Rplots.pdf", 7, 5)
 print(resp_curves(dset) + ggtitle("Viability normalized to sample + Luc"))
 print(resp_curves(dset2) + ggtitle("Viability normalized to sample + treatment"))

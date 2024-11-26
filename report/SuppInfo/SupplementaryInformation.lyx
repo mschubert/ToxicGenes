@@ -1,0 +1,1584 @@
+#LyX 2.4 created this file. For more info see https://www.lyx.org/
+\lyxformat 620
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+\usepackage{authblk}
+\usepackage[labelfont=bf]{caption}
+\usepackage{hyperref}
+\usepackage{attachfile}
+\usepackage{caption}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+\hypersetup{
+  colorlinks   = true, %Colours links instead of ugly boxes
+  urlcolor     = blue, %Colour for external hyperlinks
+  linkcolor    = blue, %Colour of internal links
+  citecolor   = red %Colour of citations
+}
+
+\renewcommand\Affilfont{\small\raggedright}
+
+\author[1,2,3,4,5,*]{Veronica Rendo}
+\author[6,7,8,9,*]{Michael Schubert}
+\author[1,2,4]{Nicholas Khuu}
+\author[7]{Maria F. Suarez Peredo Rodriguez}
+\author[7]{Declan Whyte}
+\author[7]{Xiao Ling}
+\author[7]{Anouk van den Brink}
+\author[4,10]{Kaimeng Huang}
+\author[10]{Michelle Swift}
+\author[4,10]{Yizhou He}
+\author[11]{Johanna Zerbib}
+\author[5]{Ross Smith}
+\author[6]{Jonne Raaijmakers}
+\author[3,4,12]{Pratiti Bandopadhayay}
+\author[13]{Lillian M. Guenther}
+\author[14]{Justin H. Hwang}
+\author[15]{Amanda Iniguez}
+\author[1,3,4]{Susan Moody}
+\author[1]{Ji-Heui Seo}
+\author[1,3,4]{Elizabeth H. Stover}
+\author[1,4]{Levi Garraway}
+\author[1,3,4]{William C. Hahn}
+\author[3,4,12]{Kimberly Stegmaier}
+\author[6]{René H. Medema}
+\author[4,10]{Dipanjan Chowdhury}
+\author[8,16]{Maria Colomé-Tatché}
+\author[11,†]{Uri Ben-David}
+\author[1,2,3,4,†]{Rameen Beroukhim}
+\author[7,†]{Floris Foijer}
+
+\affil[1]{Department of Medical Oncology and Center for Neuro-Oncology, Dana-Farber Cancer Institute, Boston, MA, USA}
+\affil[2]{Department of Cancer Biology, Dana-Farber Cancer Institute, Boston, MA, USA}
+\affil[3]{Harvard Medical School, Boston, MA, USA}
+\affil[4]{Broad Institute of Harvard and MIT, Cambridge, MA, USA}
+\affil[5]{Department of Immunology, Genetics and Pathology, Uppsala University, Uppsala, Sweden}
+\affil[6]{Oncode Institute, Division of Cell Biology, The Netherlands Cancer Institute, Amsterdam, Netherlands}
+\affil[7]{European Research Institute for the Biology of Ageing, University Medical Center Groningen, Groningen, Netherlands}
+\affil[8]{Institute of Computational Biology, Helmholtz Munich, Neuherberg, Germany}
+\affil[9]{Institute of Bioinformatics, Medical University of Innsbruck, Innsbruck, Austria}
+\affil[10]{Department of Radiation Oncology, Dana-Farber Cancer Institute, Boston, MA, USA}
+\affil[11]{Department of Human Molecular Genetics \& Biochemistry, Faculty of Medicine, Tel Aviv University, Tel Aviv, Israel}
+\affil[12]{Department of Pediatrics, Dana-Farber Cancer Institute, Boston, MA, USA}
+\affil[13]{St. Jude Children’s Research Hospital, Department of Oncology, Memphis, TN, USA}
+\affil[14]{Division of Hematology, Oncology, and Transplantation, University of Minnesota, Minneapolis, MN, USA}
+\affil[15]{Department of Cancer Biology, Perelman School of Medicine at the University of Pennsylvania, Philadelphia, PA, USA}
+\affil[16]{Biomedical Center (BMC), Physiological Chemistry, Ludwig Maximilians University, Munich, Germany}
+
+\date{}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children no
+\language american
+\language_package default
+\inputencoding utf8
+\fontencoding auto
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_roman_osf false
+\font_sans_osf false
+\font_typewriter_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement H
+\float_alignment class
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize a4
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_formatted_ref 0
+\use_minted 0
+\use_lineno 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 1.5cm
+\topmargin 2cm
+\rightmargin 1.5cm
+\bottommargin 2cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tablestyle default
+\tracking_changes false
+\output_changes false
+\change_bars false
+\postpone_fragile_content true
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\docbook_table_output 0
+\docbook_mathml_prefix 1
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Supplementary Information for 
+\begin_inset Quotes eld
+\end_inset
+
+A compendium of Amplification-Related Gain Of Sensitivity (ARGOS) genes in human cancer
+\begin_inset Quotes erd
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+noindent{* These authors contributed equally to this work and are listed alphabetically} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+{† These authors jointly supervised this work and are listed alphabetically} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+
+\backslash
+ 
+\backslash
+
+\backslash
+ 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+textbf{To whom correspondence should be addressed:}
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Veronica Rendo:
+ 
+\backslash
+href{mailto:veronica.rendo@igp.uu.se}{veronica.rendo@igp.uu.se}
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Michael Schubert:
+ 
+\backslash
+href{mailto:m.schubert@nki.nl}{m.schubert@nki.nl} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Uri Ben-David:
+ 
+\backslash
+href{mailto:ubendavid@tauex.tau.ac.il}{ubendavid@tauex.tau.ac.il} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Rameen Beroukhim:
+ 
+\backslash
+href{mailto:rameen
+\backslash
+_beroukhim@dfci.harvard.edu}{rameen
+\backslash
+_beroukhim@dfci.harvard.edu} 
+\backslash
+
+\backslash
+
+\end_layout
+
+\begin_layout Plain Layout
+
+Floris Foijer:
+ 
+\backslash
+href{mailto:f.foijer@umcg.nl}{f.foijer@umcg.nl}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Supplementary Data
+\end_layout
+
+\begin_layout Standard
+All Supplementary Data are provided as separate files.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Data 1:
+ CCLE gene expression compensation
+\end_layout
+
+\begin_layout Standard
+Results of the Negative Binomial gene expression compensation using CCLE data.
+ Different CCLE cancer types in sheets,
+ 
+\emph on
+Pan-Cancer
+\emph default
+ refers to the inclusion of all cancer types,
+ 
+\emph on
+panWGD+
+\emph default
+ and 
+\emph on
+panWGD-
+\emph default
+ to their respective genome doubling subset.
+ The column 
+\emph on
+estimate
+\emph default
+ is the mean,
+ 
+\emph on
+std.error
+\emph default
+ the standard deviation of the posterior,
+ relative to 
+\emph on
+eup_reads
+\emph default
+.
+ The normalized read count assigned to the scaling term is called 
+\emph on
+eup_reads
+\emph default
+.
+ The 
+\emph on
+z-score
+\emph default
+ is the number of standard deviations of the posterior from the origin,
+ which serves as a basis for 
+\emph on
+p-value
+\emph default
+ calculation,
+ where 
+\emph on
+adj.p
+\emph default
+ is corrected by False Discovery Rate.
+ The final 
+\emph on
+compensation
+\emph default
+ column is the shrunk estimate.
+ 
+\emph on
+Rhat
+\emph default
+ and 
+\emph on
+n_eff
+\emph default
+ are the identically named convergence measures.
+ The column 
+\emph on
+type
+\emph default
+ refers to whether this gene passed our cutoffs to be 
+\emph on
+Compensated
+\emph default
+ or 
+\emph on
+Hyperactivated
+\emph default
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Data 2:
+ TCGA gene expression compensation
+\end_layout
+
+\begin_layout Standard
+Results of the Negative Binomial gene expression compensation using TCGA data.
+ Different TCGA cancer types in sheets,
+ 
+\emph on
+Pan-Cancer
+\emph default
+ refers to the inclusion of all cancer types,
+ 
+\emph on
+panWGD+
+\emph default
+ and 
+\emph on
+panWGD-
+\emph default
+ to their respective genome doubling subset.
+ The column 
+\emph on
+estimate
+\emph default
+ is the mean,
+ 
+\emph on
+std.error
+\emph default
+ the standard deviation of the posterior,
+ relative to 
+\emph on
+eup_reads
+\emph default
+.
+ The normalized read count assigned to the scaling term is called 
+\emph on
+eup_reads
+\emph default
+,
+ to non-cancer cells 
+\emph on
+stroma_reads
+\emph default
+.
+ The 
+\emph on
+z-score
+\emph default
+ is the number of standard deviations of the posterior from the origin,
+ which serves as a basis for 
+\emph on
+p-value
+\emph default
+ calculation,
+ where 
+\emph on
+adj.p
+\emph default
+ is corrected by False Discovery Rate.
+ The final 
+\emph on
+compensation
+\emph default
+ column is the shrunk estimate.
+ 
+\emph on
+Rhat
+\emph default
+ and 
+\emph on
+n_eff
+\emph default
+ are the identically named convergence measures.
+ The column 
+\emph on
+type
+\emph default
+ refers to whether this gene passed our cutoffs to be 
+\emph on
+Compensated
+\emph default
+ or 
+\emph on
+Hyperactivated
+\emph default
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Data 3:
+ Assembled ORF screen data
+\end_layout
+
+\begin_layout Standard
+Source data of the different ORF screens incorporated in this study.
+ The first two sheets are each a collection of screen results,
+ where their columns refer to the cell line used and weather this is an early time point (ETP),
+ late time point (DMSO),
+ or the change between (LFC).
+ Plasmid sizes are listed in sheet 3,
+ and which cell line belongs to which library in sheet 4.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Data 4:
+ ORF toxicity associations
+\end_layout
+
+\begin_layout Standard
+Results of the linear regression model for all ORF screens (
+\emph on
+Pan-Cancer
+\emph default
+) or each individual cell line.
+ The columns 
+\emph on
+estimate
+\emph default
+,
+ 
+\emph on
+std.error
+\emph default
+,
+ 
+\emph on
+statistic
+\emph default
+ and 
+\emph on
+p.value
+\emph default
+ are default output from a linear regression model in R,
+ with 
+\emph on
+adj.p
+\emph default
+ added for False Discovery Rate correction of p-values.
+ The column 
+\emph on
+size
+\emph default
+ refers to how many ORFs were included for that gene,
+ 
+\emph on
+is_toxic
+\emph default
+ whether this gene passed our thresholds.
+\end_layout
+
+\begin_layout Section*
+Supplementary Figures
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/FigS1-OG_TSG.pdf
+	lyxscale 50
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+Landscape of copy number alterations.
+ (a)
+\series default
+ Frequency of amplifications and deletions in the TCGA with COSMIC driver status highlighted.
+ 
+\series bold
+(b)
+\series default
+ OGs are more frequently amplified,
+ less frequently deleted and TSGs the opposite,
+ 
+\series bold
+(c)
+\series default
+ however most of the cancer genome is frequently amplified or deleted,
+ and 
+\series bold
+(d)
+\series default
+ most amplifications and deletions are not OGs or TSGs.
+ Boxes show median ± quartile,
+ whiskers 1.5x inter-quartile range.
+ 
+\emph on
+P
+\emph default
+-values from two-sided 
+\emph on
+t
+\emph default
+-tests.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+vspace*{
+\backslash
+fill}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+(next page) Compensation analysis.
+ (a)
+\series default
+ Modeling the TCGA scaling and deviation produced the highest correlation with CCLE when modeling non-cancer cells per tissue (right).
+ 
+\series bold
+(b)
+\series default
+ Gene ontology enrichment of gene deregulation using a linear regression model and the Wald statistic for TCGA (x axis) and CCLE (y axis) shows commonly compensated (negative values) and hyperactivated (positive values) categories.
+ 
+\series bold
+(c)
+\series default
+ Frequently amplified and deleted genes,
+ as well as 
+\series bold
+(d)
+\series default
+ OGs and TSGs are not preferentially compensated.
+ 
+\series bold
+(e)
+\series default
+ Odds ratio of gene class presence within compensated genes.
+ Horizontal lines are 95% confidence intervals.
+ 
+\series bold
+(f)
+\series default
+ Overlap between our compensated genes and previous studies.
+ 
+\series bold
+(g)
+\series default
+ TCGA mutation rates of compensated genes of different studies.
+ 
+\series bold
+(h-i)
+\series default
+ Identified compensated genes are also expressed less than expected in RPE-1 clones.
+ Fold changes were calculated over the parental RPE-1 line and then normalized per amplified chromosome.
+ 
+\series bold
+(j)
+\series default
+ Overlap between compensated genes and genes previously identified as disease-causing when amplified (Wilcox test).
+ 
+\series bold
+(k)
+\series default
+ Compensation scores of common and dataset-specific genes (horizontal panels) in their respective datasets (vertical panels),
+ as well as 
+\series bold
+(l)
+\series default
+ enrichment of genes found in three or more analyses (Fisher’s Exact Test).
+ Compensated genes in (k) are shown in larger squares relative to those not passing our threshold criteria.
+ Boxes show median ± quartile,
+ whiskers 1.5x inter-quartile range.
+ 
+\emph on
+P
+\emph default
+-values from a linear regression model (a,
+ b) two-sided 
+\emph on
+t
+\emph default
+-tests (c,
+ d,
+ g,
+ i,
+ j),
+ one-sided 
+\emph on
+t
+\emph default
+-tests (h) and Fisher’s Exact Tests (e,
+ l).
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+ContinuedFloat
+\end_layout
+
+\end_inset
+
+
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/FigS2-Compensation.pdf
+	lyxscale 50
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/FigS3-ORFscreen.pdf
+	lyxscale 50
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+ORF screen analysis.
+ (a)
+\series default
+ Overview of the expression (x axis) and dropout levels (y axis) for all screens with two genes of interest highlighted.
+ Most genes are represented by two ORFs in the library.
+ 
+\series bold
+(b)
+\series default
+ Both OGs and TSGs dropped out preferentially in the ORF screens over other genes.
+ 
+\series bold
+(c)
+\series default
+ We observed no differential ORF dropout of frequently amplified or deleted genes.
+ 
+\series bold
+(d)
+\series default
+ Volcano plot of Gene Ontology categories that are preferentially enriched (green,
+ positive values) or drop out (red,
+ negative values) across ORF screens.
+ Boxes show median ± quartile,
+ whiskers 1.5x inter-quartile range.
+ 
+\emph on
+P
+\emph default
+-values from two-sided 
+\emph on
+t
+\emph default
+-tests.
+ 
+\series bold
+(e)
+\series default
+ Pearson correlation of log fold-changes across screens shows values of 0.4 to 0.6,
+ with three less correlated screens.
+ We did not observe a trend where more similar tissues showed a higher correlation and hence quantified viability difference common to all screens using a linear regression model.
+ 
+\series bold
+(f)
+\series default
+ Gene dropout (
+\emph on
+log2
+\emph default
+ fold changes) in the pan-cancer,
+ as well as in cell-line specific analyses.
+ Genes common to four or more ORF screens are shown,
+ with hits passing our thresholds indicated in larger square size.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/FigS4-Overlap.pdf
+	lyxscale 50
+	scale 50
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+Characterization of compensation and ORF overlap.
+ (a)
+\series default
+ Pearson correlation of the gene densities in Fig.
+ 3a (top) and adjusted for gene densities (bottom) shows that gene density along the genome explains most of the observed correlations.
+ 
+\series bold
+(b)
+\series default
+ Compensation vs.
+ ORF dropout plot with genes in the respective compensation categories highlighted.
+ 
+\series bold
+(c)
+\series default
+ ORF dropout for compensated gene sets from different studies (
+\emph on
+t
+\emph default
+ test).
+ 
+\series bold
+(d-f)
+\series default
+ Comparison of compensation scores in CCLE (d) and TCGA (e),
+ as well as ORF toxicity (f) between samples with genome doubling and without.
+ 
+\series bold
+(g)
+\series default
+ Correlation between compensation scores for CCLE and TCGA in different cancer types.
+ 
+\series bold
+(h)
+\series default
+ Comparison of compensation and toxicity in different cancer types.
+ Boxes show median ± quartile,
+ whiskers 1.5x inter-quartile range.
+ R
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+2
+\end_layout
+
+\end_inset
+
+ and 
+\emph on
+P
+\emph default
+-values from linear regression models.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/Figure S5 shrunk.pdf
+	lyxscale 50
+	scale 80
+	BoundingBox 0bp 200bp 612bp 792bp
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+Generation of doxycycline-inducible cell model systems to study CDKN1A overexpression.
+ (a)
+\series default
+ CDKN1A protein expression level and copy number for lung and breast cancer cell lines in CCLE.
+ No data for MDA-MB-231 cells available.
+ Expected (yellow) and observed (red) levels of CDKN1A protein expression are shown for each tumor type.
+ 
+\series bold
+(b)
+\series default
+ Increasing levels of 
+\emph on
+CDKN1A
+\emph default
+ transcript were detected by RT-qPCR in SK-LU-1
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+CDKN1A
+\end_layout
+
+\end_inset
+
+ and MDA-MB-231
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+CDKN1A
+\end_layout
+
+\end_inset
+
+ cells when treated with increasing concentrations of doxycycline.
+ Expression values are shown relative to untreated (0 ng/mL) control.
+ Mean and standard deviation of three technical replicates.
+ Data analyzed with one-way ANOVA.
+ 
+\series bold
+(c)
+\series default
+ Increases in exogenous (V5-tagged) and total CDKN1A protein were detected by immunoblotting in the same cell models.
+ Vinculin was used as loading control.
+ Expression values are shown relative to untreated (0 ng/mL) control.
+ 
+\series bold
+(d)
+\series default
+ Activity of luciferase cells was determined by a reporter assay.
+ Increases in luminescence were detected for both cell lines at increasing concentrations of doxycycline.
+ Luminescence values are shown relative to untreated (0 ng/mL) control.
+ Mean and standard deviation of three replicates.
+ Data analyzed with one-way ANOVA.
+ Source data for Figures S5b-d are provided as Source Data files.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/Figure S6 shrunk.pdf
+	lyxscale 50
+	scale 75
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+Generation of doxycycline-inducible cell model systems to study RBM14 overexpression.
+ (a)
+\series default
+ Cell lines chosen for functional validation show similar compensation profiles based on protein expression level and copy number.
+ 
+\series bold
+(b)
+\series default
+ Increasing levels of RBM14 transcript were detected by RT-qPCR in NCI-H838
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14
+\end_layout
+
+\end_inset
+
+,
+ NCI-H1650
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14
+\end_layout
+
+\end_inset
+
+,
+ ZR-75-1
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14
+\end_layout
+
+\end_inset
+
+ and HCC70
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14
+\end_layout
+
+\end_inset
+
+ cell lines when treated with increasing concentrations of doxycycline.
+ Expression values are shown relative to untreated (0 ng/mL) control.
+ Mean and standard deviation of three technical replicates.
+ Data analyzed with one-way ANOVA.
+ 
+\series bold
+(c)
+\series default
+ Increases in exogenous (V5-tagged) and total RBM14 protein were detected by immunoblotting in all four cell models.
+ Vinculin was used as loading control.
+ Expression values are shown relative to untreated (0 ng/mL) control.
+ 
+\series bold
+(d)
+\series default
+ Activity of luciferase cells was determined by a reporter assay.
+ Increases in luminescence were detected for both cell lines at increasing concentrations of doxycycline.
+ Luminescence values are shown relative to untreated (0 ng/mL) control.
+ Mean and standard deviation of three replicates.
+ Data analyzed with one-way ANOVA.
+ Source data for Figures S6b-d are provided as Source Data files.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/Figure S7.pdf
+	lyxscale 50
+	scale 80
+	BoundingBox 0bp 160bp 595bp 842bp
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+Cell cycle analysis in compensated cell line models of RBM14 overexpression.
+ (a)
+\series default
+ Representative image of a BrdU incorporation assay in NCI-H838 cells overexpressing RBM14 or luciferase control (of two biological replicates).
+ In this assay,
+ 7-AAD was used as nucleic acid staining to quantify total DNA content.
+ Source data are provided as a Source Data file.
+ 
+\series bold
+(b)
+\series default
+ Percentage of cells in each phase of the cell cycle following RBM14 or luciferase overexpression in lung (NCI-H838,
+ NCI-H1650) and breast (ZR-75-1,
+ HCC70) cancer cell lines (in three replicates,
+ each with 10,000 recorded events).
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/Figure S8.pdf
+	lyxscale 50
+	scale 83
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+ContinuedFloat
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+(previous page) DNA damage response in cell line models of RBM14 overexpression.
+ (a)
+\series default
+ The number of yH2AX foci was quantified by immunofluorescence in breast ZR-75-1
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14/luc
+\end_layout
+
+\end_inset
+
+ and HCC70
+\begin_inset script superscript
+
+\begin_layout Plain Layout
+RBM14/luc
+\end_layout
+
+\end_inset
+
+ cells following 2 Gy ionizing radiation (IR).
+ Data analyzed by two-way ANOVA.
+ The horizontal bar in each violin plot indicates the mean.
+ Images analyzed from two independent biological replicates.
+ 
+\series bold
+(b)
+\series default
+ Representative images for each condition of the DNA damage reporter assay described in Fig.
+ 6c.
+ The fraction of GFP-positive cells are shown in green rectangles.
+ 
+\series bold
+(c)
+\series default
+ Quantification of the number of mitotic defects per cell after 2 Gy IR.
+ Representative images of observed mitotic alterations,
+ including DNA bridges,
+ micronuclei formation and cell division without metaphase (images on the right panel).
+ Scale bar:
+ 12 µM.
+ Data from two biological replicates 
+\series bold
+(d)
+\series default
+ Rates of cells with mitotic defects following DNA damage by 2 Gy IR.
+ The mean of each condition is shown in black.
+ Data analyzed with unpaired two-tailed t-test.
+ 
+\series bold
+(e-f)
+\series default
+ Response of lung and breast cell line models to (e) DNA-PK inhibition (NU7441) and (f) RAD51 (B02) inhibition.
+ Cells were irradiated with 2 Gy and treated with each small-molecule for 72h.
+ Cell viability relative to DMSO control was assessed in a CellTiterGlo luminescence assay.
+ Data analyzed with two-way ANOVA.
+ Source data for Figures S8a and S8d-f are provided as Source Data files.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement document
+alignment document
+wide false
+sideways false
+status open
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename /home/mschu/Work/ORFdosage/report/final/Figure S9.pdf
+	lyxscale 50
+	scale 80
+	BoundingBox 0bp 280bp 612bp 792bp
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Plain Layout
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+
+\series bold
+RBM14 overexpression modulates response to STAT3 inhibition.
+ (a-b)
+\series default
+ Response of lung and breast cell line models to increasing concentrations of the STAT3 inhibitors (a) C188-9 and (b) HJC052.
+ Cells were irradiated with 2 Gy and treated with each small-molecule for 72h.
+ Cell viability relative to DMSO control was assessed in a MTT absorbance assay.
+ Source data for Figures S9a and S9b are provided as Source Data files.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section*
+Supplementary Tables
+\end_layout
+
+\begin_layout Standard
+In this section,
+ we provide our identified pan-cancer gene sets as lists that can easily be copied to other platforms (
+\emph on
+e.g.
+
+\emph default
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+href{https://maayanlab.cloud/Enrichr/}{https://maayanlab.cloud/Enrichr/}
+\end_layout
+
+\end_inset
+
+) for further exploration.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Table 1:
+ Compensated genes in CCLE
+\end_layout
+
+\begin_layout Standard
+This gene list with 416 symbols is provided as an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+textattachfile[color=0 0 1]{SuppNote-CCLEcomp.txt}{embedded text file}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Table 2:
+ Compensated genes in TCGA
+\end_layout
+
+\begin_layout Standard
+This gene list with 671 symbols is provided as an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+textattachfile[color=0 0 1]{SuppNote-TCGAcomp.txt}{embedded text file}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Table 3:
+ Compensated genes common to both datasets
+\end_layout
+
+\begin_layout Standard
+This gene list with 110 symbols is provided as an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+textattachfile[color=0 0 1]{SuppNote-comp.txt}{embedded text file}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Table 4:
+ Toxic genes
+\end_layout
+
+\begin_layout Standard
+This gene list with 343 symbols is provided as an 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+textattachfile[color=0 0 1]{SuppNote-toxic.txt}{embedded text file}
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Table 5:
+ ARGOS genes
+\end_layout
+
+\begin_layout Standard
+This gene list with 9 symbols is provided below.
+\end_layout
+
+\begin_layout Standard
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+begin{verbatim}
+\end_layout
+
+\begin_layout Plain Layout
+
+RBM12
+\end_layout
+
+\begin_layout Plain Layout
+
+RBM14
+\end_layout
+
+\begin_layout Plain Layout
+
+SNRPA
+\end_layout
+
+\begin_layout Plain Layout
+
+CTCF
+\end_layout
+
+\begin_layout Plain Layout
+
+ZBTB14
+\end_layout
+
+\begin_layout Plain Layout
+
+BANP
+\end_layout
+
+\begin_layout Plain Layout
+
+PKNOX1
+\end_layout
+
+\begin_layout Plain Layout
+
+POU2F1
+\end_layout
+
+\begin_layout Plain Layout
+
+CDKN1A
+\end_layout
+
+\begin_layout Plain Layout
+
+
+\backslash
+end{verbatim}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document

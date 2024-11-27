@@ -8,31 +8,31 @@ cm = import('./common')
 comp_orf = function(gistic_amp) {
     dset = cm$get_pancan_summary() |>
         dplyr::rename(gene_name = gene) |>
-        inner_join(gistic_amp) |>
+        left_join(gistic_amp) |>
         mutate(type = ifelse(is.na(type), "Background", type),
                est_ccle_tcga = (comp_ccle + comp_tcga)/2,
-               dropout = stat_orf < -5,
-               label = ifelse((type != "Background" & abs(stat_orf) > 4) | stat_orf > 6 |
-                              stat_orf < -15 | abs(est_ccle_tcga) > 0.8, gene_name, NA))
+               label = ifelse((type == "Compensated" & stat_orf < -5) |
+                    (type == "Hyperactivated" & stat_orf < -7) | stat_orf > 6 | is_argos |
+                    stat_orf < -12 | abs(est_ccle_tcga) > 0.87, gene_name, NA))
 
     m = lm(stat_orf ~ est_ccle_tcga, data=dset) %>% broom::glance()
     lab = sprintf("R^2~`=`~%.3f~\n~italic(P)~`=`~%.2g", m$adj.r.squared, m$p.value) %>%
         sub("e", "%*%10^", .)
+    cols = cm$cols[c("Background", "Compensated", "Hyperactivated")]
 
     ggplot(dset, aes(x=est_ccle_tcga, y=stat_orf)) +
-        geom_hline(yintercept=0, size=2, linetype="dashed", color="grey") +
-        geom_vline(xintercept=0, size=2, linetype="dashed", color="grey") +
-        geom_point(aes(color=type, alpha=dropout)) +
+        geom_hline(yintercept=0, linetype="dashed", color="black") +
+        geom_vline(xintercept=0, linetype="dashed", color="black") +
+        geom_point(aes(color=type, shape=is_tox)) +
         geom_smooth(method="lm", se=FALSE) +
-        scale_color_manual(values=cm$cols[c("Background", "Compensated", "Hyperactivated")], name="Compensation\nclass") +
-        scale_alpha_manual(values=c("TRUE"=0.95, "FALSE"=0.3), na.translate=FALSE, name="Toxic gene") +
-        ggnewscale::new_scale("alpha") +
+        scale_color_manual(values=cols, name="Compensation\nclass") +
+        scale_shape_manual(values=c("TRUE"=20, "FALSE"=1), na.translate=FALSE, name="Toxic gene") +
         ggrepel::geom_label_repel(aes(label=label, color=type), size=3,
             box.padding=unit(0.1, "lines"), min.segment.length=0,
             segment.alpha=0.3, fill="#ffffffa0", label.size=NA) +
         annotate("text", y=6, x=0.6, hjust=0, label=lab, color="blue", parse=TRUE) +
         cm$theme_classic() +
-        coord_cartesian(clip="off") +
+        coord_cartesian(clip="off", xlim=c(-1,NA)) +
         labs(x = "Mean compensation score CCLE/TCGA",
              y = "ORF dropout (Wald statistic)")
 }

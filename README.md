@@ -27,10 +27,13 @@ The main Analysis steps are performed in the following directories:
 * `data` - Creating the analytical data sets
 * `model_compensation` - The compensation analysis
 * `model_orf` - The ORF toxicity analysis
+* `misc` - Specific questions and reviewer requests
 * `report` - The scripts to create all figures in the manuscript
 
 Those can be run via the `snakemake` workflow manager once all dependencies are
 met.
+
+All other directories contain analyses that are not part of the publication.
 
 ## Dependencies
 

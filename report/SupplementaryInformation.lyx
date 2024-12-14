@@ -304,6 +304,35 @@ All Supplementary Data are provided as separate files.
 
 \begin_layout Subsection*
 Supplementary Data 1:
+ Gene lists for further exploration
+\end_layout
+
+\begin_layout Standard
+In this file,
+ we provide our identified pan-cancer gene sets as lists that can easily be copied to other platforms (
+\emph on
+e.g.
+
+\emph default
+ 
+\begin_inset ERT
+status open
+
+\begin_layout Plain Layout
+
+
+\backslash
+href{https://maayanlab.cloud/Enrichr/}{https://maayanlab.cloud/Enrichr/}
+\end_layout
+
+\end_inset
+
+) for further exploration.
+ They contain only gene symbols present in these lists.
+\end_layout
+
+\begin_layout Subsection*
+Supplementary Data 2:
  CCLE gene expression compensation
 \end_layout
 
@@ -389,7 +418,7 @@ Hyperactivated
 \end_layout
 
 \begin_layout Subsection*
-Supplementary Data 2:
+Supplementary Data 3:
  TCGA gene expression compensation
 \end_layout
 
@@ -480,7 +509,7 @@ Hyperactivated
 \end_layout
 
 \begin_layout Subsection*
-Supplementary Data 3:
+Supplementary Data 4:
  Assembled ORF screen data
 \end_layout
 
@@ -495,7 +524,7 @@ Source data of the different ORF screens incorporated in this study.
 \end_layout
 
 \begin_layout Subsection*
-Supplementary Data 4:
+Supplementary Data 5:
  ORF toxicity associations
 \end_layout
 
@@ -1358,205 +1387,6 @@ RBM14 overexpression modulates response to STAT3 inhibition.
 \end_inset
 
 
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-\begin_inset Newpage pagebreak
-\end_inset
-
-
-\end_layout
-
-\begin_layout Section*
-Supplementary Tables
-\end_layout
-
-\begin_layout Standard
-In this section,
- we provide our identified pan-cancer gene sets as lists that can easily be copied to other platforms (
-\emph on
-e.g.
-
-\emph default
- 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-href{https://maayanlab.cloud/Enrichr/}{https://maayanlab.cloud/Enrichr/}
-\end_layout
-
-\end_inset
-
-) for further exploration.
-\end_layout
-
-\begin_layout Subsection*
-Supplementary Table 1:
- Compensated genes in CCLE
-\end_layout
-
-\begin_layout Standard
-This gene list with 416 symbols is provided as an 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-textattachfile[color=0 0 1]{SuppNote-CCLEcomp.txt}{embedded text file}
-\end_layout
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection*
-Supplementary Table 2:
- Compensated genes in TCGA
-\end_layout
-
-\begin_layout Standard
-This gene list with 671 symbols is provided as an 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-textattachfile[color=0 0 1]{SuppNote-TCGAcomp.txt}{embedded text file}
-\end_layout
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection*
-Supplementary Table 3:
- Compensated genes common to both datasets
-\end_layout
-
-\begin_layout Standard
-This gene list with 110 symbols is provided as an 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-textattachfile[color=0 0 1]{SuppNote-comp.txt}{embedded text file}
-\end_layout
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection*
-Supplementary Table 4:
- Toxic genes
-\end_layout
-
-\begin_layout Standard
-This gene list with 343 symbols is provided as an 
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-textattachfile[color=0 0 1]{SuppNote-toxic.txt}{embedded text file}
-\end_layout
-
-\end_inset
-
-.
-\end_layout
-
-\begin_layout Subsection*
-Supplementary Table 5:
- ARGOS genes
-\end_layout
-
-\begin_layout Standard
-This gene list with 9 symbols is provided below.
-\end_layout
-
-\begin_layout Standard
-\begin_inset ERT
-status open
-
-\begin_layout Plain Layout
-
-
-\backslash
-begin{verbatim}
-\end_layout
-
-\begin_layout Plain Layout
-
-RBM12
-\end_layout
-
-\begin_layout Plain Layout
-
-RBM14
-\end_layout
-
-\begin_layout Plain Layout
-
-SNRPA
-\end_layout
-
-\begin_layout Plain Layout
-
-CTCF
-\end_layout
-
-\begin_layout Plain Layout
-
-ZBTB14
-\end_layout
-
-\begin_layout Plain Layout
-
-BANP
-\end_layout
-
-\begin_layout Plain Layout
-
-PKNOX1
-\end_layout
-
-\begin_layout Plain Layout
-
-POU2F1
-\end_layout
-
-\begin_layout Plain Layout
-
-CDKN1A
-\end_layout
-
-\begin_layout Plain Layout
-
-
-\backslash
-end{verbatim}
 \end_layout
 
 \end_inset

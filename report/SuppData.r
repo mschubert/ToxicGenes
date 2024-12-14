@@ -43,7 +43,7 @@ make_desc_comp = function(name) {
 
 make_desc_orf = function() {
     list(description=tibble::tribble(
-        ~ "Supplementary Data 4: ORF Toxicity", ~ "",
+        ~ "Supplementary Data 5: ORF Toxicity", ~ "",
         "", "",
         "gene", "HGNC gene symbol",
         "estimate", "The estimate of the linear regression model",
@@ -94,11 +94,24 @@ libinfo$cells[9] = "ORF-T47D" # remove invalid character
 orfdata$`Libraries` = libinfo
 orfdata[[3]] = orfdata[[3]][1:7]
 
-writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 1: CCLE compensation"),
+writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 2: CCLE compensation"),
                       ccle[c("Pan-Cancer", sort(setdiff(names(ccle), "Pan-Cancer")))]),
-                    "SuppData1_CCLE-comp.xlsx")
-writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 2: TCGA compensation"),
+                    "SuppData2_CCLE-comp.xlsx")
+writexl::write_xlsx(c(make_desc_comp(~ "Supplementary Data 3: TCGA compensation"),
                       tcga[c("Pan-Cancer", sort(setdiff(names(tcga), "Pan-Cancer")))]),
-                    "SuppData2_TCGA-comp.xlsx")
-writexl::write_xlsx(orfdata, "SuppData3_ORFscreens.xlsx")
-writexl::write_xlsx(c(make_desc_orf(), orf), "SuppData4_ORF-toxicity.xlsx")
+                    "SuppData3_TCGA-comp.xlsx")
+writexl::write_xlsx(orfdata, "SuppData4_ORFscreens.xlsx")
+writexl::write_xlsx(c(make_desc_orf(), orf), "SuppData5_ORF-toxicity.xlsx")
+
+ccle_comp = ccle$`Pan-Cancer` |> filter(type == "Compensated") |> pull(gene)
+tcga_comp = tcga$`Pan-Cancer` |> filter(type == "Compensated") |> pull(gene)
+both = intersect(ccle_comp, tcga_comp)
+orfg = orf$`Pan-Cancer` |> filter(is_toxic) |> pull(gene)
+genesets = list(
+    `Compensated CCLE` = data.frame(genes=ccle_comp),
+    `Compensated TCGA` = data.frame(genes=tcga_comp),
+    `Compensated both` = data.frame(genes=both),
+    `Toxic` = data.frame(genes=orfg),
+    `ARGOS` = data.frame(genes=intersect(both, orfg))
+)
+writexl::write_xlsx(genesets, "SuppData1_Genesets.xlsx")

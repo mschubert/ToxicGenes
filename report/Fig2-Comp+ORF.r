@@ -191,17 +191,17 @@ sys$run({
         filter(type == "amplification", frac > 0.15) %>%
         select(gene_name, frac)
 
-    ccle = readxl::read_xlsx("SuppData1_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
+    ccle = readxl::read_xlsx("SuppData2_CCLE-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
-    tcga3 = readxl::read_xlsx("SuppData2_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
+    tcga3 = readxl::read_xlsx("SuppData3_TCGA-comp.xlsx", sheet="Pan-Cancer") %>%
         mutate(estimate = pmax(-2, pmin(compensation, 2.5)))
     comp_all = inner_join(ccle, tcga3, by="gene") %>%
         dplyr::rename(gene_name = gene) %>%
         left_join(cosmic)
     comp = comp_all %>% inner_join(gistic_amp)
 
-    orfdata = sapply(readxl::excel_sheets("SuppData4_ORF-toxicity.xlsx"), readxl::read_xlsx,
-                     path="SuppData4_ORF-toxicity.xlsx", simplify=FALSE)
+    orfdata = sapply(readxl::excel_sheets("SuppData5_ORF-toxicity.xlsx"), readxl::read_xlsx,
+                     path="SuppData5_ORF-toxicity.xlsx", simplify=FALSE)
 
     left = (wrap_elements(schema_comp() + theme(plot.margin=margin(0,0,-5,-12,"mm")))) /
         tcga_ccle_cor(comp, gistic_amp, cosmic) /

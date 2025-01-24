@@ -32,13 +32,13 @@ get_cosmic_annot = function() {
 
 get_comp_tissue = function() {
     cfg = yaml::read_yaml(module_file("../config.yaml"))
-    fname = module_file("SuppData1_CCLE-comp.xlsx")
+    fname = module_file("SuppData2_CCLE-comp.xlsx")
     ccle = readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
         bind_rows(.id="tissue") %>%
         mutate(src = "CCLE")
-    fname = module_file("SuppData2_TCGA-comp.xlsx")
+    fname = module_file("SuppData3_TCGA-comp.xlsx")
     tcga = readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE) %>%
@@ -54,7 +54,7 @@ get_comp_tissue = function() {
 }
 
 get_tox = function() {
-    fname = module_file("SuppData4_ORF-toxicity.xlsx")
+    fname = module_file("SuppData5_ORF-toxicity.xlsx")
     readxl::excel_sheets(fname) %>%
         setdiff("description") %>%
         sapply(readxl::read_xlsx, path=fname, simplify=FALSE)
@@ -74,11 +74,11 @@ get_argos = function(pan=FALSE) {
 }
 
 get_pancan_summary = function() {
-    ccle = readxl::read_xlsx("SuppData1_CCLE-comp.xlsx", sheet="Pan-Cancer") |>
+    ccle = readxl::read_xlsx("SuppData2_CCLE-comp.xlsx", sheet="Pan-Cancer") |>
         transmute(gene, comp_ccle=compensation, type_ccle=type)
-    tcga = readxl::read_xlsx("SuppData2_TCGA-comp.xlsx", sheet="Pan-Cancer") |>
+    tcga = readxl::read_xlsx("SuppData3_TCGA-comp.xlsx", sheet="Pan-Cancer") |>
         transmute(gene, comp_tcga=compensation, type_tcga=type)
-    orf = readxl::read_xlsx("SuppData4_ORF-toxicity.xlsx", sheet="Pan-Cancer") |>
+    orf = readxl::read_xlsx("SuppData5_ORF-toxicity.xlsx", sheet="Pan-Cancer") |>
         transmute(gene, est_orf=estimate, stat_orf=statistic, is_tox=is_toxic)
     inner_join(ccle, tcga) |>
         mutate(type = ifelse(type_ccle == type_tcga, type_ccle, "Background"),
